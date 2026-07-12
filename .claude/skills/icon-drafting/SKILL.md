@@ -14,13 +14,21 @@ may re-declare it.
 
 ## The chosen mark (July 2026): a two-tier system
 
-The tier is picked by **DISPLAYED size, never raster resolution**: a
-1024px app icon still renders at taskbar/dock/tab size, so **the app icon
-is F4k at every resolution** (selected 2026-07-12, after resources/ was
-mistakenly generated with card-K rasters at 48px+). The card-K is
-reserved for genuinely large in-page/marketing display.
+The tier is picked by **DISPLAYED context, never raster resolution**:
+card-K where the mark shows large, F4k where the OS shows it small. The
+dividing line is who controls the displayed size (settled 2026-07-12):
 
-**Large in-page display - F1bk "Card-K knockout"** (`assets/brandmark.svg`):
+- **Multi-resolution containers (.ico/.icns) and the desktop PNG ladder**
+  supply a size-specific entry, so the mark tiers per entry: card-K at
+  128+ (dock, Finder/Explorer large views), F4k at 16-64 (taskbar, tray,
+  tab). `preview.png` shows this boundary.
+- **Single-image masters the OS downscales itself** (iOS/Play store
+  icons, PWA/apple-touch/manifest icons, favicons) stay F4k. A card-K
+  master shrunk to a ~60px home-screen icon is illegible - this is the
+  bug that produced the rule, first mis-seen as "F4k everywhere" and then
+  corrected to the container-vs-master line above.
+
+**Card-K "F1bk knockout"** (`assets/brandmark.svg`, large surfaces):
 
 - Rust disc (`#C0562F`).
 - A rounded card punched clean through the disc (a true alpha hole, like
@@ -35,13 +43,13 @@ reserved for genuinely large in-page/marketing display.
   it is literally the arm's own end (a paint.net construction,
   implemented as paint-erase-overpaint).
 
-**THE APP ICON - F4k board glyph** (`assets/brandmark-small.svg`, all of
-`resources/`): letterless - three column holes through the rust disc,
-amber card mid-drop. Picked as "the clear, outright winner" from an
-in-header live comparison (2026-07-12) against K-hole disc, cream-K
-filled, small-cut card-K, and the pinwheel: at 24-26px the chunky columns
-and amber card beat every letterform. Same knockout DNA as the card-K
-(holes in the rust disc), so the tiers read as siblings.
+**The small-display mark - F4k board glyph** (`assets/brandmark-small.svg`;
+every chrome-size app-icon surface): letterless - three column holes
+through the rust disc, amber card mid-drop. Picked as "the clear, outright
+winner" from an in-header live comparison (2026-07-12) against K-hole
+disc, cream-K filled, small-cut card-K, and the pinwheel: at 24-26px the
+chunky columns and amber card beat every letterform. Same knockout DNA as
+the card-K (holes in the rust disc), so the tiers read as siblings.
 
 Why two tiers: at small display the card-K fails STRUCTURALLY, not by degree -
 the K is the same rust as the disc ring, so the eye merges them and reads
@@ -90,11 +98,14 @@ Key mechanics:
   alpha holes via an SVG mask, then filled overlays on top. This is the
   theme-following rendition. `discOnSquare()` is the opaque rendition for
   surfaces that reject alpha (iOS, stores): holes reveal the cream square.
-- **The tier rule**: app icons (everything in `resources/`) are
-  `f4kParts()` at every raster size; `cardKParts(sizePx)` serves the
-  genuinely-large in-page contexts. There is deliberately NO
-  by-raster-size picker - that abstraction caused the wrong-icon bug
-  (card-K rasters shipped into resources/ because 1024 "looked large").
+- **The tier rule**: `markFor(size)` in `gen-icons.mjs` picks
+  `cardKParts(size)` at 128+ and `f4kParts()` below, but ONLY for
+  size-specific entries the OS selects from (the .ico/.icns containers and
+  the desktop PNG ladder). Every `squarePng`/single-master surface the OS
+  downscales itself (stores, PWA, favicons) is hard-wired to `f4kParts()`,
+  regardless of raster size - a 1024 store master is still F4k because it
+  becomes the small home-screen icon. Feeding `cardKParts()` into a
+  downscaled master is the wrong-icon bug; do not.
 
 ## Review discipline (what made this work)
 

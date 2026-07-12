@@ -1,11 +1,11 @@
 # Rule: mark geometry lives only in scripts/lib/mark.mjs
 
 The Kangentic mark's geometry (the frozen K path, the split-tip cuts, the
-tight card, the F4k glyph, the disc builders, the tier selection) was
-converged through many rounds. Re-declaring any of it elsewhere is how the
-constants silently drift and a generator ships a subtly wrong mark - which
-already happened once (card-K rasters shipped into `resources/` because a
-by-raster-size picker treated 1024px as "large display").
+tight card, the F4k glyph, the disc builders) was converged through many
+rounds. Re-declaring any of it elsewhere is how the constants silently
+drift and a generator ships a subtly wrong mark - which already happened
+once (card-K shipped onto app-icon surfaces the OS downscales to chrome,
+where it becomes an illegible mini-K).
 
 ## The rule
 
@@ -15,19 +15,25 @@ by-raster-size picker treated 1024px as "large display").
   Le Bold via WPF). Never render brandmark text with SVG `<text>`; never
   hand-edit the path. To change the typeface, re-run the extraction and
   update `K_PATH` / `K_B` / `K_BASELINE_IN_EM` in the lib.
-- **The app icon is the F4k board glyph at EVERY raster resolution.** Tier
-  by displayed context, never by pixel dimensions: a 1024px icon still
-  shows at taskbar/dock size. Icon generators call `f4kParts()`; the
-  card-K (`cardKParts()`) is only for genuinely large in-page display.
-  Do not reintroduce a by-raster-size tier picker.
+- **Tier the mark by DISPLAYED context, not raster size.** card-K where
+  the mark shows large, F4k where the OS shows it small. The dividing line
+  is who controls the displayed size:
+  - Multi-resolution containers (.ico/.icns) and the desktop PNG ladder
+    supply a size-specific entry, so they tier: `markFor(size)` picks
+    card-K at 128+ and F4k at 16-64.
+  - Single-image masters the OS downscales itself (iOS/Play store icons,
+    PWA/apple-touch/manifest icons, favicons, `squarePng` surfaces) stay
+    F4k. A card-K master shrunk to a 60px home-screen icon is illegible -
+    this is the bug that produced this rule. Never feed `cardKParts()`
+    into a surface the OS resizes down to chrome.
 - Iterate in named constants (`CARD_MARGIN`, `CARD_RING`, `CUT_*`), never
   ad-hoc magic numbers at a call site.
 
 ## Enforcement (self-maintaining)
 
 - **Review:** changes under `scripts/` are checked for re-declared
-  geometry constants and for any icon path that renders card-K instead of
-  F4k. The `/release` determinism gate is the mechanical backstop:
+  geometry constants and for any downscaled-master surface fed card-K.
+  The `/release` determinism gate is the mechanical backstop:
   regenerating must not change committed `assets/` or `resources/`.
 
 ## Scope

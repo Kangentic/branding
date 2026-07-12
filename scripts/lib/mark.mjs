@@ -142,11 +142,12 @@ export const kOnDisc = (() => {
   return (svg) => `<g transform="translate(50,50) scale(${q}) translate(${-cx},${-cy})">${svg}</g>`;
 })();
 
-// Tier by DISPLAYED size, never by raster resolution: a 1024px app icon
-// still renders at taskbar/dock size, so APP ICONS ARE F4K AT EVERY
-// RESOLUTION (selected 2026-07-12). The card-K is the large
-// in-page/marketing mark (hero, social, print).
-// cardKParts(sizePx) exists for those genuinely-large contexts.
+// Tier by DISPLAYED context, never by raster resolution. gen-icons.mjs
+// uses cardKParts() for the entries the OS picks by size (128+ in the
+// .ico/.icns containers and the desktop ladder) and f4kParts() for the
+// small entries and for every single-master surface the OS downscales
+// itself (stores, PWA, favicons). A 1024 store master is still F4k
+// because it becomes the small home-screen icon. Settled 2026-07-12.
 export function cardKParts(sizePx = 512) {
   const { hole, filled } = tightCardK(CARD_MARGIN, cutFor(sizePx));
   return { holes: hole, filled };

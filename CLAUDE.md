@@ -32,12 +32,16 @@ CHANGELOG.md              Release log (managed by /release)
 
 ## Key Conventions
 
-- **Two-tier mark, by DISPLAYED size (never raster resolution)**: the
-  APP ICON is the F4k board glyph at every resolution - a 1024px icon
-  still displays at taskbar/dock/tab size. The card-K is the large
-  in-page/marketing mark (hero, social, print; `assets/brandmark.svg`,
-  `cardKParts()` in `lib/mark.mjs`). The mark must be unmistakable at
-  24x24.
+- **Two-tier mark, keyed to DISPLAYED context (not raster size)**:
+  card-K (the letter) where the mark shows large, F4k (the board glyph)
+  where the OS shows it small. The line is whether the OS picks a
+  size-specific entry or downscales one master: multi-resolution
+  containers (.ico/.icns) and the desktop PNG ladder tier per entry
+  (card-K >=128, F4k <=64); single-image masters the OS shrinks to chrome
+  (store icons, PWA/apple-touch/manifest icons, favicons) stay F4k, or the
+  installed icon becomes an illegible downscaled card-K. `markFor(size)`
+  in `gen-icons.mjs`; `cardKParts()` / `f4kParts()` in `lib/mark.mjs`. The
+  mark must be unmistakable at 24x24.
 - **Versioning = brand generation**: package major tracks the brand line
   (v1 blue K archived in `archive/v1/`, v2.x = Warm Craft). Minor/patch
   for refinements within the line. A major bump REQUIRES archiving the
@@ -82,7 +86,7 @@ matching file enters context. Each rule names its enforcement.
 - `no-personal-info.md` - no personal names, emails, or machine paths in committed code (repo is public); attribute decisions to roles and dates.
 
 **Path-scoped rules (load with their subsystem):**
-- `mark-geometry-single-source.md` - all mark geometry lives only in `scripts/lib/mark.mjs`; the app icon is F4k at every raster resolution (`scripts/**`).
+- `mark-geometry-single-source.md` - all mark geometry lives only in `scripts/lib/mark.mjs`; tier by displayed context (card-K in size-specific container entries >=128, F4k in every OS-downscaled master) (`scripts/**`).
 - `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the `/release` gate enforces it (`assets/**`, `resources/**`, generators).
 
 **Authoring a rule:** one concern per file, descriptive kebab-case name.
