@@ -4,10 +4,12 @@
   "description": "Kangentic brand assets: the two-tier brandmark (card-K / F4k board glyph), icon sets, and the drafting harness that generates them. Single source of truth for the website, desktop app, and mobile app.",
   "type": "module",
   "files": [
-    "assets"
+    "assets",
+    "resources"
   ],
   "scripts": {
-    "gen": "node scripts/gen-brandmark.mjs"
+    "gen": "node scripts/gen-brandmark.mjs",
+    "gen:icons": "node scripts/gen-icons.mjs"
   },
   "repository": {
     "type": "git",

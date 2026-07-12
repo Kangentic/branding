@@ -10,15 +10,18 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import {
+  CREAM, INK, RUST, AMBER,
+  fontK, geoK, halfplane,
+  ARM_A, ARM_D, CUT_CANON, CUT_SMALL,
+  bandRect, kWithGap, tipClipped, fontKSplit,
+  enlarged, knockout,
+  CARD_MARGIN, tightCardK, f4kParts, kOnDisc,
+} from "./lib/mark.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "exploration", "icon-concepts");
 const ASSETS = join(ROOT, "assets");
-
-const CREAM = "#fdfbf7";
-const INK = "#24201b";
-const RUST = "#c0562f";
-const AMBER = "#e8a33d";
 
 // Chunky pixel K (8 wide x 10 tall), same glyph as the logo-pixel candidate.
 const PIXEL_K = [
@@ -54,83 +57,9 @@ function bar(x0, y0, x1, y1, halfW) {
   return `${x0 + px},${y0 + py} ${x1 + px},${y1 + py} ${x1 - px},${y1 - py} ${x0 - px},${y0 - py}`;
 }
 
-// K v5: Microsoft Tai Le Bold "K", FROZEN as path data (extracted once via
-// WPF FormattedText.BuildGeometry, em=100) so renders are deterministic and
-// exported SVGs are portable - no installed-font dependency anywhere.
-// Metrics below replicate the previously approved <text> rendering exactly:
-// font-size 79 in the 100-box, baseline at y=79, centered on x=50.
-const K_PATH =
-  "M8.0078125,22.70380401611328L23.779296875,22.70380401611328 23.779296875,55.80927276611328 24.0234375,55.80927276611328 24.365232467651367,55.05243682861328 24.804685592651367,54.14911651611328 25.341794967651367,53.09931182861328 25.9765625,51.90302276611328 45.3125,22.70380401611328 64.111328125,22.70380401611328 39.697265625,56.10224151611328 66.2109375,92.72333526611328 46.2890625,92.72333526611328 25.87890625,62.30341339111328 25.543212890625,61.73273468017578 25.1220703125,60.89960479736328 24.615478515625,59.80402374267578 24.0234375,58.44599151611328 23.779296875,58.44599151611328 23.779296875,92.72333526611328 8.0078125,92.72333526611328 8.0078125,22.70380401611328z";
-const K_B = { x: 8.0078125, y: 22.70380401611328, w: 58.203125, h: 70.01953125 };
-const K_SIZE = 79; // em size in the 100-box
-const K_BASE = 79; // baseline y
-const K_BASELINE_IN_EM = 92.72333526611328; // ink bottom = baseline for K
-
-function fontK(fill, s = 1) {
-  const k = K_SIZE / 100;
-  const tx = 50 - k * (K_B.x + K_B.w / 2);
-  const ty = K_BASE - k * K_BASELINE_IN_EM;
-  return `<g transform="translate(${tx * s},${ty * s}) scale(${k * s})"><path d="${K_PATH}" fill="${fill}"/></g>`;
-}
-// Back-compat alias used by disc()/mark() callers.
-function geoK(fill, size) {
-  return fontK(fill, size / 100);
-}
-
-// Half-plane quad for clip paths: covers side>0 or side<0 of the line
-// through (cx,cy) with unit normal (dx,dy). Coordinates in the 100-box*s.
-function halfplane(cx, cy, dx, dy, side, s = 1) {
-  const vx = -dy, vy = dx;
-  const L = 400;
-  const pts = [
-    [cx - vx * L, cy - vy * L],
-    [cx + vx * L, cy + vy * L],
-    [cx + vx * L + side * dx * L, cy + vy * L + side * dy * L],
-    [cx - vx * L + side * dx * L, cy - vy * L + side * dy * L],
-  ];
-  return pts.map(([x, y]) => `${x * s},${y * s}`).join(" ");
-}
-
-// Arm axis (~38deg up-right). The gap band sits perpendicular to the arm,
-// centered at BAND_C with width GAP; the tip is everything past CUT2.
-// Built as paint-erase-overpaint so the cut can sit anywhere on the arm
-// without ever clipping the stem: 1) full K, 2) gap band erased (mask or
-// background paint), 3) severed end overpainted in the tip color.
-const ARM_A = 38;
-const ARM_D = { x: Math.cos((ARM_A * Math.PI) / 180), y: -Math.sin((ARM_A * Math.PI) / 180) };
-// Size-specific cuts: the CANON cut for large display, and a SMALL cut
-// with the tip and gap exaggerated so the split survives 16-32px (nav,
-// favicon). Standard logo-system practice: same mark, coarser details.
-const CUT_CANON = { cx: 55.75, cy: 38.9, gap: 4.5 };
-const CUT_SMALL = { cx: 52.6, cy: 41.4, gap: 6.5 };
-
-let clipSeq = 0;
-// The gap band: a thin rect across the arm, rotated to the arm angle.
-function bandRect(fill, s = 1, P = CUT_CANON) {
-  return `<rect x="${(P.cx - P.gap / 2) * s}" y="${(P.cy - 13) * s}" width="${P.gap * s}" height="${26 * s}" transform="rotate(${-ARM_A} ${P.cx * s} ${P.cy * s})" fill="${fill}"/>`;
-}
-// Full K with the gap erased via its own mask (background-agnostic).
-function kWithGap(fill, s = 1, P = CUT_CANON) {
-  const id = `kg${clipSeq++}`;
-  return `<mask id="${id}"><rect x="${-50 * s}" y="${-50 * s}" width="${200 * s}" height="${200 * s}" fill="#fff"/>${bandRect("#000", s, P)}</mask>
-    <g mask="url(#${id})">${fontK(fill, s)}</g>`;
-}
-// The severed arm-end alone (everything past the gap along the arm).
-function tipClipped(fill, s = 1, P = CUT_CANON) {
-  const id = `kt${clipSeq++}`;
-  const c2x = P.cx + (P.gap / 2) * ARM_D.x;
-  const c2y = P.cy + (P.gap / 2) * ARM_D.y;
-  return `<clipPath id="${id}"><polygon points="${halfplane(c2x, c2y, ARM_D.x, ARM_D.y, 1, s)}"/></clipPath>
-    <g clip-path="url(#${id})">${fontK(fill, s)}</g>`;
-}
-// The split K: body in kFill, severed arm-end in tipFill.
-function fontKSplit(kFill, tipFill, s = 1, P = CUT_CANON) {
-  return kWithGap(kFill, s, P) + tipClipped(tipFill, s, P);
-}
-
-// Disc-context enlargement: flush terminals free up room, so disc marks
-// run the glyph 18% larger about center (100-box only).
-const enlarged = (svg) => `<g transform="translate(-9,-9) scale(1.18)">${svg}</g>`;
+// K v5: the frozen Microsoft Tai Le Bold "K", the split-tip system, and
+// the disc enlargement all live in scripts/lib/mark.mjs (imported above) -
+// no geometry may be re-declared here.
 
 // Disc + optional ring + glyph. Glyph: "pixel" | "geo".
 function mark(size, { disc, ring, glyph, glyphColor }) {
@@ -346,20 +275,8 @@ const tipAxis = (fill) => tipClipped(fill);
 // nested masks needed.
 const kBodyShort = (fill) => fontK(fill) + bandRect(fill === "#000" ? "#fff" : "#000");
 
-// holes100/filled100 are shapes in the 100-box; holes must use fill="#000".
-function knockout(size, holes100, filled100) {
-  const c = size / 2;
-  const s = size / 100;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
-    <defs><mask id="m">
-      <circle cx="${c}" cy="${c}" r="${c}" fill="#fff"/>
-      <g transform="scale(${s})">${holes100}</g>
-    </mask></defs>
-    <circle cx="${c}" cy="${c}" r="${c}" fill="${RUST}" mask="url(#m)"/>
-    <g transform="scale(${s})">${filled100}</g>
-  </svg>`;
-}
-
+// knockout() lives in lib/mark.mjs: holes100/filled100 are shapes in the
+// 100-box; holes must use fill="#000".
 const CARD_HOLE = `<rect x="22" y="22" width="56" height="56" rx="8" fill="#000"/>`;
 const inCard = (svg) => `<g transform="translate(12.5,12.5) scale(0.75)">${svg}</g>`;
 
@@ -373,10 +290,7 @@ const KNOCKOUTS = [
   { name: "f2-knockout", label: "F2k STATUS-K (K is the hole, amber tip)",
     holes: enlarged(kBodyShort("#000")), filled: enlarged(tipAngled(AMBER)) },
   { name: "f4-knockout", label: "F4k BOARD GLYPH (columns are holes)",
-    holes: enlarged(`<rect x="27" y="25" width="12.5" height="44" rx="3" fill="#000"/>
-            <rect x="43.5" y="25" width="12.5" height="24" rx="3" fill="#000"/>
-            <rect x="60" y="25" width="12.5" height="44" rx="3" fill="#000"/>`),
-    filled: enlarged(`<rect x="43.5" y="55" width="12.5" height="14" rx="3" fill="${AMBER}"/>`) },
+    ...(({ holes, filled }) => ({ holes, filled }))(f4kParts()) },
   { name: "f5-knockout", label: "F5k PINWHEEL (cards are holes)",
     holes: enlarged([0, 90, 180].map((a) => `<rect x="47" y="25.2" width="28.5" height="18" rx="4" fill="#000" transform="rotate(${a} 50 50)"/>`).join("")),
     filled: enlarged(`<rect x="47" y="25.2" width="28.5" height="18" rx="4" fill="${AMBER}" transform="rotate(270 50 50)"/>`) },
@@ -461,41 +375,10 @@ console.log("Wrote portable SVGs: f1b-knockout.svg, f4-knockout.svg, f5-knockout
 // ============================================================================
 // TIGHT CARD (Tyler 2026-07-12): the original 56-unit card quoted the F1
 // concept and left 7-13 units of uneven cream margin around the K - dead
-// pixels at icon sizes. The tight card is derived FROM the glyph bbox plus a
-// small even margin, then the whole unit auto-scales so the card corners sit
-// CARD_RING units inside the disc. The card goes slightly portrait (a task
-// card holding a letter); the K gains ~20% linear size at every render.
+// pixels at icon sizes. tightCardK() (lib/mark.mjs) derives the card FROM
+// the glyph bbox plus an even margin, auto-scaled so the card corners sit
+// CARD_RING units inside the disc.
 // ============================================================================
-// fontK() output bbox in the 100-box (k = 79/100 applied to K_B, centered).
-const K_GLYPH_BOX = (() => {
-  const k = K_SIZE / 100;
-  const tx = 50 - k * (K_B.x + K_B.w / 2);
-  const ty = K_BASE - k * K_BASELINE_IN_EM;
-  return { x: tx + k * K_B.x, y: ty + k * K_B.y, w: k * K_B.w, h: k * K_B.h };
-})();
-
-const CARD_RING = 6; // rust ring at the card corners, in 100-box units
-const CARD_RX = 7.5; // pre-scale corner radius
-
-// Returns { hole, filled } in the 100-box for knockout(); filledCard for the
-// fixed-appearance rendition. margin = cream border around the glyph.
-function tightCardK(margin, P = CUT_CANON, kFill = RUST) {
-  const g = K_GLYPH_BOX;
-  const cx = g.x + g.w / 2;
-  const cy = g.y + g.h / 2;
-  const hw = g.w / 2 + margin;
-  const hh = g.h / 2 + margin;
-  const d = Math.hypot(hw - CARD_RX, hh - CARD_RX) + CARD_RX;
-  const q = (50 - CARD_RING) / d;
-  const wrap = (svg) => `<g transform="translate(50,50) scale(${q}) translate(${-cx},${-cy})">${svg}</g>`;
-  const rect = (fill) =>
-    `<rect x="${cx - hw}" y="${cy - hh}" width="${2 * hw}" height="${2 * hh}" rx="${CARD_RX}" fill="${fill}"/>`;
-  return {
-    hole: wrap(rect("#000")),
-    filled: wrap(fontKSplit(kFill, AMBER, 1, P)),
-    filledCard: wrap(rect(CREAM) + fontKSplit(kFill, AMBER, 1, P)),
-  };
-}
 
 // --- Compare sheet: current geometry vs tight margins, judged small-first --
 const f1bkCanon = candidates.find((c) => c.name === "f1b-knockout");
@@ -538,7 +421,6 @@ console.log("Wrote _card-tight-compare.png (current vs tight margins)");
 // --- Final F1bk exports: tight card at CARD_MARGIN, both cuts. These
 // overwrite the classic-geometry f1b SVGs written by the candidate loop
 // above (the loop stays for the historical sheets).
-const CARD_MARGIN = 5;
 const tCanon = tightCardK(CARD_MARGIN, CUT_CANON);
 const tSmall = tightCardK(CARD_MARGIN, CUT_SMALL);
 await writeFile(join(OUT, "f1b-knockout.svg"), knockout(512, tCanon.hole, tCanon.filled));
@@ -560,15 +442,7 @@ console.log(`Wrote tight-card F1bk exports (margin ${CARD_MARGIN}): f1b-knockout
 //   R3  keep the card: K in INK so it can't merge with the ring
 // R1/R2: with no card, the glyph re-scales to claim the disc directly.
 // ============================================================================
-const K_DISC_CLEAR = 5; // rust ring outside the glyph bbox corners
-const kOnDisc = (() => {
-  const g = K_GLYPH_BOX;
-  const cx = g.x + g.w / 2;
-  const cy = g.y + g.h / 2;
-  const q = (50 - K_DISC_CLEAR) / Math.hypot(g.w / 2, g.h / 2);
-  return (svg) => `<g transform="translate(50,50) scale(${q}) translate(${-cx},${-cy})">${svg}</g>`;
-})();
-
+// kOnDisc (lib/mark.mjs) scales the bare glyph to claim the disc directly.
 // R1 knockout parts: K painted as hole, gap band restored to disc, tip amber.
 const r1 = {
   holes: kOnDisc(fontK("#000") + bandRect("#fff", 1, CUT_SMALL)),
