@@ -373,7 +373,7 @@ await writeFile(
 console.log("Wrote portable SVGs: f1b-knockout.svg, f4-knockout.svg, f5-knockout.svg, f1b-filled.svg");
 
 // ============================================================================
-// TIGHT CARD (Tyler 2026-07-12): the original 56-unit card quoted the F1
+// TIGHT CARD (2026-07-12): the original 56-unit card quoted the F1
 // concept and left 7-13 units of uneven cream margin around the K - dead
 // pixels at icon sizes. tightCardK() (lib/mark.mjs) derives the card FROM
 // the glyph bbox plus an even margin, auto-scaled so the card corners sit
@@ -432,7 +432,7 @@ await writeFile(
 console.log(`Wrote tight-card F1bk exports (margin ${CARD_MARGIN}): f1b-knockout.svg, f1b-knockout-small.svg, f1b-filled.svg`);
 
 // ============================================================================
-// SMALL-MARK RESCUE (Tyler 2026-07-12): even with the tight card, the K is
+// SMALL-MARK RESCUE (2026-07-12): even with the tight card, the K is
 // hard to see at nav size. Root cause is structural: the K is the SAME RUST
 // as the disc ring, so at 24-26px the eye merges K and ring and reads the
 // cream window as the figure ("an O with a slot"). Three figure-ground flips
@@ -499,9 +499,9 @@ console.log("Wrote small-mark exports: kdisc-knockout.svg (theme-following), kdi
 
 // ============================================================================
 // CANONICAL ASSETS (assets/ - what consumers ship). The two-tier mark:
-//   brandmark.svg        card-K knockout, >=48px display (Tyler, F1bk)
-//   brandmark-small.svg  F4k board glyph knockout, <48px display
-//                        (Tyler: "the clear, outright winner" at nav size)
+//   brandmark.svg        card-K knockout, large in-page display (F1bk)
+//   brandmark-small.svg  F4k board glyph knockout, the app icon
+//                        (the selected small-display mark)
 //   brandmark-filled.svg card-K fixed-appearance (stores / unknown grounds)
 // ============================================================================
 await mkdir(ASSETS, { recursive: true });

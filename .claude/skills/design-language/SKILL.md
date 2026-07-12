@@ -12,7 +12,7 @@ description: The Warm Craft design language for the Kangentic brand - palette to
 
 ## The story (why this looks the way it does)
 
-This direction was synthesized from four sites Tyler picked as his taste profile:
+This direction was synthesized from four reference sites in the project's taste profile:
 tigerbeetle.com, bun.sh, val.town, and fly.io. What they share, and what this system
 encodes, is craft over styling:
 
@@ -92,7 +92,7 @@ and maintainable in-house without an illustrator, and it earns the TigerBeetle-s
 
 The mascot is **the Overseer**: a soft AMBER blob with THREE sparkle eyes - it
 watches all your agents at once (the three eyes also echo three board columns) -
-with side arms out and three feet. Chosen by Tyler over animal mascots (the
+with side arms out and three feet. Chosen over animal mascots (the
 original kangaroo) and over arcade borrowings (invader, pacman, plain
 block-with-eyes - too close to OpenClaw, Pac-Man, and Claude Code's icon). The
 body is amber, NOT rust, on purpose: a rust-bodied critter reads one shade from
@@ -205,4 +205,4 @@ Run against any new visual work. If three or more are true, stop and redesign:
 - `public/og-image.png`, `src/consts.ts` `THEME_COLOR`, `site.webmanifest` colors -
   must match the cream/ink/rust system when the reskin ships.
 - The blue "K" logo (`public/logo.png`) clashes with this system; the redesign task
-  covers recoloring or a pixel-mark replacement, flagged for Tyler's sign-off.
+  covers recoloring or a pixel-mark replacement, flagged for maintainer sign-off.

@@ -7,14 +7,20 @@ description: The Kangentic brandmark/icon drafting harness - how to draft, refin
 
 How Kangentic's brandmark was drafted, and how to pivot it later without
 re-learning everything. The whole exploration was done with scripted
-SVG -> sharp renders - no design tools - reviewed by Tyler from generated
-contact sheets and live in-header renders. THIS REPO is the canonical home:
+SVG -> sharp renders - no design tools - reviewed from generated contact
+sheets and live in-header renders. THIS REPO is the canonical home:
 geometry lives in `scripts/lib/mark.mjs`, and no other file (in any repo)
 may re-declare it.
 
 ## The chosen mark (July 2026): a two-tier system
 
-**Tier 1, >=48px - F1bk "Card-K knockout"** (`assets/brandmark.svg`):
+The tier is picked by **DISPLAYED size, never raster resolution**: a
+1024px app icon still renders at taskbar/dock/tab size, so **the app icon
+is F4k at every resolution** (selected 2026-07-12, after resources/ was
+mistakenly generated with card-K rasters at 48px+). The card-K is
+reserved for genuinely large in-page/marketing display.
+
+**Large in-page display - F1bk "Card-K knockout"** (`assets/brandmark.svg`):
 
 - Rust disc (`#C0562F`).
 - A rounded card punched clean through the disc (a true alpha hole, like
@@ -26,18 +32,18 @@ may re-declare it.
   as path data. The K's upper arm is severed near its end - the detached
   endpoint is filled **amber** (`#E8A33D`). The tip reads as both a status
   lamp and a card in flight, and stays typographically symmetric because
-  it is literally the arm's own end (Tyler's paint.net construction,
+  it is literally the arm's own end (a paint.net construction,
   implemented as paint-erase-overpaint).
 
-**Tier 2, <48px - F4k board glyph** (`assets/brandmark-small.svg`):
-letterless - three column holes through the rust disc, amber card mid-drop.
-Tyler picked it as "the clear, outright winner" from an in-header live
-comparison (2026-07-12) against K-hole disc, cream-K filled, small-cut
-card-K, and the pinwheel: at 24-26px the chunky columns and amber card beat
-every letterform. Same knockout DNA as the card-K (holes in the rust disc),
-so the tiers read as siblings.
+**THE APP ICON - F4k board glyph** (`assets/brandmark-small.svg`, all of
+`resources/`): letterless - three column holes through the rust disc,
+amber card mid-drop. Picked as "the clear, outright winner" from an
+in-header live comparison (2026-07-12) against K-hole disc, cream-K
+filled, small-cut card-K, and the pinwheel: at 24-26px the chunky columns
+and amber card beat every letterform. Same knockout DNA as the card-K
+(holes in the rust disc), so the tiers read as siblings.
 
-Why two tiers: below ~48px the card-K fails STRUCTURALLY, not by degree -
+Why two tiers: at small display the card-K fails STRUCTURALLY, not by degree -
 the K is the same rust as the disc ring, so the eye merges them and reads
 the cream window as the figure ("an O with a slot"). No cut or margin
 tuning fixes it (`exploration/icon-concepts/_card-tight-compare.png`
@@ -84,28 +90,30 @@ Key mechanics:
   alpha holes via an SVG mask, then filled overlays on top. This is the
   theme-following rendition. `discOnSquare()` is the opaque rendition for
   surfaces that reject alpha (iOS, stores): holes reveal the cream square.
-- **The tier picker**: `partsFor(sizePx)` returns F4k below 48px, card-K
-  from 48 up. Multi-size containers (ICO/ICNS) mix tiers by entry -
-  standard detail-tiering.
+- **The tier rule**: app icons (everything in `resources/`) are
+  `f4kParts()` at every raster size; `cardKParts(sizePx)` serves the
+  genuinely-large in-page contexts. There is deliberately NO
+  by-raster-size picker - that abstraction caused the wrong-icon bug
+  (card-K rasters shipped into resources/ because 1024 "looked large").
 
 ## Review discipline (what made this work)
 
 1. Every candidate renders on a contact sheet at 192px AND
    48/32/26/24/16 strips, on cream/white AND warm-black/black. Judge marks
    at 16-32px FIRST - that is where icons live. **The mark must be
-   unmistakable at 24x24** (Tyler's floor).
+   unmistakable at 24x24** (the legibility floor).
 2. For pixel truth, render at target size and nearest-upscale x8
    (`_zoom24.png` pattern in `exploration/icon-concepts/`).
 3. **Contact sheets alone did NOT predict the F4k win; the live nav
    did.** For the final call, render candidates in an exact replica of the
    consuming surface (site header light + docs dark + browser-tab mocks)
-   and let Tyler review in place.
+   and review in place.
 4. Iterate in numbers, not adjectives: tip length, gap width, margin,
    ring, corner radius are all named constants in `lib/mark.mjs`.
 5. Contrast math is non-negotiable: amber on cream is 2.05:1 (never text,
    soft as a graphic); amber on warm black 8.1:1; rust holds both modes
    (4.3:1 / 3.8:1) which is why the disc is rust.
-6. Symmetry rules from Tyler: nothing pokes past the glyph's box; arm
+6. Symmetry rules: nothing pokes past the glyph's box; arm
    terminals flush with cap/baseline; the tip must read as the arm's own
    severed end, not a foreign shape.
 

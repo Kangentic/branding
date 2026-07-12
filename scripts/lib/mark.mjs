@@ -121,7 +121,7 @@ export function tightCardK(margin = CARD_MARGIN, P = CUT_CANON, kFill = RUST) {
 // ---------------------------------------------------------------------------
 // TIER 2 (<48px): the F4k board glyph. Letterless - three column holes
 // through the rust disc, amber card mid-drop. Won the live in-header review
-// at 24-26px against every K letterform (Tyler, 2026-07-12).
+// at 24-26px against every K letterform (selected 2026-07-12).
 // ---------------------------------------------------------------------------
 export function f4kParts() {
   return {
@@ -142,9 +142,14 @@ export const kOnDisc = (() => {
   return (svg) => `<g transform="translate(50,50) scale(${q}) translate(${-cx},${-cy})">${svg}</g>`;
 })();
 
-// The tier picker for rasters: F4k below 48px, card-K from 48 up.
-export function partsFor(sizePx) {
-  return sizePx < 48 ? f4kParts() : (({ hole, filled }) => ({ holes: hole, filled }))(tightCardK(CARD_MARGIN, cutFor(sizePx)));
+// Tier by DISPLAYED size, never by raster resolution: a 1024px app icon
+// still renders at taskbar/dock size, so APP ICONS ARE F4K AT EVERY
+// RESOLUTION (selected 2026-07-12). The card-K is the large
+// in-page/marketing mark (hero, social, print).
+// cardKParts(sizePx) exists for those genuinely-large contexts.
+export function cardKParts(sizePx = 512) {
+  const { hole, filled } = tightCardK(CARD_MARGIN, cutFor(sizePx));
+  return { holes: hole, filled };
 }
 
 // ---------------------------------------------------------------------------
