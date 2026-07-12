@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+    <defs><mask id="m">
+      <circle cx="256" cy="256" r="256" fill="#fff"/>
+      <g transform="scale(5.12)"><g transform="translate(-9,-9) scale(1.18)"><rect x="47" y="25.2" width="28.5" height="18" rx="4" fill="#000" transform="rotate(0 50 50)"/><rect x="47" y="25.2" width="28.5" height="18" rx="4" fill="#000" transform="rotate(90 50 50)"/><rect x="47" y="25.2" width="28.5" height="18" rx="4" fill="#000" transform="rotate(180 50 50)"/></g></g>
+    </mask></defs>
+    <circle cx="256" cy="256" r="256" fill="#c0562f" mask="url(#m)"/>
+    <g transform="scale(5.12)"><g transform="translate(-9,-9) scale(1.18)"><rect x="47" y="25.2" width="28.5" height="18" rx="4" fill="#e8a33d" transform="rotate(270 50 50)"/></g></g>
+  </svg>
