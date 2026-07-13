@@ -1,0 +1,45 @@
+name: CI
+
+# Runs the determinism gate on every PR and on pushes to main: committed
+# assets/ and resources/ must be byte-identical to what the harness generates.
+# Catches drift before a release is ever tagged. Never publishes.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  determinism-gate:
+    name: Determinism gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      - name: Regenerate assets and check for drift
+        run: |
+          npm run gen
+          npm run gen:icons
+          npm run gen:sprites
+          npm run gen:og
+          if [ -n "$(git status --porcelain -- assets/ resources/)" ]; then
+            echo "::error::Committed assets/ or resources/ drift from generator output. Regenerate and commit."
+            git status --porcelain -- assets/ resources/
+            git diff -- assets/ resources/
+            exit 1
+          fi

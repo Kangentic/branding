@@ -21,7 +21,7 @@ dividing line is who controls the displayed size (settled 2026-07-12):
 - **Multi-resolution containers (.ico/.icns) and the desktop PNG ladder**
   supply a size-specific entry, so the mark tiers per entry: card-K at
   128+ (dock, Finder/Explorer large views), F4k at 16-64 (taskbar, tray,
-  tab). `preview.png` shows this boundary.
+  tab). `exploration/icon-concepts/preview.png` shows this boundary.
 - **Single-image masters the OS downscales itself** (iOS/Play store
   icons, PWA/apple-touch/manifest icons, favicons) stay F4k. A card-K
   master shrunk to a ~60px home-screen icon is illegible - this is the

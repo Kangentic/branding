@@ -1,5 +1,5 @@
 ---
-description: Regenerate and verify brand assets, version bump, changelog, tag, GitHub release, and npm publish for @kangentic/branding
+description: Regenerate and verify brand assets, version bump, changelog, tag, GitHub release, and tag-triggered CI npm publish for @kangentic/branding
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash(git:*), Bash(npm:*), Bash(npx:*), Bash(gh:*)
 argument-hint: [patch|minor|major]
 ---
@@ -7,9 +7,11 @@ argument-hint: [patch|minor|major]
 # Release
 
 Release pipeline for `@kangentic/branding`: verify the committed assets match
-the harness, bump, changelog, tag, push, GitHub release, npm publish.
-Consumers (kangentic.com, kangentic desktop, kangentic-mobile) update by
-bumping this package - a release here is how icons change everywhere.
+the harness, bump, changelog, tag, push, GitHub release. Pushing the tag
+triggers `.github/workflows/publish.yml`, which reruns the determinism gate
+in CI and publishes to npm with provenance via OIDC - no local `npm publish`,
+no stored token. Consumers (kangentic.com, kangentic desktop, kangentic-mobile)
+update by bumping this package - a release here is how icons change everywhere.
 
 **Usage:** `/release [patch|minor|major]`
 
@@ -116,6 +118,9 @@ Read the new version from `package.json` to confirm.
 
 **If either push fails**, report the error and stop. Do not force-push.
 
+Pushing the `vX.Y.Z` tag (step 3) is what triggers the CI publish workflow
+(`.github/workflows/publish.yml`). Watch it in Step 7.
+
 ## Step 6 -- GitHub Release
 
 Run: `gh release create vX.Y.Z --title "vX.Y.Z" --notes "<the changelog entry body>"`
@@ -123,23 +128,26 @@ Run: `gh release create vX.Y.Z --title "vX.Y.Z" --notes "<the changelog entry bo
 (Write the notes to a temp file under `.kangentic/` and use `--notes-file` if
 the body is more than a couple of lines.)
 
-## Step 7 -- npm Publish
+## Step 7 -- CI Publish (watch the run)
 
-There is no publish workflow; publishing happens here, from the maintainer
-machine.
+Publishing runs in CI, not on this machine. The tag push in Step 5 triggers
+`.github/workflows/publish.yml`, which reruns the determinism gate then runs
+`npm publish --provenance --access public` via npm OIDC Trusted Publishing
+(no NPM_TOKEN). Nothing to publish locally - watch the run and report it.
 
-1. Run `npm whoami`. If it fails, stop: "Run `npm login` first, then re-run /release - all git steps are already done, so resume from this step."
-2. Run `npm publish --access public`
-   (`--access public` is required on every publish of a scoped package's
-   first version; harmless afterwards.)
-3. If publish fails after the tag was pushed, report clearly that the git
-   release exists but npm does not, and that re-running `npm publish` alone
-   completes it - do NOT re-run the whole pipeline.
+1. Find the run: `gh run list --workflow=publish.yml --limit 1`
+2. Watch it: `gh run watch <run-id>` (or open the run URL).
+3. If the run fails, do NOT publish locally. The git tag and GitHub release
+   already exist; fix the cause and re-trigger the publish alone with
+   `gh workflow run publish.yml --ref vX.Y.Z` (the workflow's idempotency
+   guard makes re-runs safe) - do NOT re-run the whole pipeline.
 
 ## Step 8 -- Report
 
 - Version, tag, commits included
 - The changelog entry
+- The CI publish run URL (from Step 7) and confirmation the new version shows
+  a provenance badge on npm.
 - Links: `https://github.com/Kangentic/branding/releases` and `https://www.npmjs.com/package/@kangentic/branding`
 - Remind: consumers pick this up via `npm update @kangentic/branding` (or a submodule bump where used) - list any consumer repos that should update now.
 
