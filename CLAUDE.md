@@ -30,9 +30,10 @@ scripts/gen-review.mjs    In-situ header mocks -> exploration/review/ (npm run
 scripts/check-invariants.mjs  Mechanical brand-invariant gate: palette, sprite,
                           tiering, frozen-K, banned colors (npm run check)
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
-assets/                   Canonical vectors: brandmark{,-small,-filled,-mono}.svg
-                          (icon; -mono = currentColor F4k for themed in-app
-                          chrome) + mascot/overseer.svg (mascot)
+assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
+                          -mono-amber}.svg (icon; -mono/-mono-amber =
+                          currentColor F4k for themed in-app chrome) +
+                          mascot/overseer.svg (mascot)
 resources/                Production rasters consumers ship: web/, desktop/,
                           mobile/ (icons), social/og-image.png (see README)
 archive/v1/               The blue-K brand, frozen verbatim. Never touch.

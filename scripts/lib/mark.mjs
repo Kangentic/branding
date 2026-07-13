@@ -189,6 +189,20 @@ export function f4kMonoSvg(fill = "currentColor", size) {
   return `<svg xmlns="http://www.w3.org/2000/svg"${dims} viewBox="0 0 100 100"><path fill-rule="evenodd" fill="${fill}" d="${circlePath(50, 50, 50)}${holes}"/></svg>`;
 }
 
+// The duotone document: theme-tinted disc, amber card KEPT - the default
+// themed in-app lockup (selected from the mono-vs-duotone render,
+// 2026-07-13: the amber card is the gesture that makes the glyph the mark;
+// pure mono remains for strict monochrome contexts like tray templates).
+// Only the columns are holes; the card paints over the solid disc so
+// antialiasing cannot open a seam of ground around it. Same inline-safety
+// contract as the mono: single evenodd path + one rect, no defs/masks/ids.
+export function f4kDuoSvg(fill = "currentColor", size) {
+  const holes = F4K_COLS.map((r) => rrectPath(enlargeRect(r))).join("");
+  const c = enlargeRect(F4K_CARD);
+  const dims = size ? ` width="${size}" height="${size}"` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg"${dims} viewBox="0 0 100 100"><path fill-rule="evenodd" fill="${fill}" d="${circlePath(50, 50, 50)}${holes}"/><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="${c.rx}" fill="${AMBER}"/></svg>`;
+}
+
 // The K-hole disc (small-tier runner-up, kept viable) and cream-K filled.
 export const K_DISC_CLEAR = 5; // rust ring outside the glyph bbox corners
 export const kOnDisc = (() => {
