@@ -25,6 +25,10 @@ scripts/gen-brandmark.mjs Icon exploration harness + canonical SVGs (npm run gen
 scripts/gen-icons.mjs     Production icon tree -> resources/ (npm run gen:icons)
 scripts/gen-sprites.mjs   Mascot -> assets/mascot/ + exploration (npm run gen:sprites)
 scripts/gen-og.mjs        Social image -> resources/social/ (npm run gen:og)
+scripts/gen-review.mjs    In-situ header mocks -> exploration/review/ (npm run
+                          gen:review); used by /brand-review
+scripts/check-invariants.mjs  Mechanical brand-invariant gate: palette, sprite,
+                          tiering, frozen-K, banned colors (npm run check)
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
 assets/                   Canonical vectors: brandmark{,-small,-filled}.svg
                           (icon) + mascot/overseer.svg (mascot)
@@ -33,7 +37,8 @@ resources/                Production rasters consumers ship: web/, desktop/,
 archive/v1/               The blue-K brand, frozen verbatim. Never touch.
 archive/mascot-explorations/  Every creature round, superseded mascot-icon
                           sets, and legacy logo candidates. Never touch.
-exploration/              Icon contact sheets + mascot alternate/retired poses
+exploration/              Icon contact sheets, mascot alternate/retired poses,
+                          review/ in-situ header mocks
 CHANGELOG.md              Release log (managed by /release)
 ```
 
@@ -72,6 +77,8 @@ npm run gen          # icon exploration sheets + canonical brandmark SVGs
 npm run gen:icons    # production icon tree -> resources/ (web, desktop, mobile)
 npm run gen:sprites  # mascot -> assets/mascot/ + exploration/mascot/
 npm run gen:og       # social image -> resources/social/og-image.png
+npm run gen:review   # in-situ header mocks -> exploration/review/ (light + dark)
+npm run check        # mechanical brand-invariant gate (palette, sprite, tiering)
 ```
 
 ## Skills
@@ -82,6 +89,7 @@ npm run gen:og       # social image -> resources/social/og-image.png
 | `sprite-drafting` | The pixel-art mascot harness: the sprite engine, the ASCII-map method, review discipline, and the rejected-creature history. Read before any mascot/sprite work. |
 | `design-language` | The Warm Craft constitution: palette, typography, mascot conventions, anti-AI-template checklist. Kept in sync with kangentic.com's copy. |
 | `release` | `/release [patch|minor|major]`: determinism gate, bump, changelog, tag, GitHub release, npm publish. Major = new brand generation only (archive gate). |
+| `brand-review` | `/brand-review`: the review station (the Brand Review column runs it). Code review of the generators + design review of the assets - determinism gate, in-situ + size-strip renders (`npm run gen:review`), mechanical invariants (`npm run check`), then HUMAN aesthetic sign-off. |
 | `pull-request` | Testing column: run the determinism gate locally, commit, rebase, open a clean PR, and drive its CI checks to green (auto-fixing generators/scripts). Never merges. |
 | `merge-pull-request` | Merge column: verify a green PR, merge it (rebase, delete branch), realign the worktree, and fast-forward local `main`. Does NOT publish (that is `/release`). |
 
