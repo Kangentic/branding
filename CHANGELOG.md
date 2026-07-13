@@ -2,6 +2,22 @@
 
 <!-- releases -->
 
+## [v2.2.0] - 2026-07-13
+
+### Features
+- Add Overseer blink and wave pose frames for consumer-side animation:
+  `assets/mascot/overseer-blink.svg` (all three eyes closed) and
+  `assets/mascot/overseer-wave.svg` (viewer-right arm lifted one row, a
+  2-pose toggle with rest). Frames share the canonical 18x12 grid and
+  overlay pixel-perfectly; an `assertPose` guard keeps non-animated rows
+  byte-identical to the canonical map. Sequencing is consumer-side and
+  stepped, with `prefers-reduced-motion` resting on the canonical frame;
+  the generated `exploration/mascot/animation-preview.html` is the
+  reference recipe (425f883)
+
+### Other
+- Fix pose-frame names in the sprite-drafting mascot asset list (cc7b8f6)
+
 ## [v2.1.0] - 2026-07-13
 
 ### Features
