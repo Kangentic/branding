@@ -17,12 +17,26 @@ like the v1 blue K did). The desktop tier boundary is previewed in the
 branding repo at `exploration/icon-concepts/preview.png` (a review artifact,
 not shipped here).
 
+**Vectors:** the canonical SVG marks live in `../assets/` (consumer-agnostic,
+including `brandmark-mono.svg`, the single-currentColor F4k for theme-tinted
+in-app chrome). The `web/brandmark*.svg` files below are byte copies so the
+website deploys one folder.
+
 ## desktop/ (kangentic, Electron)
 | File | Use | Mark |
 |------|-----|------|
 | icon.ico | Windows app icon (taskbar, title bar, installer); 16-256 | tiered per entry |
 | icon.icns | macOS dock / Finder; 16-1024 | tiered per entry |
 | icon.png + icon-{16..1024}.png | Linux / BrowserWindow ladder | F4k <=64, card-K >=128 |
+
+These rasters feed NATIVE OS surfaces that do not decode SVG: electron-builder
+requires .ico/.icns/.png for the packaged app icon, and Electron's
+`nativeImage.createFromPath()` (BrowserWindow icon, `app.dock.setIcon`,
+`Tray`) decodes PNG/JPEG/ICO/ICNS only. The raster ladder is a requirement of
+the native layer, not a missed optimization. In-app renderer surfaces consume
+`../assets/*.svg` instead - `brandmark-mono.svg` where the mark must tint to
+the active theme, `brandmark-small.svg` where the fixed palette works. A
+future macOS tray would take a mono-derived template PNG here, not an SVG.
 
 ## web/ (kangentic.com)
 | File | Use | Mark |

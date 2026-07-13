@@ -57,6 +57,19 @@ the cream window as the figure ("an O with a slot"). No cut or margin
 tuning fixes it (`exploration/icon-concepts/_card-tight-compare.png`
 documents the attempts).
 
+**The mono F4k** (`assets/brandmark-mono.svg`; consumer-themed in-app
+chrome, selected 2026-07-13): the F4k in ONE `currentColor` fill, all
+shape as alpha - the three columns AND the card are holes. The colored
+mark paints the amber card ON the rust disc, so a single-color card would
+vanish; in mono it is knocked out as a fourth hole and the gesture
+survives as a silhouette slot. Built by `f4kMonoSvg()` in `lib/mark.mjs`
+as a single `fill-rule="evenodd"` path (no defs/masks/ids, viewBox only)
+so consumers can inline it repeatedly, use it as a CSS `mask-image`, and
+tint it with the surface's foreground per theme. Use it where the
+CONSUMER controls the background (app sidebar/title-bar lockups on
+light/dark/accent themes); `currentColor` does NOT tint through `<img>`.
+It also doubles as the source for a future macOS tray template PNG.
+
 Alternates kept viable as exports: `kdisc-knockout.svg` (K is the hole),
 `kdisc-filled.svg` (cream K painted), F5k pinwheel (spinners/motion).
 `assets/brandmark-filled.svg` is the fixed-appearance card-K for contexts
@@ -106,6 +119,13 @@ Key mechanics:
   regardless of raster size - a 1024 store master is still F4k because it
   becomes the small home-screen icon. Feeding `cardKParts()` into a
   downscaled master is the wrong-icon bug; do not.
+- **The native-vs-renderer boundary**: the tier rule above governs
+  OS-owned icon surfaces, which are raster by requirement (electron-builder
+  takes .ico/.icns/.png; Electron `nativeImage`/`Tray` decode no SVG) and
+  always colored. Surfaces the APP renders itself (sidebar/title-bar
+  lockups, empty states) consume `assets/*.svg` instead:
+  `brandmark-mono.svg` where the mark must tint to the active theme,
+  `brandmark-small.svg` where the fixed palette works.
 
 ## Review discipline (what made this work)
 
@@ -157,7 +177,7 @@ Key mechanics:
 
 ## Where everything lives
 
-- `assets/` - the canonical SVG marks (both tiers + filled).
+- `assets/` - the canonical SVG marks (both tiers + filled + mono).
 - `resources/` - the production tree per surface (web/desktop/mobile);
   see `resources/README.md` for the per-file table. Consumers copy from
   here or take the npm package; they never generate icons themselves.

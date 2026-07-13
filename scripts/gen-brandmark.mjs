@@ -16,7 +16,7 @@ import {
   ARM_A, ARM_D, CUT_CANON, CUT_SMALL,
   bandRect, kWithGap, tipClipped, fontKSplit,
   enlarged, knockout,
-  CARD_MARGIN, tightCardK, f4kParts, kOnDisc,
+  CARD_MARGIN, tightCardK, f4kParts, f4kMonoSvg, kOnDisc,
 } from "./lib/mark.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -503,6 +503,8 @@ console.log("Wrote small-mark exports: kdisc-knockout.svg (theme-following), kdi
 //   brandmark-small.svg  F4k board glyph knockout, the app icon
 //                        (the selected small-display mark)
 //   brandmark-filled.svg card-K fixed-appearance (stores / unknown grounds)
+//   brandmark-mono.svg   F4k in one currentColor (columns AND card are
+//                        alpha holes) for consumer-themed in-app chrome
 // ============================================================================
 await mkdir(ASSETS, { recursive: true });
 const f4k = KNOCKOUTS.find((k) => k.name === "f4-knockout");
@@ -512,4 +514,5 @@ await writeFile(
   join(ASSETS, "brandmark-filled.svg"),
   `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><circle cx="256" cy="256" r="256" fill="${RUST}"/><g transform="scale(5.12)">${tCanon.filledCard}</g></svg>`
 );
-console.log("Wrote canonical assets/: brandmark.svg, brandmark-small.svg, brandmark-filled.svg");
+await writeFile(join(ASSETS, "brandmark-mono.svg"), f4kMonoSvg());
+console.log("Wrote canonical assets/: brandmark.svg, brandmark-small.svg, brandmark-filled.svg, brandmark-mono.svg");

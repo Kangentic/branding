@@ -34,6 +34,7 @@ const SHIPPED_SVG = [
   "assets/brandmark.svg",
   "assets/brandmark-small.svg",
   "assets/brandmark-filled.svg",
+  "assets/brandmark-mono.svg",
   "assets/mascot/overseer.svg",
   "resources/web/brandmark.svg",
   "resources/web/brandmark-small.svg",
@@ -194,8 +195,23 @@ checks.BANNED = () => {
   return findings;
 };
 
+// 6. Mono variant (theme-safe): assets/brandmark-mono.svg is the in-app mark
+//    consumers tint per theme, so it must carry currentColor and NO literal
+//    color - any baked hex would defeat the theme-safety it exists for.
+checks.MONO = () => {
+  const p = "assets/brandmark-mono.svg";
+  if (!has(p)) return [`${p}: missing (the theme-safe in-app mark)`];
+  const src = load(p);
+  const findings = [];
+  if (!/currentColor/.test(src)) findings.push(`${p}: no currentColor fill`);
+  const literal = [...new Set(hexes(src))].map((h) => `#${h}`);
+  if (literal.length) findings.push(`${p}: literal color ${literal.join(", ")} (mono must be currentColor only)`);
+  if (/<(?:mask|defs)\b|\bid="/.test(src)) findings.push(`${p}: carries defs/mask/id (must stay a bare inline-safe path)`);
+  return findings;
+};
+
 // ---------------------------------------------------------------------------
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {

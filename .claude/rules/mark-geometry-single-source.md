@@ -26,6 +26,11 @@ where it becomes an illegible mini-K).
     F4k. A card-K master shrunk to a 60px home-screen icon is illegible -
     this is the bug that produced this rule. Never feed `cardKParts()`
     into a surface the OS resizes down to chrome.
+  - The tiering above governs OS-OWNED surfaces (raster by native-layer
+    requirement, always colored). Surfaces the consumer app renders
+    itself consume `assets/*.svg`: `brandmark-mono.svg` (`f4kMonoSvg()`,
+    one currentColor, all shape as alpha) where the theme must tint the
+    mark, the colored SVGs where the fixed palette works.
 - Iterate in named constants (`CARD_MARGIN`, `CARD_RING`, `CUT_*`), never
   ad-hoc magic numbers at a call site.
 
