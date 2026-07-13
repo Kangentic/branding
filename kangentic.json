@@ -25,24 +25,29 @@
     },
     {
       "id": "e517ee41-ce43-4d6c-8b7e-3e326dcb4618",
-      "name": "Code Review",
-      "icon": "code",
+      "name": "Brand Review",
+      "icon": "palette",
       "color": "#f59e0b",
-      "autoSpawn": true
+      "autoSpawn": true,
+      "autoCommand": "/brand-review",
+      "sessionTarget": "isolated",
+      "sessionSpawnStrategy": "always_spawn_new"
     },
     {
       "id": "6cf089e1-23f9-4241-b16d-5dfbf5640970",
-      "name": "Tests",
+      "name": "Testing",
       "icon": "flask-conical",
       "color": "#06b6d4",
-      "autoSpawn": true
+      "autoSpawn": true,
+      "autoCommand": "/pull-request"
     },
     {
       "id": "9c5aa6d3-b380-427d-927f-6b9f78699494",
-      "name": "Ship It",
-      "icon": "sailboat",
+      "name": "Merge",
+      "icon": "merge",
       "color": "#F97316",
-      "autoSpawn": true
+      "autoSpawn": true,
+      "autoCommand": "/merge-pull-request"
     },
     {
       "id": "cf59af53-634f-4e03-a840-4c2100171fc7",
