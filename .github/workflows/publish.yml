@@ -32,11 +32,18 @@ jobs:
         uses: actions/checkout@v5
 
       # Trusted publishing (OIDC) needs npm >= 11.5.1, which Node 24 ships.
+      # Do NOT set registry-url here. It makes setup-node write an .npmrc with
+      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` plus a placeholder
+      # NODE_AUTH_TOKEN; npm then authenticates with that (bogus) token instead
+      # of performing the OIDC trusted-publishing exchange, and the publish PUT
+      # fails with E404. With no registry-url, npm has no configured token, uses
+      # the default registry (registry.npmjs.org), and OIDC engages cleanly
+      # (id-token: write above). npm ci / npm view / npm publish all still target
+      # the default public registry.
       - name: Set up Node.js 24
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
           cache: npm
 
       - name: Install dependencies (npm ci)
