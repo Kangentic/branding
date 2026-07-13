@@ -52,7 +52,8 @@ shows it small):
   the small installed icon, so card-K would shrink to an illegible mini-K.
 
 Per-file tables and the exact per-surface mark: `resources/README.md`.
-`resources/preview.png` shows the desktop tier boundary on light and dark.
+`exploration/icon-concepts/preview.png` shows the desktop tier boundary on
+light and dark (a review artifact, not a shipped resource).
 
 ## The mascot: the Overseer
 

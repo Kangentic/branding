@@ -17,9 +17,13 @@ const OUT = join(ROOT, "resources", "social");
 
 const CREAM = "#fdfbf7";
 const INK = "#24201b";
+const INK_SOFT = "#6e6659";
 const RUST = "#c0562f";
 
-// --- 5x7 pixel font (only the glyphs the wordmark needs) -------------------
+// --- 5x7 pixel font (the wordmark + the proof-line caption) ----------------
+// Uppercase-only plate font in the spirit of Departure Mono: every character
+// on this image is drawn as rects so there is zero system-font dependency and
+// the PNG is byte-identical on any OS (the /release + CI determinism gate).
 const parse = (m) => m.replace(/^\n/, "").replace(/\n$/, "").split("\n").map((r) => r.split(""));
 function glyphRects(map, fill) {
   const g = parse(map);
@@ -47,11 +51,23 @@ const FONT = {
   T: "#####\n..#..\n..#..\n..#..\n..#..\n..#..\n..#..",
   I: ".###.\n..#..\n..#..\n..#..\n..#..\n..#..\n.###.",
   C: ".###.\n#...#\n#....\n#....\n#....\n#...#\n.###.",
+  L: "#....\n#....\n#....\n#....\n#....\n#....\n#####",
+  S: ".####\n#....\n#....\n.###.\n....#\n....#\n####.",
+  O: ".###.\n#...#\n#...#\n#...#\n#...#\n#...#\n.###.",
+  F: "#####\n#....\n#....\n####.\n#....\n#....\n#....",
+  R: "####.\n#...#\n#...#\n####.\n#.#..\n#..#.\n#...#",
+  V: "#...#\n#...#\n#...#\n#...#\n#...#\n.#.#.\n..#..",
+  0: ".###.\n#...#\n#..##\n#.#.#\n##..#\n#...#\n.###.",
+  1: "..#..\n.##..\n..#..\n..#..\n..#..\n..#..\n.###.",
+  "/": "....#\n....#\n...#.\n..#..\n.#...\n#....\n#....",
+  "%": "##..#\n##.#.\n...#.\n..#..\n.#...\n.#.##\n#..##",
+  $: "..#..\n.####\n#.#..\n.###.\n..#.#\n####.\n..#..",
 };
 function word(text, fill) {
   let x = 0;
   const parts = [];
   for (const ch of text) {
+    if (ch === " ") { x += 4; continue; }
     const { svg, w } = glyphRects(FONT[ch], fill);
     parts.push(`<g transform="translate(${x},0)">${svg}</g>`);
     x += w + 1;
@@ -66,6 +82,8 @@ const wordScale = 11; // 7px glyphs -> 77px tall
 const wordX = 96;
 const wordY = 232;
 const ruleY = wordY + mark.h * wordScale + 34;
+const tag = word("11 AGENT CLIS / 100% LOCAL / $0 FOREVER", INK_SOFT);
+const tagScale = 3; // 7px glyphs -> 21px tall proof-line caption
 const roo = spriteRects(OVERSEER, { unit: 1, palette: PALETTE });
 const rooScale = 23; // 18x12 grid -> 414x276
 const rooX = W - roo.w * rooScale - 40;
@@ -76,9 +94,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
   <rect x="0" y="0" width="14" height="${H}" fill="${RUST}"/>
   <g transform="translate(${wordX},${wordY}) scale(${wordScale})">${mark.svg}</g>
   <rect x="${wordX}" y="${ruleY}" width="${Math.round(mark.w * wordScale * 0.62)}" height="12" fill="${RUST}"/>
-  <g transform="translate(${wordX},${ruleY + 40})" font-family="monospace" fill="#6e6659" font-size="26" letter-spacing="1">
-    <text x="0" y="20">11 agent CLIs / 100% local / \$0 forever</text>
-  </g>
+  <g transform="translate(${wordX},${ruleY + 34}) scale(${tagScale})">${tag.svg}</g>
   <g transform="translate(${rooX},${rooY}) scale(${rooScale})">${roo.svg}</g>
 </svg>`;
 

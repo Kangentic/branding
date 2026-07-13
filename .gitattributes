@@ -1,0 +1,10 @@
+# Force LF for all text so generated assets are byte-stable across platforms.
+# Without this, a Windows checkout (core.autocrlf=true) rewrites SVG/MD/MJS
+# line endings to CRLF, and the determinism gate (local /release + CI) trips
+# on phantom diffs. LF everywhere keeps `git status` clean after regen on any OS.
+* text=auto eol=lf
+
+# Binary assets git must never convert or line-ending-normalize.
+*.png binary
+*.ico binary
+*.icns binary
