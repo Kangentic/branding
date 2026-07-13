@@ -14,7 +14,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { knockout, f4kParts, cardKParts } from "./lib/mark.mjs";
+import { knockout, f4kParts, f4kMonoSvg, cardKParts } from "./lib/mark.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "exploration", "review");
@@ -96,6 +96,42 @@ band("browser tabs - favicon at 16, sample at 32", 72, () => {
     <text x="${W - 260}" y="34" font-family="monospace" font-size="13" fill="${INK_SOFT}">32px:</text>
     ${img(fav32, W - 200, 12, 32)}`;
 });
+
+// 4. Desktop app title bar, dark and light - the MONO F4k (the
+//    assets/brandmark-mono.svg geometry) tinted with the theme foreground,
+//    the app-lockup context at 20px (the app renders it w-5), a 24/32/40
+//    size run, the colored F4k for comparison, and a x8 nearest zoom of the
+//    24px render (pixel truth). Tints are passed explicitly because
+//    rasterizers resolve currentColor to black; this mock stands in for the
+//    consumer's CSS color.
+const f4k24 = await f4k(24);
+async function monoBand(caption, surface, tint, softFill) {
+  const mono = async (s) => (await png(f4kMonoSvg(tint, s))).toString("base64");
+  const zoomed = (
+    await sharp(await png(f4kMonoSvg(tint, 24)))
+      .resize(24 * 8, 24 * 8, { kernel: "nearest" })
+      .png()
+      .toBuffer()
+  ).toString("base64");
+  const m20 = await mono(20);
+  const m24 = await mono(24);
+  const m32 = await mono(32);
+  const m40 = await mono(40);
+  band(caption, 232, () => `
+    <rect width="${W}" height="232" fill="${surface}"/>
+    ${img(m20, PAD, 30, 20)}
+    <text x="${PAD + 32}" y="46" font-family="sans-serif" font-weight="600" font-size="15" fill="${tint}">Kangentic</text>
+    ${img(m24, PAD + 180, 28, 24)}
+    ${img(m32, PAD + 228, 24, 32)}
+    ${img(m40, PAD + 284, 20, 40)}
+    <text x="${PAD + 370}" y="45" font-family="monospace" font-size="13" fill="${softFill}">colored F4k 24px:</text>
+    ${img(f4k24, PAD + 520, 28, 24)}
+    <text x="${W - 232}" y="18" font-family="monospace" font-size="13" fill="${softFill}">24px x8</text>
+    ${img(zoomed, W - 232, 26, 192)}
+  `);
+}
+await monoBand("desktop app title bar (dark) - mono F4k tinted with the theme foreground", TERMINAL, TERM_TEXT, TERM_SOFT);
+await monoBand("desktop app title bar (light) - mono F4k tinted ink", CREAM, INK, INK_SOFT);
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}">
   <rect width="${W}" height="${y}" fill="#ffffff"/>

@@ -12,13 +12,21 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
 - **The mark** - `assets/brandmark*.svg`. A two-tier system: the card-K
   (the letter) where the mark shows large, the F4k board glyph where the
   OS shows it small. Tier is keyed to displayed size, not raster
-  resolution.
+  resolution. `brandmark-mono.svg` is the F4k in a single `currentColor`
+  (all shape as alpha holes) for in-app chrome the consumer themes -
+  inline it or use it as a CSS mask and it tints with the surface's
+  foreground.
 - **The mascot** - `assets/mascot/overseer.svg`. The Overseer, a pixel-art
   amber blob, authored as an ASCII map and rendered to a crisp SVG.
 - **The production tree** - `resources/`. Everything each surface ships:
   `desktop/` (Electron .ico/.icns + PNG ladder), `web/` (favicons,
   manifest icons, logo), `mobile/` (store + adaptive icons), and
   `social/og-image.png`. See `resources/README.md` for the per-file table.
+
+`assets/` is the vector home (consumer-agnostic SVGs); `resources/` holds
+the shipped per-consumer files, mostly rasters for surfaces that cannot
+take an SVG. The `resources/web/brandmark*.svg` files are byte copies of
+the `assets/` ones so the website deploys a single folder.
 
 Older brand lines and rejected explorations are frozen under `archive/`.
 

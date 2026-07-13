@@ -122,14 +122,71 @@ export function tightCardK(margin = CARD_MARGIN, P = CUT_CANON, kFill = RUST) {
 // TIER 2 (<48px): the F4k board glyph. Letterless - three column holes
 // through the rust disc, amber card mid-drop. Won the live in-header review
 // at 24-26px against every K letterform (selected 2026-07-12).
+// The rects are THE F4k geometry (100-box, pre-enlargement); every F4k
+// rendition (colored knockout, mono) builds from these.
 // ---------------------------------------------------------------------------
+export const F4K_COLS = [
+  { x: 27, y: 25, w: 12.5, h: 44, rx: 3 },
+  { x: 43.5, y: 25, w: 12.5, h: 24, rx: 3 },
+  { x: 60, y: 25, w: 12.5, h: 44, rx: 3 },
+];
+export const F4K_CARD = { x: 43.5, y: 55, w: 12.5, h: 14, rx: 3 };
+
+const f4kRect = (r, fill) =>
+  `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.rx}" fill="${fill}"/>`;
+
 export function f4kParts() {
   return {
-    holes: enlarged(`<rect x="27" y="25" width="12.5" height="44" rx="3" fill="#000"/>
-            <rect x="43.5" y="25" width="12.5" height="24" rx="3" fill="#000"/>
-            <rect x="60" y="25" width="12.5" height="44" rx="3" fill="#000"/>`),
-    filled: enlarged(`<rect x="43.5" y="55" width="12.5" height="14" rx="3" fill="${AMBER}"/>`),
+    holes: enlarged(F4K_COLS.map((r) => f4kRect(r, "#000")).join("\n            ")),
+    filled: enlarged(f4kRect(F4K_CARD, AMBER)),
   };
+}
+
+// ---------------------------------------------------------------------------
+// MONO F4k (theme-safe, in-app): one currentColor fill, ALL shape as alpha.
+// The colored mark paints the amber card ON the rust disc, so a single-color
+// card would vanish; in mono the card is knocked out as a fourth hole. Built
+// as a single fill-rule="evenodd" path - no defs, masks, or ids - so it can
+// be inlined repeatedly, used as a CSS mask-image, and tinted via CSS color.
+// This is the variant for surfaces where the CONSUMER controls the theme
+// (app sidebar/title-bar lockups); OS-owned icon surfaces stay colored.
+// ---------------------------------------------------------------------------
+
+// Rounded-rect and circle as path data (for evenodd single-path documents).
+// Derived values are rounded to 4 decimals so float error never reaches the
+// path data (determinism + clean diffs).
+export function rrectPath({ x, y, w, h, rx }) {
+  const n = (v) => +v.toFixed(4);
+  const rw = n(w - 2 * rx);
+  const rh = n(h - 2 * rx);
+  return `M${n(x + rx)} ${n(y)}h${rw}a${rx} ${rx} 0 0 1 ${rx} ${rx}v${rh}a${rx} ${rx} 0 0 1 -${rx} ${rx}h-${rw}a${rx} ${rx} 0 0 1 -${rx} -${rx}v-${rh}a${rx} ${rx} 0 0 1 ${rx} -${rx}Z`;
+}
+export function circlePath(cx, cy, r) {
+  return `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 -${2 * r} 0Z`;
+}
+
+// A single path cannot carry per-subpath group transforms, so the enlarged()
+// disc-context transform (scale 1.18, translate -9) is baked into the rect
+// coordinates numerically. Rounded to 4 decimals - deterministic.
+const ENLARGE_S = 1.18;
+const ENLARGE_T = -9;
+const r4 = (v) => +v.toFixed(4);
+const enlargeRect = ({ x, y, w, h, rx }) => ({
+  x: r4(x * ENLARGE_S + ENLARGE_T),
+  y: r4(y * ENLARGE_S + ENLARGE_T),
+  w: r4(w * ENLARGE_S),
+  h: r4(h * ENLARGE_S),
+  rx: r4(rx * ENLARGE_S),
+});
+
+// The mono document. fill defaults to currentColor (the canonical asset);
+// the review generator passes explicit tints because rasterizers resolve
+// currentColor to black. size adds width/height for direct rasterization;
+// the canonical asset omits it (viewBox only, sizes to its container).
+export function f4kMonoSvg(fill = "currentColor", size) {
+  const holes = [...F4K_COLS, F4K_CARD].map((r) => rrectPath(enlargeRect(r))).join("");
+  const dims = size ? ` width="${size}" height="${size}"` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg"${dims} viewBox="0 0 100 100"><path fill-rule="evenodd" fill="${fill}" d="${circlePath(50, 50, 50)}${holes}"/></svg>`;
 }
 
 // The K-hole disc (small-tier runner-up, kept viable) and cream-K filled.
