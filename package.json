@@ -9,7 +9,9 @@
   ],
   "scripts": {
     "gen": "node scripts/gen-brandmark.mjs",
-    "gen:icons": "node scripts/gen-icons.mjs"
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "gen:sprites": "node scripts/gen-sprites.mjs",
+    "gen:og": "node scripts/gen-og.mjs"
   },
   "repository": {
     "type": "git",

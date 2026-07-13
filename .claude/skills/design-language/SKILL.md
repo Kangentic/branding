@@ -100,10 +100,11 @@ Claude Code's terracotta icon, and Kangentic is agent-agnostic. The amber-body
 mascot is the sanctioned exception to "amber never competes with rust" - it is
 the one element allowed to carry amber at full weight on the light page.
 
-Conventions:
-- Sprites are authored as ASCII maps in `scripts/gen-sprites.mjs` (canonical map:
-  `overseerAmber`), rendered to inline SVG `<rect>` grids with
-  `shape-rendering: crispEdges`. Never freehand SVG paths, never AI raster art.
+Conventions (full harness: the `sprite-drafting` skill):
+- Sprites are authored as ASCII maps and rendered to inline SVG `<rect>`
+  grids with `shape-rendering: crispEdges` by the shared engine
+  (`scripts/lib/sprite.mjs`, canonical map `OVERSEER`). Never freehand SVG
+  paths, never AI raster art.
 - Palette per sprite: 4 colors max, drawn from the token table (amber body, ink
   eyes, cream sparkles).
 - Display sprites at integer multiples of the pixel grid only; never fractional
@@ -132,8 +133,9 @@ aaaaaaaaaaaaaaaaaa
 
 Refining the sprite (sequential eye-blink frames, wave frames) is expected;
 replacing pixel art with another style is not. Alternates and retired
-explorations (the board creature `boardRest`, the kangaroo, the concept rounds)
-live in `scripts/gen-sprites.mjs` and `scripts/sprites/` for reference.
+explorations (the board creature, the kangaroo, the concept rounds) live in
+`exploration/mascot/` and `archive/mascot-explorations/` for reference.
+The canonical mascot ships as `assets/mascot/overseer.svg`.
 
 ## Shape and texture
 

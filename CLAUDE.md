@@ -1,10 +1,11 @@
 # Kangentic Branding
 
-Single source of truth for Kangentic brand assets, consumed by
+Single source of truth for ALL Kangentic content assets - icons, the
+mascot, the social image - consumed by
 [kangentic.com](https://github.com/Kangentic/kangentic.com) (website),
 [kangentic](https://github.com/Kangentic/kangentic) (desktop app), and
-kangentic-mobile. Icons change HERE, a release ships, consumers update.
-Never edit brand assets inside a consumer repo, and never hand-edit a
+kangentic-mobile. Content changes HERE, a release ships, consumers update.
+Never edit an asset inside a consumer repo, and never hand-edit a
 generated file in this one - fix the script and regenerate.
 
 ## Tech Stack
@@ -17,16 +18,22 @@ generated file in this one - fix the script and regenerate.
 ```
 scripts/lib/mark.mjs      THE mark geometry: frozen K path, cuts, tight card,
                           F4k glyph, knockout/square builders, tier picker.
-                          The only place geometry may be declared.
-scripts/gen-brandmark.mjs Exploration harness + canonical SVG exports (npm run gen)
-scripts/gen-icons.mjs     Production resources/ tree (npm run gen:icons)
+scripts/lib/sprite.mjs    THE sprite engine: token palette, canonical Overseer
+                          map, ASCII-map -> rect-grid SVG builder.
+                          (Both libs: the only place their geometry is declared.)
+scripts/gen-brandmark.mjs Icon exploration harness + canonical SVGs (npm run gen)
+scripts/gen-icons.mjs     Production icon tree -> resources/ (npm run gen:icons)
+scripts/gen-sprites.mjs   Mascot -> assets/mascot/ + exploration (npm run gen:sprites)
+scripts/gen-og.mjs        Social image -> resources/social/ (npm run gen:og)
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
-assets/                   Canonical marks: brandmark.svg (>=48px card-K),
-                          brandmark-small.svg (<48px F4k), brandmark-filled.svg
-resources/                Production tree: web/, desktop/, mobile/ - every
-                          size/type each surface needs (see resources/README.md)
+assets/                   Canonical vectors: brandmark{,-small,-filled}.svg
+                          (icon) + mascot/overseer.svg (mascot)
+resources/                Production rasters consumers ship: web/, desktop/,
+                          mobile/ (icons), social/og-image.png (see README)
 archive/v1/               The blue-K brand, frozen verbatim. Never touch.
-exploration/              Concept renders + review contact sheets
+archive/mascot-explorations/  Every creature round, superseded mascot-icon
+                          sets, and legacy logo candidates. Never touch.
+exploration/              Icon contact sheets + mascot alternate/retired poses
 CHANGELOG.md              Release log (managed by /release)
 ```
 
@@ -61,8 +68,10 @@ CHANGELOG.md              Release log (managed by /release)
 
 ```bash
 npm install
-npm run gen        # exploration sheets + canonical assets/
-npm run gen:icons  # production resources/ (web, desktop, mobile)
+npm run gen          # icon exploration sheets + canonical brandmark SVGs
+npm run gen:icons    # production icon tree -> resources/ (web, desktop, mobile)
+npm run gen:sprites  # mascot -> assets/mascot/ + exploration/mascot/
+npm run gen:og       # social image -> resources/social/og-image.png
 ```
 
 ## Skills
@@ -70,6 +79,7 @@ npm run gen:icons  # production resources/ (web, desktop, mobile)
 | Skill | Purpose |
 |-------|---------|
 | `icon-drafting` | The brandmark harness: canonical scripts, frozen K, two-tier system, review discipline (size strips + in-situ header renders), decision history. Read before any mark work. |
+| `sprite-drafting` | The pixel-art mascot harness: the sprite engine, the ASCII-map method, review discipline, and the rejected-creature history. Read before any mascot/sprite work. |
 | `design-language` | The Warm Craft constitution: palette, typography, mascot conventions, anti-AI-template checklist. Kept in sync with kangentic.com's copy. |
 | `release` | `/release [patch|minor|major]`: determinism gate, bump, changelog, tag, GitHub release, npm publish. Major = new brand generation only (archive gate). |
 
@@ -87,6 +97,7 @@ matching file enters context. Each rule names its enforcement.
 
 **Path-scoped rules (load with their subsystem):**
 - `mark-geometry-single-source.md` - all mark geometry lives only in `scripts/lib/mark.mjs`; tier by displayed context (card-K in size-specific container entries >=128, F4k in every OS-downscaled master) (`scripts/**`).
+- `pixel-art-conventions.md` - sprites are ASCII maps -> `lib/sprite.mjs` rect grids: crispEdges, <=4 palette colors, integer scale only, one canonical map (`scripts/**`).
 - `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the `/release` gate enforces it (`assets/**`, `resources/**`, generators).
 
 **Authoring a rule:** one concern per file, descriptive kebab-case name.

@@ -1,9 +1,9 @@
 # Kangentic Branding
 
-Single source of truth for Kangentic brand assets, consumed by the website
-(kangentic.com), the desktop app, and the mobile app. Icons change here,
-version bumps, consumers update - never edit brand assets inside a consumer
-repo.
+Single source of truth for ALL Kangentic content assets - the icon, the
+mascot, and the social image - consumed by the website (kangentic.com),
+the desktop app, and the mobile app. Content changes here, version bumps,
+consumers update - never edit an asset inside a consumer repo.
 
 ## Versioning
 
@@ -54,9 +54,24 @@ shows it small):
 Per-file tables and the exact per-surface mark: `resources/README.md`.
 `resources/preview.png` shows the desktop tier boundary on light and dark.
 
-The Overseer mascot (amber pixel blob) is a separate asset from the
-brandmark, by design; its pipeline migrates here from the website repo in
-the production build-out.
+## The mascot: the Overseer
+
+A separate asset from the brandmark, by design (mascot = personality, icon
+= app identity). A soft amber pixel blob with three sparkle eyes, authored
+as an ASCII map and rendered to a crisp rect-grid SVG by the shared sprite
+engine (`scripts/lib/sprite.mjs`).
+
+- `assets/mascot/overseer.svg` - the canonical inline mascot (amber on
+  transparency, theme-agnostic). `npm run gen:sprites`.
+- `resources/social/og-image.png` (1200x630) - the share image: pixel
+  wordmark + the Overseer, no font dependency. `npm run gen:og`.
+- `exploration/mascot/` - alternates and retired poses (kangaroo, board
+  creature, rust Overseer). Full rationale and decision history:
+  `.claude/skills/sprite-drafting/SKILL.md`.
+
+Every rejected creature round and the superseded mascot-based icon sets
+are frozen in `archive/mascot-explorations/` so the progression is never
+lost.
 
 ## Regenerating
 
