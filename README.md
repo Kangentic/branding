@@ -12,10 +12,12 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
 - **The mark** - `assets/brandmark*.svg`. A two-tier system: the card-K
   (the letter) where the mark shows large, the F4k board glyph where the
   OS shows it small. Tier is keyed to displayed size, not raster
-  resolution. `brandmark-mono.svg` is the F4k in a single `currentColor`
-  (all shape as alpha holes) for in-app chrome the consumer themes -
-  inline it or use it as a CSS mask and it tints with the surface's
-  foreground.
+  resolution. For in-app chrome the consumer themes, two `currentColor`
+  variants tint with the surface's foreground when inlined (or used as a
+  CSS mask): `brandmark-mono-amber.svg` (theme-tinted disc, amber card
+  kept - the default themed lockup) and `brandmark-mono.svg` (pure
+  single color, all shape as alpha - strict monochrome, tray-template
+  source).
 - **The mascot** - `assets/mascot/overseer.svg`. The Overseer, a pixel-art
   amber blob, authored as an ASCII map and rendered to a crisp SVG.
 - **The production tree** - `resources/`. Everything each surface ships:

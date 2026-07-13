@@ -35,6 +35,7 @@ const SHIPPED_SVG = [
   "assets/brandmark-small.svg",
   "assets/brandmark-filled.svg",
   "assets/brandmark-mono.svg",
+  "assets/brandmark-mono-amber.svg",
   "assets/mascot/overseer.svg",
   "resources/web/brandmark.svg",
   "resources/web/brandmark-small.svg",
@@ -195,18 +196,28 @@ checks.BANNED = () => {
   return findings;
 };
 
-// 6. Mono variant (theme-safe): assets/brandmark-mono.svg is the in-app mark
-//    consumers tint per theme, so it must carry currentColor and NO literal
-//    color - any baked hex would defeat the theme-safety it exists for.
+// 6. Mono variants (theme-safe): the in-app marks consumers tint per theme.
+//    brandmark-mono.svg must be pure currentColor (it doubles as the tray
+//    template source); brandmark-mono-amber.svg may carry ONLY the amber
+//    token on top of currentColor. Neither may carry defs/masks/ids - they
+//    are inlined repeatedly and used as CSS masks.
 checks.MONO = () => {
-  const p = "assets/brandmark-mono.svg";
-  if (!has(p)) return [`${p}: missing (the theme-safe in-app mark)`];
-  const src = load(p);
+  const SPEC = [
+    { p: "assets/brandmark-mono.svg", allow: [] },
+    { p: "assets/brandmark-mono-amber.svg", allow: ["e8a33d"] },
+  ];
   const findings = [];
-  if (!/currentColor/.test(src)) findings.push(`${p}: no currentColor fill`);
-  const literal = [...new Set(hexes(src))].map((h) => `#${h}`);
-  if (literal.length) findings.push(`${p}: literal color ${literal.join(", ")} (mono must be currentColor only)`);
-  if (/<(?:mask|defs)\b|\bid="/.test(src)) findings.push(`${p}: carries defs/mask/id (must stay a bare inline-safe path)`);
+  for (const { p, allow } of SPEC) {
+    if (!has(p)) { findings.push(`${p}: missing (theme-safe in-app mark)`); continue; }
+    const src = load(p);
+    if (!/currentColor/.test(src)) findings.push(`${p}: no currentColor fill`);
+    const literal = [...new Set(hexes(src))].filter((h) => !allow.includes(h)).map((h) => `#${h}`);
+    if (literal.length) {
+      const beyond = allow.length ? "beyond the amber accent" : "(mono must be currentColor only)";
+      findings.push(`${p}: literal color ${literal.join(", ")} ${beyond}`);
+    }
+    if (/<(?:mask|defs)\b|\bid="/.test(src)) findings.push(`${p}: carries defs/mask/id (must stay inline-safe)`);
+  }
   return findings;
 };
 

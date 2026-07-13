@@ -28,9 +28,11 @@ where it becomes an illegible mini-K).
     into a surface the OS resizes down to chrome.
   - The tiering above governs OS-OWNED surfaces (raster by native-layer
     requirement, always colored). Surfaces the consumer app renders
-    itself consume `assets/*.svg`: `brandmark-mono.svg` (`f4kMonoSvg()`,
-    one currentColor, all shape as alpha) where the theme must tint the
-    mark, the colored SVGs where the fixed palette works.
+    itself consume `assets/*.svg`: `brandmark-mono-amber.svg`
+    (`f4kDuoSvg()`, currentColor disc + amber card) for themed lockups,
+    `brandmark-mono.svg` (`f4kMonoSvg()`, one currentColor, all shape as
+    alpha) for strict monochrome, the colored SVGs where the fixed
+    palette works.
 - Iterate in named constants (`CARD_MARGIN`, `CARD_RING`, `CUT_*`), never
   ad-hoc magic numbers at a call site.
 

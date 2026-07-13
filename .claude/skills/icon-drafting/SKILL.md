@@ -57,18 +57,28 @@ the cream window as the figure ("an O with a slot"). No cut or margin
 tuning fixes it (`exploration/icon-concepts/_card-tight-compare.png`
 documents the attempts).
 
-**The mono F4k** (`assets/brandmark-mono.svg`; consumer-themed in-app
-chrome, selected 2026-07-13): the F4k in ONE `currentColor` fill, all
-shape as alpha - the three columns AND the card are holes. The colored
-mark paints the amber card ON the rust disc, so a single-color card would
-vanish; in mono it is knocked out as a fourth hole and the gesture
-survives as a silhouette slot. Built by `f4kMonoSvg()` in `lib/mark.mjs`
-as a single `fill-rule="evenodd"` path (no defs/masks/ids, viewBox only)
-so consumers can inline it repeatedly, use it as a CSS `mask-image`, and
-tint it with the surface's foreground per theme. Use it where the
-CONSUMER controls the background (app sidebar/title-bar lockups on
-light/dark/accent themes); `currentColor` does NOT tint through `<img>`.
-It also doubles as the source for a future macOS tray template PNG.
+**The theme-tinted in-app pair** (consumer-themed chrome, selected
+2026-07-13): two `currentColor` variants for surfaces where the CONSUMER
+controls the background (app sidebar/title-bar lockups on light/dark/
+accent themes). Both are built in `lib/mark.mjs` as a single
+`fill-rule="evenodd"` path (no defs/masks/ids, viewBox only) so consumers
+can inline them repeatedly, use them as CSS `mask-image`, and tint them
+with the surface's foreground; `currentColor` does NOT tint through
+`<img>`.
+
+- `brandmark-mono-amber.svg` (`f4kDuoSvg()`): theme-tinted disc, amber
+  card KEPT - the DEFAULT themed lockup. Picked from a mono-vs-duotone
+  render: the amber card is the gesture that makes the glyph the mark;
+  pure mono at nav size drifts toward a generic monogram. The card sits
+  on amber-vs-foreground contrast (subtle warm chip on dark themes,
+  vivid on light ink), and amber-inside-dark-panels is the role the
+  design language sanctions.
+- `brandmark-mono.svg` (`f4kMonoSvg()`): ONE currentColor fill, all
+  shape as alpha - the three columns AND the card are holes. The colored
+  mark paints the amber card ON the rust disc, so a single-color card
+  would vanish; in mono it is knocked out as a fourth hole. For strict
+  monochrome contexts: hard accent themes, CSS-mask usage, and the
+  source for a future macOS tray template PNG.
 
 Alternates kept viable as exports: `kdisc-knockout.svg` (K is the hole),
 `kdisc-filled.svg` (cream K painted), F5k pinwheel (spinners/motion).
@@ -124,8 +134,8 @@ Key mechanics:
   takes .ico/.icns/.png; Electron `nativeImage`/`Tray` decode no SVG) and
   always colored. Surfaces the APP renders itself (sidebar/title-bar
   lockups, empty states) consume `assets/*.svg` instead:
-  `brandmark-mono.svg` where the mark must tint to the active theme,
-  `brandmark-small.svg` where the fixed palette works.
+  `brandmark-mono-amber.svg` for themed lockups, `brandmark-mono.svg` for
+  strict monochrome, `brandmark-small.svg` where the fixed palette works.
 
 ## Review discipline (what made this work)
 
@@ -177,7 +187,8 @@ Key mechanics:
 
 ## Where everything lives
 
-- `assets/` - the canonical SVG marks (both tiers + filled + mono).
+- `assets/` - the canonical SVG marks (both tiers + filled + the
+  mono/mono-amber in-app pair).
 - `resources/` - the production tree per surface (web/desktop/mobile);
   see `resources/README.md` for the per-file table. Consumers copy from
   here or take the npm package; they never generate icons themselves.
