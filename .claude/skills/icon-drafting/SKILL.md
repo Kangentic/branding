@@ -80,6 +80,15 @@ with the surface's foreground; `currentColor` does NOT tint through
   monochrome contexts: hard accent themes, CSS-mask usage, and the
   source for a future macOS tray template PNG.
 
+Both carry the SMALL-SIZE BREAKOFF TUNING (`F4K_MONO_MID_H` /
+`F4K_MONO_CARD` in `lib/mark.mjs`, selected 2026-07-13): middle column
+shortened 24 -> 20 units, card grown to 17 units and squared (rx 2),
+card bottom still aligned with the outer columns. Theme tinting exposes
+what amber-on-rust hides - with the canonical rects the 6-unit
+column-to-card gap smudges shut at 20-24px and the card rounds to a
+blob. The colored F4k keeps the canonical geometry; shipped icons are
+untouched.
+
 Alternates kept viable as exports: `kdisc-knockout.svg` (K is the hole),
 `kdisc-filled.svg` (cream K painted), F5k pinwheel (spinners/motion).
 `assets/brandmark-filled.svg` is the fixed-appearance card-K for contexts
@@ -184,6 +193,13 @@ Key mechanics:
   typeface for letterforms; construct only what type can't give you.
 - The original fixed 56-unit card: 7-13 units of uneven cream margin -
   dead pixels at icon sizes -> replaced by the glyph-derived tight card.
+- Canonical F4k rects in the mono pair: review finding 2026-07-13, the
+  breakoff is illegible at 20-24px when theme-tinted. Five geometries
+  (v0-v4) rendered at 16/24 and 64/192, pixel-truth zooms; the
+  maintainer picked v4 (column 20, card y52 h17 rx2) from the
+  side-by-side. Wider-gap-only v1/v2 and the shorter-column v3
+  superseded. Scope deliberately mono-pair-only: amber-on-rust masks
+  the smudge on colored surfaces and shipped icons stay byte-identical.
 
 ## Where everything lives
 
