@@ -1,6 +1,6 @@
 {
   "name": "@kangentic/branding",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Kangentic brand assets: the two-tier brandmark (card-K / F4k board glyph), icon sets, and the drafting harness that generates them. Single source of truth for the website, desktop app, and mobile app.",
   "type": "module",
   "files": [

@@ -2,6 +2,30 @@
 
 <!-- releases -->
 
+## [v2.1.0] - 2026-07-13
+
+### Features
+- Add theme-safe mono brandmark variant for in-app chrome:
+  `assets/brandmark-mono.svg`, a single-currentColor F4k (all shape as
+  alpha holes) that inlines and tints with the consumer's theme (6874040)
+- Add mono-amber duotone variant as the default themed in-app lockup:
+  `assets/brandmark-mono-amber.svg`, currentColor disc with the amber card
+  kept (5a321d7)
+- Tune mono-pair breakoff for small-size legibility (v4): wider
+  column-to-card gap and a larger squared card so the gesture survives
+  20-24px; colored marks unchanged (d751e33)
+- Add /brand-review skill and mechanical invariant gate (`npm run check`),
+  now covering the mono pair (currentColor-only, inline-safe) (3739332)
+
+### Other
+- Document the raster-vs-SVG boundary (native OS surfaces decode no SVG;
+  in-app renderer marks consume `assets/*.svg`) and the vector home in the
+  READMEs (part of 6874040)
+- Simplify README and drop stale migration section (8a4166e)
+- Add pull-request and merge-pull-request skills (5191b3a)
+- Fix npm OIDC trusted publishing config (case-sensitive trusted publisher;
+  registry-url restored) (b3a3f31, 8c76eae)
+
 ## [v2.0.1] - 2026-07-13
 
 ### Added
