@@ -122,8 +122,9 @@ export function tightCardK(margin = CARD_MARGIN, P = CUT_CANON, kFill = RUST) {
 // TIER 2 (<48px): the F4k board glyph. Letterless - three column holes
 // through the rust disc, amber card mid-drop. Won the live in-header review
 // at 24-26px against every K letterform (selected 2026-07-12).
-// The rects are THE F4k geometry (100-box, pre-enlargement); every F4k
-// rendition (colored knockout, mono) builds from these.
+// The rects are THE F4k geometry (100-box, pre-enlargement). The colored
+// knockout uses them as-is; the mono pair derives from them with the
+// small-size breakoff tuning below (F4K_MONO_*).
 // ---------------------------------------------------------------------------
 export const F4K_COLS = [
   { x: 27, y: 25, w: 12.5, h: 44, rx: 3 },
@@ -179,12 +180,26 @@ const enlargeRect = ({ x, y, w, h, rx }) => ({
   rx: r4(rx * ENLARGE_S),
 });
 
+// SMALL-SIZE BREAKOFF TUNING (mono pair only; "v4", selected 2026-07-13
+// from the breakoff comparison renders): theme tinting exposes what
+// amber-on-rust hides - at 20-24px the canonical 6-unit column-to-card gap
+// smudges shut and the 14-unit card rounds away to a blob. The in-app pair
+// shortens the middle column (24 -> F4K_MONO_MID_H) and grows the card
+// upward, squarer (F4K_MONO_CARD), keeping the card bottom aligned with the
+// outer columns (69). The colored F4k above is untouched, so every shipped
+// icon stays byte-identical.
+export const F4K_MONO_MID_H = 20;
+export const F4K_MONO_CARD = { x: 43.5, y: 52, w: 12.5, h: 17, rx: 2 };
+const F4K_MONO_COLS = F4K_COLS.map((r, i) =>
+  i === 1 ? { ...r, h: F4K_MONO_MID_H } : r
+);
+
 // The mono document. fill defaults to currentColor (the canonical asset);
 // the review generator passes explicit tints because rasterizers resolve
 // currentColor to black. size adds width/height for direct rasterization;
 // the canonical asset omits it (viewBox only, sizes to its container).
 export function f4kMonoSvg(fill = "currentColor", size) {
-  const holes = [...F4K_COLS, F4K_CARD].map((r) => rrectPath(enlargeRect(r))).join("");
+  const holes = [...F4K_MONO_COLS, F4K_MONO_CARD].map((r) => rrectPath(enlargeRect(r))).join("");
   const dims = size ? ` width="${size}" height="${size}"` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg"${dims} viewBox="0 0 100 100"><path fill-rule="evenodd" fill="${fill}" d="${circlePath(50, 50, 50)}${holes}"/></svg>`;
 }
@@ -197,8 +212,8 @@ export function f4kMonoSvg(fill = "currentColor", size) {
 // antialiasing cannot open a seam of ground around it. Same inline-safety
 // contract as the mono: single evenodd path + one rect, no defs/masks/ids.
 export function f4kDuoSvg(fill = "currentColor", size) {
-  const holes = F4K_COLS.map((r) => rrectPath(enlargeRect(r))).join("");
-  const c = enlargeRect(F4K_CARD);
+  const holes = F4K_MONO_COLS.map((r) => rrectPath(enlargeRect(r))).join("");
+  const c = enlargeRect(F4K_MONO_CARD);
   const dims = size ? ` width="${size}" height="${size}"` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg"${dims} viewBox="0 0 100 100"><path fill-rule="evenodd" fill="${fill}" d="${circlePath(50, 50, 50)}${holes}"/><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="${c.rx}" fill="${AMBER}"/></svg>`;
 }
