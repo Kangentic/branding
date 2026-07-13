@@ -1,0 +1,69 @@
+name: Publish @kangentic/branding
+
+# Publishes @kangentic/branding to npm on a v* tag push, via npm OIDC Trusted
+# Publishing (no stored NPM_TOKEN). The /release skill cuts the version bump,
+# changelog, tag, and GitHub release locally, then pushes the tag -- that push
+# is what triggers this workflow. workflow_dispatch is also available for an ad
+# hoc re-publish (e.g. re-running after a transient npm failure).
+#
+# One-time bootstrap (already done): npm cannot link an OIDC Trusted Publisher
+# to a package that has never been published. v2.0.0 was published manually
+# from a maintainer machine; Trusted Publishing is configured on npmjs.com for
+# Kangentic/branding + this workflow file, so every publish after v2.0.0 runs
+# here via OIDC.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Verify & publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      # Trusted publishing (OIDC) needs npm >= 11.5.1, which Node 24 ships.
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install dependencies (npm ci)
+        run: npm ci
+
+      # Determinism gate: committed assets/ and resources/ must be
+      # byte-identical to what the harness generates. Mirrors /release Step 1.
+      - name: Regenerate assets and check for drift
+        run: |
+          npm run gen
+          npm run gen:icons
+          npm run gen:sprites
+          npm run gen:og
+          if [ -n "$(git status --porcelain -- assets/ resources/)" ]; then
+            echo "::error::Committed assets/ or resources/ drift from generator output. Regenerate and commit before tagging."
+            git status --porcelain -- assets/ resources/
+            git diff -- assets/ resources/
+            exit 1
+          fi
+
+      # Idempotent: re-running an already-published version (a workflow_dispatch
+      # retry) must not fail on npm's "cannot publish over previous version".
+      - name: Publish to npm (OIDC + provenance)
+        run: |
+          PUBLISHED_VERSION=$(node -p "require('./package.json').version")
+          if npm view "@kangentic/branding@$PUBLISHED_VERSION" version >/dev/null 2>&1; then
+            echo "@kangentic/branding@$PUBLISHED_VERSION is already on npm; skipping publish (idempotent re-run)."
+            exit 0
+          fi
+          npm publish --provenance --access public
