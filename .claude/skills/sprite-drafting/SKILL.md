@@ -32,7 +32,7 @@ columns - side arms out and three feet. Canonical map = `OVERSEER` in
 | Script | Purpose |
 |--------|---------|
 | `scripts/lib/sprite.mjs` | THE engine: token `PALETTE`, the canonical `OVERSEER` map, `rects()` / `buildSvg()`. Import from here; never re-declare. |
-| `scripts/gen-sprites.mjs` | Writes `assets/mascot/overseer.svg` (canonical) + every alternate/retired pose to `exploration/mascot/`. `npm run gen:sprites`. |
+| `scripts/gen-sprites.mjs` | Writes `assets/mascot/overseer.svg` + the animation pose frames (canonical), plus every alternate/retired pose and the animation preview to `exploration/mascot/`. `npm run gen:sprites`. |
 | `scripts/gen-og.mjs` | The social share image (`resources/social/og-image.png`): pixel wordmark + the Overseer, no font dependency. `npm run gen:og`. |
 
 ## Conventions (enforced by `pixel-art-conventions.md`)
@@ -49,6 +49,39 @@ columns - side arms out and three feet. Canonical map = `OVERSEER` in
   Poses (blink frames, wave frames) are variations of ONE map, not new
   characters.
 - Alt text always describes it plainly ("Pixel-art Kangentic mascot").
+
+## Animation frames
+
+The blink/wave poses ship as canonical frames next to the rest pose so
+consumers can animate the mascot without redrawing it:
+
+- `assets/mascot/overseer-blink.svg` - all three eyes closed (row 3 of
+  the map closes; the row-4 ink line reads as shut lids).
+- `assets/mascot/overseer-wave.svg` - the viewer-right arm lifted one
+  row (rows 4-5), keeping its 2x2 size; the hand peaks at the lower eye
+  line, never above it. The wave is a 2-pose toggle (rest <> wave).
+  Tuned at the live review, 2026-07-13: beside-the-head and eye-level
+  arms both read too high on the body, and a rows-4-6 smear mid-frame
+  read as the hand growing, so the pose count settled at two. Do not
+  re-raise the arm or re-add a stretch frame without new information.
+
+Rules for frames (mechanically enforced by `assertPose` in
+`scripts/gen-sprites.mjs`):
+
+- A frame is a variation of the ONE canonical map: same 18x12 grid, and
+  every row it does not animate stays byte-identical to `OVERSEER`, so
+  frames overlay pixel-perfectly and motion reads as motion, not a
+  different creature.
+- Frame maps are declared once, in `scripts/lib/sprite.mjs`
+  (`OVERSEER_BLINK`, `OVERSEER_WAVE`).
+- Alt text on every frame stays exactly "Pixel-art Kangentic mascot".
+
+Sequencing is consumer-side and stepped, never tweened (the motion
+budget in `design-language`): blink as an occasional idle loop (closed
+~120ms every 4-6s), wave as a one-shot on load or hover (rest > wave >
+rest > wave > rest at ~120ms per step). `prefers-reduced-motion` rests
+on the canonical frame. `exploration/mascot/animation-preview.html` is
+the live reference recipe.
 
 ## Review discipline
 
@@ -80,8 +113,11 @@ Explored in `exploration/mascot/` and `archive/mascot-explorations/`:
 
 - `assets/mascot/overseer.svg` - the canonical inline mascot (consumers
   embed this; it is theme-agnostic amber on transparency).
+- `assets/mascot/overseer-{blink,wave-mid,wave-up}.svg` - the animation
+  pose frames (same grid; consumers sequence them).
 - `resources/social/og-image.png` - the share image built from it.
-- `exploration/mascot/` - alternates and retired poses (reference).
+- `exploration/mascot/` - alternates, retired poses, and
+  `animation-preview.html` (reference).
 - `archive/mascot-explorations/` - the full creature exploration (concept
   rounds, the superseded mascot-based icon sets, legacy logo candidates)
   so the progression is never lost.

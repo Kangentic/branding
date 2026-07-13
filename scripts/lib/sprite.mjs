@@ -34,6 +34,49 @@ aaaaaaaaaaaaaaaaaa
 ....aa..aa..aa....
 `;
 
+// Animation pose frames: variations of the ONE canonical map above (same
+// 18x12 grid, so frames overlay pixel-perfectly when a consumer swaps
+// them). Every row a pose does not animate stays byte-identical to
+// OVERSEER; gen-sprites.mjs asserts this. Sequencing lives consumer-side
+// as a stepped frame swap (steps() between 2-4 poses, never tweened),
+// resting on the canonical frame under prefers-reduced-motion.
+
+// Blink: all three eyes closed at once. Differs from OVERSEER in row 3
+// only (the sparkle row closes; the ink line on row 4 reads as shut lids).
+export const OVERSEER_BLINK = `
+.....aaaaaaaa.....
+...aaaaaaaaaaaa...
+..aaaaaaaaaaaaaa..
+..aaaaaaaaaaaaaa..
+..aakkaakkaakkaa..
+aaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaa
+..aaaaaaaaaaaaaa..
+..aaaaaaaaaaaaaa..
+...aaaaaaaaaaaa...
+....aa..aa..aa....
+....aa..aa..aa....
+`;
+
+// Wave: the viewer-right arm (the 2x2 nub at cols 16-17) lifted one row,
+// from rows 5-6 to rows 4-5, keeping its 2x2 size. Differs from OVERSEER
+// in rows 4 and 6. The wave is a 2-pose toggle (rest <> wave); the hand
+// peaks at the lower eye line (row 4), never above it.
+export const OVERSEER_WAVE = `
+.....aaaaaaaa.....
+...aaaaaaaaaaaa...
+..aaaaaaaaaaaaaa..
+..aakcaakcaakcaa..
+..aakkaakkaakkaaaa
+aaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaa..
+..aaaaaaaaaaaaaa..
+..aaaaaaaaaaaaaa..
+...aaaaaaaaaaaa...
+....aa..aa..aa....
+....aa..aa..aa....
+`;
+
 export function parseMap(map) {
   return map.replace(/^\n/, "").replace(/\n$/, "").split("\n").map((r) => r.split(""));
 }
