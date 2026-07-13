@@ -33,7 +33,8 @@ scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
 assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
                           -mono-amber}.svg (icon; -mono/-mono-amber =
                           currentColor F4k for themed in-app chrome) +
-                          mascot/overseer.svg (mascot)
+                          mascot/overseer{,-blink,-wave}.svg
+                          (mascot + animation pose frames)
 resources/                Production rasters consumers ship: web/, desktop/,
                           mobile/ (icons), social/og-image.png (see README)
 archive/v1/               The blue-K brand, frozen verbatim. Never touch.
