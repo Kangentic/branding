@@ -113,8 +113,8 @@ Explored in `exploration/mascot/` and `archive/mascot-explorations/`:
 
 - `assets/mascot/overseer.svg` - the canonical inline mascot (consumers
   embed this; it is theme-agnostic amber on transparency).
-- `assets/mascot/overseer-{blink,wave-mid,wave-up}.svg` - the animation
-  pose frames (same grid; consumers sequence them).
+- `assets/mascot/overseer-{blink,wave}.svg` - the animation pose frames
+  (same grid; consumers sequence them).
 - `resources/social/og-image.png` - the share image built from it.
 - `exploration/mascot/` - alternates, retired poses, and
   `animation-preview.html` (reference).
