@@ -96,86 +96,86 @@
      visible overrides a hidden ancestor, so hiding only a wrapper would
      leak). Drop hops 1 unit per 60ms step; run hops 2 units per step
      with the 240ms 2-pose foot toggle. */
-  .minion { position: absolute; top: 110px; width: 80px; height: 70px; z-index: 1; }
+  .minion { position: absolute; top: 110px; z-index: 1; }
   .minion .drop, .minion .run { position: absolute; inset: 0; }
   .minion .f { position: absolute; inset: 0; visibility: hidden; }
   @keyframes run-a { 0% { visibility: visible; } 50% { visibility: hidden; } }
   @keyframes run-b { 0% { visibility: hidden; } 50% { visibility: visible; } }
-  .m1 { left: 430px; }
+  .m1 { left: 430px; width: 96px; height: 84px; }
   .m1 .drop { animation: m1-drop 0.24s steps(4, end) 3.52s both; }
-  @keyframes m1-drop { to { transform: translateY(40px); } }
+  @keyframes m1-drop { to { transform: translateY(48px); } }
   .m1 .run { animation: m1-run 1.62s steps(18, end) 3.64s both; }
-  @keyframes m1-run { to { transform: translate(540px, 180px); } }
+  @keyframes m1-run { to { transform: translate(648px, 216px); } }
   .m1 .f-a { animation: m-appear 0s step-end 3.52s forwards, run-a 0.24s step-end 3.64s infinite; }
   .m1 .f-b { animation: run-b 0.24s step-end 3.64s infinite; }
-  .m2 { left: 420px; }
+  .m2 { left: 420px; width: 64px; height: 56px; }
   .m2 .drop { animation: m2-drop 0.36s steps(6, end) 3.82s both; }
-  @keyframes m2-drop { to { transform: translateY(60px); } }
-  .m2 .run { animation: m2-run 1.62s steps(18, end) 3.94s both; }
-  @keyframes m2-run { to { transform: translate(-360px, 180px); } }
+  @keyframes m2-drop { to { transform: translateY(48px); } }
+  .m2 .run { animation: m2-run 2.07s steps(23, end) 3.94s both; }
+  @keyframes m2-run { to { transform: translate(-368px, 184px); } }
   .m2 .f-a { animation: m-appear 0s step-end 3.82s forwards, run-a 0.24s step-end 3.94s infinite; }
   .m2 .f-b { animation: run-b 0.24s step-end 3.94s infinite; }
-  .m3 { left: 440px; }
+  .m3 { left: 440px; width: 80px; height: 70px; }
   .m3 .drop { animation: m3-drop 0.30s steps(5, end) 4.02s both; }
   @keyframes m3-drop { to { transform: translateY(50px); } }
   .m3 .run { animation: m3-run 1.30s steps(13, end) 4.14s both; }
   @keyframes m3-run { to { transform: translate(520px, 130px); } }
   .m3 .f-a { animation: m-appear 0s step-end 4.02s forwards, run-a 0.24s step-end 4.14s infinite; }
   .m3 .f-b { animation: run-b 0.24s step-end 4.14s infinite; }
-  .m4 { left: 430px; }
+  .m4 { left: 430px; width: 72px; height: 63px; }
   .m4 .drop { animation: m4-drop 0.36s steps(6, end) 4.42s both; }
-  @keyframes m4-drop { to { transform: translateY(60px); } }
-  .m4 .run { animation: m4-run 1.98s steps(18, end) 4.54s both; }
+  @keyframes m4-drop { to { transform: translateY(54px); } }
+  .m4 .run { animation: m4-run 2.20s steps(20, end) 4.54s both; }
   @keyframes m4-run { to { transform: translate(360px, 180px); } }
   .m4 .f-a { animation: m-appear 0s step-end 4.42s forwards, run-a 0.24s step-end 4.54s infinite; }
   .m4 .f-b { animation: run-b 0.24s step-end 4.54s infinite; }
-  .m5 { left: 410px; }
+  .m5 { left: 410px; width: 104px; height: 91px; }
   .m5 .drop { animation: m5-drop 0.24s steps(4, end) 4.72s both; }
-  @keyframes m5-drop { to { transform: translateY(40px); } }
+  @keyframes m5-drop { to { transform: translateY(52px); } }
   .m5 .run { animation: m5-run 1.70s steps(17, end) 4.84s both; }
-  @keyframes m5-run { to { transform: translate(-510px, 170px); } }
+  @keyframes m5-run { to { transform: translate(-663px, 221px); } }
   .m5 .f-a { animation: m-appear 0s step-end 4.72s forwards, run-a 0.24s step-end 4.84s infinite; }
   .m5 .f-b { animation: run-b 0.24s step-end 4.84s infinite; }
-  .m6 { left: 450px; }
+  .m6 { left: 450px; width: 64px; height: 56px; }
   .m6 .drop { animation: m6-drop 0.30s steps(5, end) 4.82s both; }
-  @keyframes m6-drop { to { transform: translateY(50px); } }
-  .m6 .run { animation: m6-run 2.04s steps(17, end) 4.94s both; }
-  @keyframes m6-run { to { transform: translate(510px, 170px); } }
+  @keyframes m6-drop { to { transform: translateY(40px); } }
+  .m6 .run { animation: m6-run 2.64s steps(22, end) 4.94s both; }
+  @keyframes m6-run { to { transform: translate(528px, 176px); } }
   .m6 .f-a { animation: m-appear 0s step-end 4.82s forwards, run-a 0.24s step-end 4.94s infinite; }
   .m6 .f-b { animation: run-b 0.24s step-end 4.94s infinite; }
-  .m7 { left: 430px; }
+  .m7 { left: 430px; width: 88px; height: 77px; }
   .m7 .drop { animation: m7-drop 0.36s steps(6, end) 5.22s both; }
-  @keyframes m7-drop { to { transform: translateY(60px); } }
+  @keyframes m7-drop { to { transform: translateY(66px); } }
   .m7 .run { animation: m7-run 1.43s steps(13, end) 5.34s both; }
-  @keyframes m7-run { to { transform: translate(-520px, 130px); } }
+  @keyframes m7-run { to { transform: translate(-572px, 143px); } }
   .m7 .f-a { animation: m-appear 0s step-end 5.22s forwards, run-a 0.24s step-end 5.34s infinite; }
   .m7 .f-b { animation: run-b 0.24s step-end 5.34s infinite; }
-  .m8 { left: 440px; }
+  .m8 { left: 440px; width: 80px; height: 70px; }
   .m8 .drop { animation: m8-drop 0.24s steps(4, end) 5.52s both; }
   @keyframes m8-drop { to { transform: translateY(40px); } }
   .m8 .run { animation: m8-run 2.16s steps(18, end) 5.64s both; }
   @keyframes m8-run { to { transform: translate(-540px, 180px); } }
   .m8 .f-a { animation: m-appear 0s step-end 5.52s forwards, run-a 0.24s step-end 5.64s infinite; }
   .m8 .f-b { animation: run-b 0.24s step-end 5.64s infinite; }
-  .m9 { left: 420px; }
+  .m9 { left: 420px; width: 96px; height: 84px; }
   .m9 .drop { animation: m9-drop 0.30s steps(5, end) 5.72s both; }
-  @keyframes m9-drop { to { transform: translateY(50px); } }
+  @keyframes m9-drop { to { transform: translateY(60px); } }
   .m9 .run { animation: m9-run 1.68s steps(14, end) 5.84s both; }
-  @keyframes m9-run { to { transform: translate(560px, 140px); } }
+  @keyframes m9-run { to { transform: translate(672px, 168px); } }
   .m9 .f-a { animation: m-appear 0s step-end 5.72s forwards, run-a 0.24s step-end 5.84s infinite; }
   .m9 .f-b { animation: run-b 0.24s step-end 5.84s infinite; }
-  .m10 { left: 450px; }
+  .m10 { left: 450px; width: 72px; height: 63px; }
   .m10 .drop { animation: m10-drop 0.36s steps(6, end) 6.12s both; }
-  @keyframes m10-drop { to { transform: translateY(60px); } }
-  .m10 .run { animation: m10-run 2.34s steps(18, end) 6.24s both; }
+  @keyframes m10-drop { to { transform: translateY(54px); } }
+  .m10 .run { animation: m10-run 2.60s steps(20, end) 6.24s both; }
   @keyframes m10-run { to { transform: translate(-360px, 180px); } }
   .m10 .f-a { animation: m-appear 0s step-end 6.12s forwards, run-a 0.24s step-end 6.24s infinite; }
   .m10 .f-b { animation: run-b 0.24s step-end 6.24s infinite; }
-  .m11 { left: 430px; }
+  .m11 { left: 430px; width: 88px; height: 77px; }
   .m11 .drop { animation: m11-drop 0.24s steps(4, end) 6.42s both; }
-  @keyframes m11-drop { to { transform: translateY(40px); } }
+  @keyframes m11-drop { to { transform: translateY(44px); } }
   .m11 .run { animation: m11-run 1.21s steps(11, end) 6.54s both; }
-  @keyframes m11-run { to { transform: translate(550px, 110px); } }
+  @keyframes m11-run { to { transform: translate(605px, 121px); } }
   .m11 .f-a { animation: m-appear 0s step-end 6.42s forwards, run-a 0.24s step-end 6.54s infinite; }
   .m11 .f-b { animation: run-b 0.24s step-end 6.54s infinite; }
 
@@ -214,10 +214,12 @@ open whitespace, and park the hover clear below the site header, so the
 ship never crosses text or controls. On kangentic.com this runs once per
 visitor (sessionStorage gate) in an absolutely positioned overlay with
 pointer-events none, aria-hidden UFO and minions, and zero layout shift;
-the resting Overseer keeps its normal placement and alt text. Every
-sprite shares one integer display unit (here 10px per grid unit). Under
-prefers-reduced-motion only the resting Overseer renders. Reload to
-replay.</p>
+the resting Overseer keeps its normal placement and alt text. The
+Overseer and the UFO share one integer display unit (here 10px per grid
+unit); each minion may take its OWN integer unit, small and large
+siblings mixed so the crowd reads with depth, but never a fractional
+scale. Under prefers-reduced-motion only the resting Overseer renders.
+Reload to replay.</p>
 
 <figure>
   <div class="scene">

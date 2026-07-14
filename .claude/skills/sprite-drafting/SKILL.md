@@ -115,11 +115,12 @@ decision, 2026-07-13; the constitution amendments live in
 
 Choreography is binding, not a suggestion: 11 minions (one per agent CLI
 in the proof line) spawn at scattered times, leap out diagonally in
-mixed directions at varied speeds and ground lines, and within each
-direction later spawns run slower so nobody overtakes mid-stage; the
-crowd must NEVER read as a Space Invaders grid. All translation is
-stepped in whole grid-unit hops at one shared integer display unit; pose
-swaps stay in the 120ms family. The fly-in scene in
+mixed directions at varied speeds, ground lines, and sizes; the crowd
+must NEVER read as a Space Invaders grid. All translation is stepped in
+whole grid-unit hops; the Overseer and the UFO share one integer display
+unit, and each minion may take its OWN integer unit (bigger roughly runs
+faster, so the crowd reads with near/far depth), but a fractional scale
+is never allowed. Pose swaps stay in the 120ms family. The fly-in scene in
 `exploration/mascot/animation-preview.html` is the consumer contract: on
 the site it runs once per visitor (sessionStorage), in an aria-hidden
 overlay with pointer-events none and zero layout shift, and under

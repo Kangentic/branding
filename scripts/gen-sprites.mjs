@@ -187,50 +187,51 @@ const FRAMES = {
 // short varied hatch drops, then a shallow DESCENDING run ray (mostly
 // horizontal: one unit down per hop, 2-5 units across, at varied angles
 // and speeds) until fully off the stage, past a side edge or below the
-// bottom. Two constraints keep the crowd readable: the run starts two
+// bottom. Sizes vary too: each minion renders at its OWN integer display
+// unit (8 to 13 against the scene's base 10), and bigger roughly runs
+// faster, so the crowd reads with near/far depth. The run starts two
 // hops into the drop (minions leap out instead of stacking at the
-// hatch), and within each direction later spawns run slower, so early
-// runners pull away and nobody overtakes mid-stage. The crowd must never
-// read as an invader formation. All literals, fully deterministic.
-// Columns: [spawn s, dir (+1 right / -1 left), hatch x-offset px, drop px, run dx u/hop, run dy u/hop, run hops, ms per hop]
+// hatch). The crowd must never read as an invader formation. All
+// literals, fully deterministic.
+// Columns: [spawn s, dir (+1 right / -1 left), hatch x-offset px, drop hops, run dx u/hop, run dy u/hop, run hops, ms per hop, px per grid unit]
 const MINIONS = [
-  [3.52, 1, 0, 40, 3, 1, 18, 90],
-  [3.82, -1, -10, 60, 2, 1, 18, 90],
-  [4.02, 1, 10, 50, 4, 1, 13, 100],
-  [4.42, 1, 0, 60, 2, 1, 18, 110],
-  [4.72, -1, -20, 40, 3, 1, 17, 100],
-  [4.82, 1, 20, 50, 3, 1, 17, 120],
-  [5.22, -1, 0, 60, 4, 1, 13, 110],
-  [5.52, -1, 10, 40, 3, 1, 18, 120],
-  [5.72, 1, -10, 50, 4, 1, 14, 120],
-  [6.12, -1, 20, 60, 2, 1, 18, 130],
-  [6.42, 1, 0, 40, 5, 1, 11, 110],
+  [3.52, 1, 0, 4, 3, 1, 18, 90, 12],
+  [3.82, -1, -10, 6, 2, 1, 23, 90, 8],
+  [4.02, 1, 10, 5, 4, 1, 13, 100, 10],
+  [4.42, 1, 0, 6, 2, 1, 20, 110, 9],
+  [4.72, -1, -20, 4, 3, 1, 17, 100, 13],
+  [4.82, 1, 20, 5, 3, 1, 22, 120, 8],
+  [5.22, -1, 0, 6, 4, 1, 13, 110, 11],
+  [5.52, -1, 10, 4, 3, 1, 18, 120, 10],
+  [5.72, 1, -10, 5, 4, 1, 14, 120, 12],
+  [6.12, -1, 20, 6, 2, 1, 20, 130, 9],
+  [6.42, 1, 0, 4, 5, 1, 11, 110, 11],
 ];
-// Drops hop 1 unit per 60ms step; runs hop (dx, dy) units per step. Every
-// end position is fully off the 960x340 stage so `both` fill never parks
-// a sliver on screen; the generator refuses a ray that parks on stage.
+// Drops hop 1 unit per 60ms step; runs hop (dx, dy) units per step, all
+// in the minion's own unit so its pixels stay on its own integer grid.
+// Every end position is fully off the 960x340 stage so `both` fill never
+// parks a sliver on screen; the generator refuses a ray that parks.
 // toFixed keeps the generated CSS byte-stable.
-const minionCss = MINIONS.map(([spawn, dir, xoff, drop, dxu, dyu, hops, stepMs], i) => {
+const minionCss = MINIONS.map(([spawn, dir, xoff, dropHops, dxu, dyu, hops, stepMs, unit], i) => {
   const n = i + 1;
-  const dropSteps = drop / 10;
-  // A fractional steps() count is invalid CSS the browser drops silently.
-  if (!Number.isInteger(dropSteps) || xoff % 10 !== 0) {
-    throw new Error(`minion ${n}: drop/x-offset must be whole grid-unit hops`);
+  if (!Number.isInteger(unit) || !Number.isInteger(dropHops) || !Number.isInteger(hops)) {
+    throw new Error(`minion ${n}: unit and hop counts must be integers`);
   }
   const startX = 430 + xoff;
-  const runX = dir * hops * dxu * 10;
-  const runY = hops * dyu * 10;
+  const drop = dropHops * unit;
+  const runX = dir * hops * dxu * unit;
+  const runY = hops * dyu * unit;
   const endX = startX + runX;
   const endY = 110 + drop + runY;
-  if (endX > -80 && endX < 960 && endY < 340) {
+  if (endX > -(8 * unit) && endX < 960 && endY < 340) {
     throw new Error(`minion ${n}: run parks on stage at ${endX},${endY} (must exit fully)`);
   }
-  const dropDur = (dropSteps * 0.06).toFixed(2);
+  const dropDur = (dropHops * 0.06).toFixed(2);
   const runDur = ((hops * stepMs) / 1000).toFixed(2);
   const runDelay = (spawn + 0.12).toFixed(2);
   const at = spawn.toFixed(2);
-  return `  .m${n} { left: ${startX}px; }
-  .m${n} .drop { animation: m${n}-drop ${dropDur}s steps(${dropSteps}, end) ${at}s both; }
+  return `  .m${n} { left: ${startX}px; width: ${8 * unit}px; height: ${7 * unit}px; }
+  .m${n} .drop { animation: m${n}-drop ${dropDur}s steps(${dropHops}, end) ${at}s both; }
   @keyframes m${n}-drop { to { transform: translateY(${drop}px); } }
   .m${n} .run { animation: m${n}-run ${runDur}s steps(${hops}, end) ${runDelay}s both; }
   @keyframes m${n}-run { to { transform: translate(${runX}px, ${runY}px); } }
@@ -338,7 +339,7 @@ const previewHtml = `<!doctype html>
      visible overrides a hidden ancestor, so hiding only a wrapper would
      leak). Drop hops 1 unit per 60ms step; run hops 2 units per step
      with the 240ms 2-pose foot toggle. */
-  .minion { position: absolute; top: 110px; width: 80px; height: 70px; z-index: 1; }
+  .minion { position: absolute; top: 110px; z-index: 1; }
   .minion .drop, .minion .run { position: absolute; inset: 0; }
   .minion .f { position: absolute; inset: 0; visibility: hidden; }
   @keyframes run-a { 0% { visibility: visible; } 50% { visibility: hidden; } }
@@ -380,10 +381,12 @@ open whitespace, and park the hover clear below the site header, so the
 ship never crosses text or controls. On kangentic.com this runs once per
 visitor (sessionStorage gate) in an absolutely positioned overlay with
 pointer-events none, aria-hidden UFO and minions, and zero layout shift;
-the resting Overseer keeps its normal placement and alt text. Every
-sprite shares one integer display unit (here 10px per grid unit). Under
-prefers-reduced-motion only the resting Overseer renders. Reload to
-replay.</p>
+the resting Overseer keeps its normal placement and alt text. The
+Overseer and the UFO share one integer display unit (here 10px per grid
+unit); each minion may take its OWN integer unit, small and large
+siblings mixed so the crowd reads with depth, but never a fractional
+scale. Under prefers-reduced-motion only the resting Overseer renders.
+Reload to replay.</p>
 
 <figure>
   <div class="scene">

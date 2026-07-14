@@ -179,7 +179,8 @@ Details live in the `motion-craft` skill. Summary:
   between 2-4 poses), never tweened - pixels hop, they do not glide.
 - Sanctioned addition (maintainer decision, 2026-07-13): a one-shot first-visit
   overture on the landing page. The Overseer flies in aboard the UFO, 11 minions
-  drop at scattered times and run across the screen on varied paths and speeds
+  drop at scattered times and run across the screen on varied paths, speeds, and
+  sizes, each at its own integer display unit
   (never rows, columns, or a formation; it must not read as an invader grid),
   the Overseer settles at its static placement, and the empty saucer departs.
   Once per visitor (sessionStorage gate), never looping; the board demo stays
