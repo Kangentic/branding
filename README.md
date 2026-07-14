@@ -21,8 +21,10 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
 - **The mascot** - `assets/mascot/overseer.svg`. The Overseer, a pixel-art
   amber blob, authored as an ASCII map and rendered to a crisp SVG.
   Animation pose frames ship alongside it (`overseer-blink.svg`,
-  `overseer-wave.svg`) for consumer-side stepped frame swaps; reduced
-  motion rests on the canonical frame.
+  `overseer-wave.svg`) for consumer-side stepped frame swaps, plus the
+  first-visit fly-in overture set (`overseer-ufo.svg`, `ufo.svg`,
+  `minion.svg`, `minion-run.svg`); reduced motion rests on the canonical
+  frame.
 - **The production tree** - `resources/`. Everything each surface ships:
   `desktop/` (Electron .ico/.icns + PNG ladder), `web/` (favicons,
   manifest icons, logo), `mobile/` (store + adaptive icons), and

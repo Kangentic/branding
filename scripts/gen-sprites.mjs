@@ -11,7 +11,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { OVERSEER, OVERSEER_BLINK, OVERSEER_WAVE, buildSvg, parseMap } from "./lib/sprite.mjs";
+import { MINION, MINION_RUN, OVERSEER, OVERSEER_BLINK, OVERSEER_UFO, OVERSEER_WAVE, UFO, buildSvg, parseMap } from "./lib/sprite.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MASCOT = join(ROOT, "assets", "mascot");
@@ -101,38 +101,66 @@ await mkdir(EXPLORE, { recursive: true });
 
 // Canonical mascot -> assets/mascot/overseer.svg, preview in exploration.
 const LABEL = "Pixel-art Kangentic mascot";
+const MINION_LABEL = "Pixel-art Kangentic agent minion";
+const UFO_FULL_LABEL = "Pixel-art UFO carrying the Kangentic mascot";
+const UFO_EMPTY_LABEL = "Pixel-art empty UFO";
 const overseerSvg = buildSvg(OVERSEER, { unit: 1, label: LABEL });
 await writeFile(join(MASCOT, "overseer.svg"), overseerSvg + "\n");
 await sharp(Buffer.from(buildSvg(OVERSEER, { unit: 16, label: LABEL })))
   .png().toFile(join(EXPLORE, "overseer.png"));
 
+// The composite's dome must stay byte-faithful to the canonical Overseer
+// (rows 0-4, centered with 3 transparent columns each side), so the rider
+// is the mascot, not a lookalike.
+function assertDome() {
+  const ov = parseMap(OVERSEER);
+  const comp = parseMap(OVERSEER_UFO);
+  for (let y = 0; y < 5; y++) {
+    if (comp[y].join("") !== `...${ov[y].join("")}...`) throw new Error(`overseer-ufo: dome row ${y} drifted from the canonical map`);
+  }
+}
+assertDome();
+
+// The fly-in overture bases -> assets/mascot/ (the UFO composite and the
+// minion; their variation frames live in POSES below).
+const CANON = {
+  "overseer-ufo": { map: OVERSEER_UFO, label: UFO_FULL_LABEL },
+  "minion": { map: MINION, label: MINION_LABEL },
+};
+for (const [name, { map, label }] of Object.entries(CANON)) {
+  await writeFile(join(MASCOT, `${name}.svg`), buildSvg(map, { unit: 1, label }) + "\n");
+  await sharp(Buffer.from(buildSvg(map, { unit: 16, label }))).png().toFile(join(EXPLORE, `${name}.png`));
+}
+
 // Animation pose frames -> assets/mascot/. Consumers sequence them as a
 // stepped frame swap (see the animation preview below); reduced motion
-// rests on the canonical frame. Every pose is a variation of the ONE
-// canonical map: same grid, and every row it does not animate stays
-// byte-identical to OVERSEER so motion reads as motion, not a different
-// creature. assertPose enforces that.
+// rests on the canonical frame. Every pose is a variation of ONE base
+// map: same grid, and every row it does not animate stays byte-identical
+// to the base so motion reads as motion, not a different creature (and
+// the empty saucer stays the composite's saucer). assertPose enforces it.
 const POSES = {
-  "overseer-blink": { map: OVERSEER_BLINK, changedRows: [3] },
-  "overseer-wave": { map: OVERSEER_WAVE, changedRows: [4, 6] },
+  "overseer-blink": { base: OVERSEER, map: OVERSEER_BLINK, changedRows: [3], label: LABEL },
+  "overseer-wave": { base: OVERSEER, map: OVERSEER_WAVE, changedRows: [4, 6], label: LABEL },
+  "minion-run": { base: MINION, map: MINION_RUN, changedRows: [6], label: MINION_LABEL },
+  "ufo": { base: OVERSEER_UFO, map: UFO, changedRows: [0, 1, 2, 3, 4], label: UFO_EMPTY_LABEL },
 };
 
-function assertPose(name, map, changedRows) {
-  const base = parseMap(OVERSEER);
+function assertPose(name, baseMap, map, changedRows) {
+  const base = parseMap(baseMap);
   const pose = parseMap(map);
-  if (pose.length !== base.length) throw new Error(`${name}: ${pose.length} rows (canonical has ${base.length})`);
+  if (pose.length !== base.length) throw new Error(`${name}: ${pose.length} rows (base has ${base.length})`);
   for (let y = 0; y < base.length; y++) {
     const row = pose[y].join("");
     const canon = base[y].join("");
-    if (row.length !== canon.length) throw new Error(`${name}: row ${y} is ${row.length} wide (canonical is ${canon.length})`);
-    if (!changedRows.includes(y) && row !== canon) throw new Error(`${name}: row ${y} drifted from the canonical map`);
+    if (row.length !== canon.length) throw new Error(`${name}: row ${y} is ${row.length} wide (base is ${canon.length})`);
+    if (!changedRows.includes(y) && row !== canon) throw new Error(`${name}: row ${y} drifted from the base map`);
   }
 }
 
-for (const [name, { map, changedRows }] of Object.entries(POSES)) {
-  assertPose(name, map, changedRows);
-  await writeFile(join(MASCOT, `${name}.svg`), buildSvg(map, { unit: 1, label: LABEL }) + "\n");
-  await sharp(Buffer.from(buildSvg(map, { unit: 16, label: LABEL }))).png().toFile(join(EXPLORE, `${name}.png`));
+for (const [name, { base, map, changedRows, label }] of Object.entries(POSES)) {
+  assertPose(name, base, map, changedRows);
+  await writeFile(join(MASCOT, `${name}.svg`), buildSvg(map, { unit: 1, label }) + "\n");
+  await sharp(Buffer.from(buildSvg(map, { unit: 16, label }))).png().toFile(join(EXPLORE, `${name}.png`));
 }
 
 // Animation preview -> exploration/mascot/ (review artifact + the
@@ -141,7 +169,60 @@ const FRAMES = {
   rest: buildSvg(OVERSEER, { unit: 1, label: LABEL }),
   blink: buildSvg(OVERSEER_BLINK, { unit: 1, label: LABEL }),
   wave: buildSvg(OVERSEER_WAVE, { unit: 1, label: LABEL }),
+  ufoFull: buildSvg(OVERSEER_UFO, { unit: 1, label: UFO_FULL_LABEL }),
+  ufoEmpty: buildSvg(UFO, { unit: 1, label: UFO_EMPTY_LABEL }),
+  minion: buildSvg(MINION, { unit: 1, label: MINION_LABEL }),
+  minionRun: buildSvg(MINION_RUN, { unit: 1, label: MINION_LABEL }),
 };
+
+// The fly-in scene: the consumer contract for the once-per-visitor load
+// overture. Display unit is 10px per grid unit (the strip below shows the
+// same scale); ALL translation is stepped in whole grid-unit hops.
+//
+// Anti-grid scatter for the 11 minions (one per agent CLI in the proof
+// line): irregular spawn gaps, interleaved directions (6 right, 5 left),
+// drop heights spread over a 4-unit band, run speeds 90-140ms per 2-unit
+// hop. Two constraints keep the crowd readable: the run starts two hops
+// into the drop (minions leap out diagonally instead of stacking at the
+// hatch), and within each direction later spawns run slower, so early
+// runners pull away and nobody overtakes mid-stage. The crowd must never
+// read as an invader formation. All literals, fully deterministic.
+// Columns: [spawn s, dir (+1 right / -1 left), hatch x-offset px, drop px, run px, ms per 2-unit hop]
+const MINIONS = [
+  [2.0, 1, 0, 130, 560, 90],
+  [2.3, -1, -10, 150, 540, 90],
+  [2.5, 1, 10, 120, 560, 100],
+  [2.9, 1, 0, 160, 580, 110],
+  [3.2, -1, -20, 140, 520, 110],
+  [3.3, 1, 20, 130, 540, 120],
+  [3.7, -1, 0, 160, 560, 120],
+  [4.0, -1, 10, 120, 540, 130],
+  [4.2, 1, -10, 150, 560, 130],
+  [4.6, -1, 20, 130, 540, 140],
+  [4.9, 1, 0, 140, 600, 140],
+];
+// Drops hop 1 unit per 60ms step; runs hop 2 units per step. Every end
+// position is fully off the 960px stage so `both` fill never parks a
+// sliver on screen. toFixed keeps the generated CSS byte-stable.
+const minionCss = MINIONS.map(([spawn, dir, xoff, drop, run, stepMs], i) => {
+  const n = i + 1;
+  const dropSteps = drop / 10;
+  const dropDur = (dropSteps * 0.06).toFixed(2);
+  const runSteps = run / 20;
+  const runDur = ((runSteps * stepMs) / 1000).toFixed(2);
+  const runDelay = (spawn + 0.12).toFixed(2);
+  const at = spawn.toFixed(2);
+  return `  .m${n} { left: ${430 + xoff}px; }
+  .m${n} .drop { animation: m${n}-drop ${dropDur}s steps(${dropSteps}, end) ${at}s both; }
+  @keyframes m${n}-drop { to { transform: translateY(${drop}px); } }
+  .m${n} .run { animation: m${n}-run ${runDur}s steps(${runSteps}, end) ${runDelay}s both; }
+  @keyframes m${n}-run { to { transform: translateX(${dir * run}px); } }
+  .m${n} .f-a { animation: m-appear 0s step-end ${at}s forwards, run-a 0.24s step-end ${runDelay}s infinite; }
+  .m${n} .f-b { animation: run-b 0.24s step-end ${runDelay}s infinite; }`;
+}).join("\n");
+const minionHtml = MINIONS.map((_, i) =>
+  `  <div class="minion m${i + 1}"><div class="drop"><div class="run"><div class="f f-a">${FRAMES.minion}</div><div class="f f-b">${FRAMES.minionRun}</div></div></div></div>`
+).join("\n");
 const previewHtml = `<!doctype html>
 <html lang="en">
 <meta charset="utf-8">
@@ -156,6 +237,9 @@ const previewHtml = `<!doctype html>
   figcaption { margin-top: 8px; font-size: 12px; color: #6e6659; }
   .sprite { width: 180px; height: 120px; }
   .sprite svg { width: 100%; height: 100%; }
+  .sprite-ufo { width: 240px; height: 90px; }
+  .sprite-minion { width: 80px; height: 70px; }
+  .sprite-ufo svg, .sprite-minion svg { width: 100%; height: 100%; }
   .demo { position: relative; width: 180px; height: 120px; }
   .demo .f { position: absolute; inset: 0; visibility: hidden; }
   .demo .f svg { width: 100%; height: 100%; }
@@ -179,9 +263,60 @@ const previewHtml = `<!doctype html>
   @keyframes wave-loop-rest { 0% { visibility: visible; } 6% { visibility: hidden; } 12% { visibility: visible; } 18% { visibility: hidden; } 24% { visibility: visible; } }
   @keyframes wave-loop-hand { 0% { visibility: hidden; } 6% { visibility: visible; } 12% { visibility: hidden; } 18% { visibility: visible; } 24% { visibility: hidden; } }
 
-  /* Reduced motion is a first-class rendering: rest on the canonical frame. */
+  /* Fly-in overture: stepped translation ONLY (steps() in whole grid-unit
+     hops at 10px per grid unit); frame swaps stay in the 120ms family.
+     The nested UFO wrappers compose entry (x), descent (y), hover bob,
+     and departure without two animations fighting over one transform. */
+  .scene { position: relative; width: 960px; height: 340px; overflow: hidden; background: #f6f1e8; border: 1px solid rgba(36,32,27,0.16); }
+  .scene svg { width: 100%; height: 100%; }
+  .ufo { position: absolute; left: 0; top: 0; width: 240px; height: 90px; z-index: 3; }
+  .ufo-go, .ufo-x, .ufo-y, .ufo-bob { position: absolute; inset: 0; }
+  .ufo .f { position: absolute; inset: 0; }
+  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 7.4s both; }
+  .ufo-x { animation: ufo-enter 1.2s steps(10, end) both; }
+  .ufo-y { animation: ufo-descend 0.48s steps(4, end) 1.2s both; }
+  .ufo-bob { animation: bob 0.96s step-end 1.68s 4; }
+  @keyframes ufo-enter { from { transform: translateX(-250px); } to { transform: translateX(350px); } }
+  @keyframes ufo-descend { from { transform: translateY(-10px); } to { transform: translateY(30px); } }
+  @keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes ufo-depart { to { transform: translate(700px, -100px); } }
+
+  /* Scheduled frame swaps and spawns: 0s step-end visibility flips. */
+  @keyframes m-appear { to { visibility: visible; } }
+  @keyframes m-vanish { to { visibility: hidden; } }
+  .ufo .f-full { animation: m-vanish 0s step-end 6.2s forwards; }
+  .ufo .f-empty { visibility: hidden; animation: m-appear 0s step-end 6.2s forwards; }
+
+  /* The Overseer hops down through the hatch at 6.2s (pixels hop: the
+     swap from dome to below-hull IS the disembark), steps to its rest
+     slot, then the blink idle takes over at 9s. */
+  .hero { position: absolute; left: 380px; top: 120px; width: 180px; height: 120px; z-index: 2; }
+  .hero .land { position: absolute; inset: 0; animation: hero-drop 0.84s steps(7, end) 6.2s both; }
+  @keyframes hero-drop { to { transform: translateY(70px); } }
+  .hero .f { position: absolute; inset: 0; visibility: hidden; }
+  .hero .f-rest { animation: m-appear 0s step-end 6.2s forwards, blink-rest 5s step-end 9s infinite; }
+  .hero .f-eyes { animation: blink-eyes 5s step-end 9s infinite; }
+
+  /* Minions: frames gate their OWN visibility (a child's visibility:
+     visible overrides a hidden ancestor, so hiding only a wrapper would
+     leak). Drop hops 1 unit per 60ms step; run hops 2 units per step
+     with the 240ms 2-pose foot toggle. */
+  .minion { position: absolute; top: 100px; width: 80px; height: 70px; z-index: 1; }
+  .minion .drop, .minion .run { position: absolute; inset: 0; }
+  .minion .f { position: absolute; inset: 0; visibility: hidden; }
+  @keyframes run-a { 0% { visibility: visible; } 50% { visibility: hidden; } }
+  @keyframes run-b { 0% { visibility: hidden; } 50% { visibility: visible; } }
+${minionCss}
+
+  /* Reduced motion is a first-class rendering: rest on the canonical
+     frame; the overture renders ONLY the resting Overseer (no UFO, no
+     minions, no motion). */
   @media (prefers-reduced-motion: reduce) {
     .demo .f { animation: none !important; }
+    .scene .ufo, .scene .minion { display: none; }
+    .scene .hero .land { animation: none; transform: translateY(70px); }
+    .scene .hero .f-rest { animation: none; visibility: visible; }
+    .scene .hero .f-eyes { animation: none; visibility: hidden; }
   }
 </style>
 <h1>Overseer animation preview</h1>
@@ -189,7 +324,37 @@ const previewHtml = `<!doctype html>
 sequence the shipped frames in assets/mascot/ exactly like this: a
 stepped frame swap between 2-4 poses, never a tween. Under
 prefers-reduced-motion the mascot rests on the canonical frame. One
-mascot per page; alt text stays "${LABEL}".</p>
+mascot per page (the fly-in overture below is the one sanctioned
+exception); the mascot's alt text stays "${LABEL}".</p>
+
+<h1>Fly-in overture (the consumer contract)</h1>
+<p>The once-per-visitor load sequence: the UFO carries the Overseer in
+from the left in stepped whole grid-unit hops, hovers, and hatches 11
+minions (one per agent CLI) at scattered times that run off both edges
+at varied speeds, never a formation. The Overseer hops down through the
+hatch, steps to its resting slot, the empty saucer departs, and the
+blink idle starts only after settle. On kangentic.com this runs once per
+visitor (sessionStorage gate) in an absolutely positioned overlay with
+pointer-events none, aria-hidden UFO and minions, and zero layout shift;
+the resting Overseer keeps its normal placement and alt text. Every
+sprite shares one integer display unit (here 10px per grid unit). Under
+prefers-reduced-motion only the resting Overseer renders. Reload to
+replay.</p>
+
+<figure>
+  <div class="scene">
+    <div class="ufo"><div class="ufo-go"><div class="ufo-x"><div class="ufo-y"><div class="ufo-bob">
+      <div class="f f-full">${FRAMES.ufoFull}</div>
+      <div class="f f-empty">${FRAMES.ufoEmpty}</div>
+    </div></div></div></div></div>
+${minionHtml}
+    <div class="hero"><div class="land">
+      <div class="f f-rest">${FRAMES.rest}</div>
+      <div class="f f-eyes">${FRAMES.blink}</div>
+    </div></div>
+  </div>
+  <figcaption>fly-in overture: enter, hatch 11 minions, disembark, depart; reload to replay</figcaption>
+</figure>
 
 <div class="row">
   <figure>
@@ -213,6 +378,10 @@ mascot per page; alt text stays "${LABEL}".</p>
   <figure><div class="sprite">${FRAMES.rest}</div><figcaption>overseer.svg (rest)</figcaption></figure>
   <figure><div class="sprite">${FRAMES.blink}</div><figcaption>overseer-blink.svg</figcaption></figure>
   <figure><div class="sprite">${FRAMES.wave}</div><figcaption>overseer-wave.svg</figcaption></figure>
+  <figure><div class="sprite-ufo">${FRAMES.ufoFull}</div><figcaption>overseer-ufo.svg</figcaption></figure>
+  <figure><div class="sprite-ufo">${FRAMES.ufoEmpty}</div><figcaption>ufo.svg</figcaption></figure>
+  <figure><div class="sprite-minion">${FRAMES.minion}</div><figcaption>minion.svg</figcaption></figure>
+  <figure><div class="sprite-minion">${FRAMES.minionRun}</div><figcaption>minion-run.svg</figcaption></figure>
 </div>
 </html>
 `;
@@ -224,4 +393,4 @@ for (const [name, { map, label }] of Object.entries(ALTERNATES)) {
   await sharp(Buffer.from(buildSvg(map, { unit: 16, label }))).png().toFile(join(EXPLORE, `${name}.png`));
 }
 
-console.log(`Wrote assets/mascot/overseer.svg + ${Object.keys(POSES).length} pose frames, the animation preview, and ${Object.keys(ALTERNATES).length} alternates to exploration/mascot/`);
+console.log(`Wrote assets/mascot/overseer.svg + ${Object.keys(CANON).length} overture bases + ${Object.keys(POSES).length} pose frames, the animation preview (incl. the fly-in scene), and ${Object.keys(ALTERNATES).length} alternates to exploration/mascot/`);

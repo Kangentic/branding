@@ -19,6 +19,11 @@ scaling, or a fifth color turn it into generic clip-art.
   `scripts/lib/sprite.mjs`. Generators import them; they do not re-declare.
 - The Overseer is the one character, at most once per page, always with
   plain alt text. Poses are variations of one map, not new creatures.
+- Sanctioned exception (maintainer decision, 2026-07-13): the first-visit
+  fly-in overture may show the UFO prop and the 11 minions alongside the
+  Overseer. They exist only inside that sequence, never as standalone
+  decoration; the minion run is a 2-pose toggle of ONE minion map, and
+  the two UFO frames share one saucer grid.
 
 ## Enforcement (self-maintaining)
 

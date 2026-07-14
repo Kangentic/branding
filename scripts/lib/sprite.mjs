@@ -77,6 +77,70 @@ aaaaaaaaaaaaaaaa..
 ....aa..aa..aa....
 `;
 
+// --- The fly-in overture set (maintainer decision, 2026-07-13) -------------
+// The Overseer arrives aboard a UFO on a visitor's first page load and
+// releases its minions (the agents it watches). The UFO is a sanctioned
+// PROP, not a second character; minions appear ONLY inside that load
+// sequence. See the sprite-drafting skill for the binding choreography.
+
+// The flying saucer hull (24 wide x 4 rows): rust body with four
+// mirror-symmetric cream port lights. Rust is the brand accent, so the
+// vehicle carries it. Shared verbatim by OVERSEER_UFO and UFO so the two
+// frames overlay pixel-perfectly in a stepped swap.
+const SAUCER = `....rrrrrrrrrrrrrrrr....
+rrrcrrrrrcrrrrcrrrrrcrrr
+..rrrrrrrrrrrrrrrrrrrr..
+......rrrrrrrrrrrr......`;
+
+// Fly-in composite (24 wide x 9 tall): the Overseer riding the saucer,
+// head visible in the dome position. The dome rows are canonical OVERSEER
+// rows 0-4 centered on the 24-wide hull grid (3 transparent columns each
+// side), derived at build time so they can never drift from the canonical
+// map; the hull occludes rows 5-11. Renders as:
+//   ........aaaaaaaa........
+//   ......aaaaaaaaaaaa......
+//   .....aaaaaaaaaaaaaa.....
+//   .....aakcaakcaakcaa.....
+//   .....aakkaakkaakkaa.....
+//   ....rrrrrrrrrrrrrrrr....
+//   rrrcrrrrrcrrrrcrrrrrcrrr
+//   ..rrrrrrrrrrrrrrrrrrrr..
+//   ......rrrrrrrrrrrr......
+const DOME = parseMap(OVERSEER).slice(0, 5).map((r) => `...${r.join("")}...`).join("\n");
+export const OVERSEER_UFO = `\n${DOME}\n${SAUCER}\n`;
+
+// Departure frame: the empty saucer after the Overseer disembarks. Same
+// 24x9 grid as OVERSEER_UFO (explicit transparent dome rows) so the two
+// frames overlay pixel-perfectly.
+export const UFO = `\n${Array.from({ length: 5 }, () => ".".repeat(24)).join("\n")}\n${SAUCER}\n`;
+
+// THE MINION (8 wide x 7 tall): one of the Overseer's agents, released
+// during the fly-in overture. Same visual DNA as the parent: amber body,
+// ONE ink+cream sparkle eye (the parent's exact 2x2 eye unit), two feet.
+// Symmetric on purpose so one sprite runs both directions.
+export const MINION = `
+..aaaa..
+.aaaaaa.
+aaakcaaa
+aaakkaaa
+aaaaaaaa
+.aaaaaa.
+.aa..aa.
+`;
+
+// Run frame: a 2-pose toggle with MINION (rest <> run). Differs in row 6
+// only: the feet splay into a stride. Horizontal translation carries the
+// motion; the foot toggle adds the churn.
+export const MINION_RUN = `
+..aaaa..
+.aaaaaa.
+aaakcaaa
+aaakkaaa
+aaaaaaaa
+.aaaaaa.
+aa....aa
+`;
+
 export function parseMap(map) {
   return map.replace(/^\n/, "").replace(/\n$/, "").split("\n").map((r) => r.split(""));
 }
