@@ -53,7 +53,11 @@
   .ufo { position: absolute; left: 0; top: 0; width: 260px; height: 110px; z-index: 3; }
   .ufo-go, .ufo-x, .ufo-bob { position: absolute; inset: 0; }
   .ufo .f { position: absolute; inset: 0; }
-  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 9.12s both; }
+  /* Drop-and-go: the departure starts at the 7.92s swap, so its first
+     hop and the Overseer's first sink hop land together one beat later
+     (8.04s). The swap beat itself keeps the ship at the hover with the
+     rider overlaying the dome, so the handoff frame stays seamless. */
+  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 7.92s both; }
   .ufo-x { animation: ufo-enter 3.12s both; }
   .ufo-bob { animation: bob 0.96s step-end 3.12s 5; }
   /* 26 hops at 120ms: 12 up-left (-5u,-1u), 8 up-right (+4u,-1u),
@@ -75,10 +79,10 @@
 
   /* The disembark at 7.92s: the standalone Overseer appears EXACTLY
      where the rider sat (rows 0-4 overlay the composite's dome rows, so
-     the frame swap is seamless) and sinks one unit per 120ms step. The
-     saucer draws above the mascot layer, so the mid rows pass hidden
-     behind the hull and the body emerges below it: a descent, not a
-     clip-out. The blink idle takes over at 10.8s. */
+     the frame swap is seamless) and sinks one unit per 120ms step while
+     the emptied ship peels away in the same frame. The saucer still
+     draws above the mascot layer so the first beat's overlap occludes
+     cleanly. The blink idle takes over at 10.8s. */
   .hero { position: absolute; left: 380px; top: 40px; width: 180px; height: 120px; z-index: 2; }
   .hero .land { position: absolute; inset: 0; animation: hero-drop 1.8s steps(15, end) 7.92s both; }
   @keyframes hero-drop { to { transform: translateY(150px); } }
@@ -198,13 +202,14 @@ right on a stepped zigzag (banking left, right, then left up to the
 hover; it climbs out at the mirror angle), hovers, and hatches 11
 minions (one per agent CLI) at scattered times that scatter off the
 stage on shallow descending runs, mostly horizontal, at varied angles
-and speeds, never a formation. The Overseer sinks out of the dome one
-step at a time, passing behind the hull (the saucer draws above the
-mascot layer) and emerging below it to settle on its resting slot; the
-empty saucer departs, and the blink idle starts only after settle. On
-the site, run the entry on the mascot's side of the page, keep every
-waypoint inside the hero's open whitespace, and park the hover clear
-below the site header, so the ship never crosses text or controls. On kangentic.com this runs once per
+and speeds, never a formation. The Overseer drops out of the dome one
+step at a time while the emptied saucer peels away in the same frame (a
+drop-and-go; the saucer draws above the mascot layer so the first
+beat's overlap occludes cleanly), then steps down to its resting slot,
+and the blink idle starts only after settle. On the site, run the entry
+on the mascot's side of the page, keep every waypoint inside the hero's
+open whitespace, and park the hover clear below the site header, so the
+ship never crosses text or controls. On kangentic.com this runs once per
 visitor (sessionStorage gate) in an absolutely positioned overlay with
 pointer-events none, aria-hidden UFO and minions, and zero layout shift;
 the resting Overseer keeps its normal placement and alt text. Every
