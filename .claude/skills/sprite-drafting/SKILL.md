@@ -89,15 +89,19 @@ The first-visit load sequence on kangentic.com (sanctioned by maintainer
 decision, 2026-07-13; the constitution amendments live in
 `design-language`) ships four more frames next to the Overseer's:
 
-- `assets/mascot/overseer-ufo.svg` - the composite (24x9): the Overseer
-  riding the saucer, head visible in the dome position. The dome rows
-  are derived from canonical `OVERSEER` rows 0-4 at build time (centered,
-  3 transparent columns each side), so the rider can never drift from
-  the canonical map; the hull occludes rows 5-11. Label: "Pixel-art UFO
-  carrying the Kangentic mascot".
-- `assets/mascot/ufo.svg` - the empty saucer (same 24x9 grid) for the
-  departure after the Overseer disembarks. The hull rows are one shared
-  `SAUCER` const in the lib, byte-identical across both frames. The UFO
+- `assets/mascot/overseer-ufo.svg` - the composite (24x11): the Overseer
+  riding the saucer inside a glass bubble canopy (a 1px rust arc with a
+  clear air gap around the rider; rust, not cream, because cream is the
+  page ground color and cream "glass" pixels would vanish on it). The
+  rider rows are derived from canonical `OVERSEER` rows 0-4 at build time
+  (centered, 3 transparent columns each side, two rows below the bubble
+  apex), so the rider can never drift from the canonical map; the hull
+  occludes rows 5-11. Label: "Pixel-art UFO carrying the Kangentic
+  mascot".
+- `assets/mascot/ufo.svg` - the empty saucer (same 24x11 grid) for the
+  departure after the Overseer disembarks; the bubble canopy belongs to
+  the vehicle and stays. The hull and bubble rows are shared `SAUCER` /
+  `BUBBLE` consts in the lib, byte-identical across both frames. The UFO
   is a PROP, not a character: rust body (rust is the brand accent), four
   cream port lights, no eyes, no face. Label: "Pixel-art empty UFO".
 - `assets/mascot/minion.svg` + `assets/mascot/minion-run.svg` - the

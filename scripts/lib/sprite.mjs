@@ -92,27 +92,54 @@ rrrcrrrrrcrrrrcrrrrrcrrr
 ..rrrrrrrrrrrrrrrrrrrr..
 ......rrrrrrrrrrrr......`;
 
-// Fly-in composite (24 wide x 9 tall): the Overseer riding the saucer,
-// head visible in the dome position. The dome rows are canonical OVERSEER
-// rows 0-4 centered on the 24-wide hull grid (3 transparent columns each
-// side), derived at build time so they can never drift from the canonical
-// map; the hull occludes rows 5-11. Renders as:
-//   ........aaaaaaaa........
-//   ......aaaaaaaaaaaa......
-//   .....aaaaaaaaaaaaaa.....
-//   .....aakcaakcaakcaa.....
-//   .....aakkaakkaakkaa.....
+// The glass bubble canopy (24 wide x 6 rows): a 1px rust rim arcing over
+// the rider with a transparent air gap inside, terminating on the hull
+// rim corners. Rust, not cream, on purpose: cream is the page ground
+// color, so cream "glass" pixels would vanish (and break the arc) on the
+// deployed cream page; the rim plus the air gap carries the bubble read.
+// Declared as arc pixels only and merged around the rider below, with a
+// collision check so the bubble can never overwrite a rider pixel.
+const BUBBLE = `
+......rrrrrrrrrrrr......
+.....r............r.....
+....r..............r....
+...r................r...
+...r................r...
+...r................r...
+...r................r...
+`;
+
+// Fly-in composite (24 wide x 11 tall): the Overseer riding the saucer
+// inside the bubble canopy, with a clear row of air above the crown so
+// the rider floats INSIDE the bubble rather than wearing it. The rider
+// rows are canonical OVERSEER rows 0-4 centered on the 24-wide hull grid
+// (3 transparent columns each side, two rows below the bubble apex),
+// derived at build time so they can never drift from the canonical map;
+// the hull occludes rows 5-11. Renders as:
+//   ......rrrrrrrrrrrr......
+//   .....r............r.....
+//   ....r...aaaaaaaa...r....
+//   ...r..aaaaaaaaaaaa..r...
+//   ...r.aaaaaaaaaaaaaa.r...
+//   ...r.aakcaakcaakcaa.r...
+//   ...r.aakkaakkaakkaa.r...
 //   ....rrrrrrrrrrrrrrrr....
 //   rrrcrrrrrcrrrrcrrrrrcrrr
 //   ..rrrrrrrrrrrrrrrrrrrr..
 //   ......rrrrrrrrrrrr......
-const DOME = parseMap(OVERSEER).slice(0, 5).map((r) => `...${r.join("")}...`).join("\n");
+const DOME_HEAD = parseMap(OVERSEER).slice(0, 5).map((r) => `...${r.join("")}...`);
+const DOME = parseMap(BUBBLE).map((row, y) => row.map((ch, x) => {
+  const head = y <= 1 ? "." : DOME_HEAD[y - 2][x];
+  if (head !== "." && ch !== ".") throw new Error(`overseer-ufo: bubble pixel collides with the rider at row ${y}, col ${x}`);
+  return head === "." ? ch : head;
+}).join("")).join("\n");
 export const OVERSEER_UFO = `\n${DOME}\n${SAUCER}\n`;
 
-// Departure frame: the empty saucer after the Overseer disembarks. Same
-// 24x9 grid as OVERSEER_UFO (explicit transparent dome rows) so the two
-// frames overlay pixel-perfectly.
-export const UFO = `\n${Array.from({ length: 5 }, () => ".".repeat(24)).join("\n")}\n${SAUCER}\n`;
+// Departure frame: the empty saucer after the Overseer disembarks. The
+// bubble canopy belongs to the vehicle, so it stays; only the rider rows
+// differ from the composite, and the two frames overlay pixel-perfectly
+// on the same 24x11 grid.
+export const UFO = `\n${parseMap(BUBBLE).map((r) => r.join("")).join("\n")}\n${SAUCER}\n`;
 
 // THE MINION (8 wide x 7 tall): one of the Overseer's agents, released
 // during the fly-in overture. Same visual DNA as the parent: amber body,
