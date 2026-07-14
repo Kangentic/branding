@@ -269,19 +269,20 @@ const previewHtml = `<!doctype html>
 
   /* Fly-in overture: stepped translation ONLY (steps() in whole grid-unit
      hops at 10px per grid unit); frame swaps stay in the 120ms family.
-     The nested UFO wrappers compose entry (x), descent (y), hover bob,
-     and departure without two animations fighting over one transform. */
+     The nested UFO wrappers compose the entry, the hover bob, and the
+     departure without two animations fighting over one transform. Entry
+     and departure are both DIAGONAL (descend in from the upper left,
+     climb out to the upper right) so the rider's head is never shaved by
+     the stage edge mid-cruise. */
   .scene { position: relative; width: 960px; height: 340px; overflow: hidden; background: #f6f1e8; border: 1px solid rgba(36,32,27,0.16); }
   .scene svg { width: 100%; height: 100%; }
   .ufo { position: absolute; left: 0; top: 0; width: 240px; height: 90px; z-index: 3; }
-  .ufo-go, .ufo-x, .ufo-y, .ufo-bob { position: absolute; inset: 0; }
+  .ufo-go, .ufo-x, .ufo-bob { position: absolute; inset: 0; }
   .ufo .f { position: absolute; inset: 0; }
   .ufo-go { animation: ufo-depart 1.2s steps(10, end) 7.4s both; }
-  .ufo-x { animation: ufo-enter 1.2s steps(10, end) both; }
-  .ufo-y { animation: ufo-descend 0.48s steps(4, end) 1.2s both; }
-  .ufo-bob { animation: bob 0.96s step-end 1.68s 4; }
-  @keyframes ufo-enter { from { transform: translateX(-250px); } to { transform: translateX(350px); } }
-  @keyframes ufo-descend { from { transform: translateY(-10px); } to { transform: translateY(30px); } }
+  .ufo-x { animation: ufo-enter 1.56s steps(13, end) both; }
+  .ufo-bob { animation: bob 0.96s step-end 1.56s 4; }
+  @keyframes ufo-enter { from { transform: translate(-300px, -100px); } to { transform: translate(350px, 30px); } }
   @keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   @keyframes ufo-depart { to { transform: translate(700px, -100px); } }
 
@@ -333,7 +334,8 @@ exception); the mascot's alt text stays "${LABEL}".</p>
 
 <h1>Fly-in overture (the consumer contract)</h1>
 <p>The once-per-visitor load sequence: the UFO carries the Overseer in
-from the left in stepped whole grid-unit hops, hovers, and hatches 11
+from the upper left, descending at an angle (it climbs out at the mirror
+angle) in stepped whole grid-unit hops, hovers, and hatches 11
 minions (one per agent CLI) at scattered times that run off both edges
 at varied speeds, never a formation. The Overseer hops down through the
 hatch, steps to its resting slot, the empty saucer departs, and the
@@ -347,10 +349,10 @@ replay.</p>
 
 <figure>
   <div class="scene">
-    <div class="ufo"><div class="ufo-go"><div class="ufo-x"><div class="ufo-y"><div class="ufo-bob">
+    <div class="ufo"><div class="ufo-go"><div class="ufo-x"><div class="ufo-bob">
       <div class="f f-full">${FRAMES.ufoFull}</div>
       <div class="f f-empty">${FRAMES.ufoEmpty}</div>
-    </div></div></div></div></div>
+    </div></div></div></div>
 ${minionHtml}
     <div class="hero"><div class="land">
       <div class="f f-rest">${FRAMES.rest}</div>
