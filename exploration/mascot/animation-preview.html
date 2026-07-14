@@ -41,37 +41,46 @@
   /* Fly-in overture: stepped translation ONLY (steps() in whole grid-unit
      hops at 10px per grid unit); frame swaps stay in the 120ms family.
      The nested UFO wrappers compose the entry, the hover bob, and the
-     departure without two animations fighting over one transform. Entry
-     and departure are both DIAGONAL (descend in from the upper left,
-     climb out to the upper right) so the rider's head is never shaved by
-     the stage edge mid-cruise. */
+     departure without two animations fighting over one transform. The
+     entry is a stepped ZIGZAG swoop (down from the upper left, up, a
+     short dip, then a long shallow climb to the hover); every segment
+     keeps whole grid-unit hops at 120ms via a per-keyframe steps()
+     timing function. The departure climbs out at the mirror angle. */
   .scene { position: relative; width: 960px; height: 340px; overflow: hidden; background: #f6f1e8; border: 1px solid rgba(36,32,27,0.16); }
   .scene svg { width: 100%; height: 100%; }
   .ufo { position: absolute; left: 0; top: 0; width: 260px; height: 110px; z-index: 3; }
   .ufo-go, .ufo-x, .ufo-bob { position: absolute; inset: 0; }
   .ufo .f { position: absolute; inset: 0; }
-  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 7.4s both; }
-  .ufo-x { animation: ufo-enter 1.44s steps(12, end) both; }
-  .ufo-bob { animation: bob 0.96s step-end 1.44s 4; }
-  @keyframes ufo-enter { from { transform: translate(-260px, -110px); } to { transform: translate(340px, 10px); } }
+  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 9.6s both; }
+  .ufo-x { animation: ufo-enter 3.6s both; }
+  .ufo-bob { animation: bob 0.96s step-end 3.6s 5; }
+  /* 30 hops at 120ms: 10 down (2u,3u), 7 up (2u,-2u), 3 down (2u,2u),
+     10 up (2u,-1u). Keyframe offsets are cumulative hops / 30. */
+  @keyframes ufo-enter {
+    0% { transform: translate(-260px, -110px); animation-timing-function: steps(10, end); }
+    33.3333% { transform: translate(-60px, 190px); animation-timing-function: steps(7, end); }
+    56.6667% { transform: translate(80px, 50px); animation-timing-function: steps(3, end); }
+    66.6667% { transform: translate(140px, 110px); animation-timing-function: steps(10, end); }
+    100% { transform: translate(340px, 10px); }
+  }
   @keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   @keyframes ufo-depart { to { transform: translate(700px, -100px); } }
 
   /* Scheduled frame swaps and spawns: 0s step-end visibility flips. */
   @keyframes m-appear { to { visibility: visible; } }
   @keyframes m-vanish { to { visibility: hidden; } }
-  .ufo .f-full { animation: m-vanish 0s step-end 6.2s forwards; }
-  .ufo .f-empty { visibility: hidden; animation: m-appear 0s step-end 6.2s forwards; }
+  .ufo .f-full { animation: m-vanish 0s step-end 8.4s forwards; }
+  .ufo .f-empty { visibility: hidden; animation: m-appear 0s step-end 8.4s forwards; }
 
-  /* The Overseer hops down through the hatch at 6.2s (pixels hop: the
+  /* The Overseer hops down through the hatch at 8.4s (pixels hop: the
      swap from dome to below-hull IS the disembark), steps to its rest
-     slot, then the blink idle takes over at 9s. */
+     slot, then the blink idle takes over at 11.2s. */
   .hero { position: absolute; left: 380px; top: 120px; width: 180px; height: 120px; z-index: 2; }
-  .hero .land { position: absolute; inset: 0; animation: hero-drop 0.84s steps(7, end) 6.2s both; }
+  .hero .land { position: absolute; inset: 0; animation: hero-drop 0.84s steps(7, end) 8.4s both; }
   @keyframes hero-drop { to { transform: translateY(70px); } }
   .hero .f { position: absolute; inset: 0; visibility: hidden; }
-  .hero .f-rest { animation: m-appear 0s step-end 6.2s forwards, blink-rest 5s step-end 9s infinite; }
-  .hero .f-eyes { animation: blink-eyes 5s step-end 9s infinite; }
+  .hero .f-rest { animation: m-appear 0s step-end 8.4s forwards, blink-rest 5s step-end 11.2s infinite; }
+  .hero .f-eyes { animation: blink-eyes 5s step-end 11.2s infinite; }
 
   /* Minions: frames gate their OWN visibility (a child's visibility:
      visible overrides a hidden ancestor, so hiding only a wrapper would
@@ -83,82 +92,82 @@
   @keyframes run-a { 0% { visibility: visible; } 50% { visibility: hidden; } }
   @keyframes run-b { 0% { visibility: hidden; } 50% { visibility: visible; } }
   .m1 { left: 430px; }
-  .m1 .drop { animation: m1-drop 0.78s steps(13, end) 2.00s both; }
-  @keyframes m1-drop { to { transform: translateY(130px); } }
-  .m1 .run { animation: m1-run 2.52s steps(28, end) 2.12s both; }
-  @keyframes m1-run { to { transform: translateX(560px); } }
-  .m1 .f-a { animation: m-appear 0s step-end 2.00s forwards, run-a 0.24s step-end 2.12s infinite; }
-  .m1 .f-b { animation: run-b 0.24s step-end 2.12s infinite; }
+  .m1 .drop { animation: m1-drop 0.24s steps(4, end) 4.00s both; }
+  @keyframes m1-drop { to { transform: translateY(40px); } }
+  .m1 .run { animation: m1-run 1.62s steps(18, end) 4.12s both; }
+  @keyframes m1-run { to { transform: translate(540px, 180px); } }
+  .m1 .f-a { animation: m-appear 0s step-end 4.00s forwards, run-a 0.24s step-end 4.12s infinite; }
+  .m1 .f-b { animation: run-b 0.24s step-end 4.12s infinite; }
   .m2 { left: 420px; }
-  .m2 .drop { animation: m2-drop 0.90s steps(15, end) 2.30s both; }
-  @keyframes m2-drop { to { transform: translateY(150px); } }
-  .m2 .run { animation: m2-run 2.43s steps(27, end) 2.42s both; }
-  @keyframes m2-run { to { transform: translateX(-540px); } }
-  .m2 .f-a { animation: m-appear 0s step-end 2.30s forwards, run-a 0.24s step-end 2.42s infinite; }
-  .m2 .f-b { animation: run-b 0.24s step-end 2.42s infinite; }
+  .m2 .drop { animation: m2-drop 0.36s steps(6, end) 4.30s both; }
+  @keyframes m2-drop { to { transform: translateY(60px); } }
+  .m2 .run { animation: m2-run 1.62s steps(18, end) 4.42s both; }
+  @keyframes m2-run { to { transform: translate(-360px, 180px); } }
+  .m2 .f-a { animation: m-appear 0s step-end 4.30s forwards, run-a 0.24s step-end 4.42s infinite; }
+  .m2 .f-b { animation: run-b 0.24s step-end 4.42s infinite; }
   .m3 { left: 440px; }
-  .m3 .drop { animation: m3-drop 0.72s steps(12, end) 2.50s both; }
-  @keyframes m3-drop { to { transform: translateY(120px); } }
-  .m3 .run { animation: m3-run 2.80s steps(28, end) 2.62s both; }
-  @keyframes m3-run { to { transform: translateX(560px); } }
-  .m3 .f-a { animation: m-appear 0s step-end 2.50s forwards, run-a 0.24s step-end 2.62s infinite; }
-  .m3 .f-b { animation: run-b 0.24s step-end 2.62s infinite; }
+  .m3 .drop { animation: m3-drop 0.30s steps(5, end) 4.50s both; }
+  @keyframes m3-drop { to { transform: translateY(50px); } }
+  .m3 .run { animation: m3-run 1.30s steps(13, end) 4.62s both; }
+  @keyframes m3-run { to { transform: translate(520px, 130px); } }
+  .m3 .f-a { animation: m-appear 0s step-end 4.50s forwards, run-a 0.24s step-end 4.62s infinite; }
+  .m3 .f-b { animation: run-b 0.24s step-end 4.62s infinite; }
   .m4 { left: 430px; }
-  .m4 .drop { animation: m4-drop 0.96s steps(16, end) 2.90s both; }
-  @keyframes m4-drop { to { transform: translateY(160px); } }
-  .m4 .run { animation: m4-run 3.19s steps(29, end) 3.02s both; }
-  @keyframes m4-run { to { transform: translateX(580px); } }
-  .m4 .f-a { animation: m-appear 0s step-end 2.90s forwards, run-a 0.24s step-end 3.02s infinite; }
-  .m4 .f-b { animation: run-b 0.24s step-end 3.02s infinite; }
+  .m4 .drop { animation: m4-drop 0.36s steps(6, end) 4.90s both; }
+  @keyframes m4-drop { to { transform: translateY(60px); } }
+  .m4 .run { animation: m4-run 1.98s steps(18, end) 5.02s both; }
+  @keyframes m4-run { to { transform: translate(360px, 180px); } }
+  .m4 .f-a { animation: m-appear 0s step-end 4.90s forwards, run-a 0.24s step-end 5.02s infinite; }
+  .m4 .f-b { animation: run-b 0.24s step-end 5.02s infinite; }
   .m5 { left: 410px; }
-  .m5 .drop { animation: m5-drop 0.84s steps(14, end) 3.20s both; }
-  @keyframes m5-drop { to { transform: translateY(140px); } }
-  .m5 .run { animation: m5-run 2.86s steps(26, end) 3.32s both; }
-  @keyframes m5-run { to { transform: translateX(-520px); } }
-  .m5 .f-a { animation: m-appear 0s step-end 3.20s forwards, run-a 0.24s step-end 3.32s infinite; }
-  .m5 .f-b { animation: run-b 0.24s step-end 3.32s infinite; }
+  .m5 .drop { animation: m5-drop 0.24s steps(4, end) 5.20s both; }
+  @keyframes m5-drop { to { transform: translateY(40px); } }
+  .m5 .run { animation: m5-run 1.70s steps(17, end) 5.32s both; }
+  @keyframes m5-run { to { transform: translate(-510px, 170px); } }
+  .m5 .f-a { animation: m-appear 0s step-end 5.20s forwards, run-a 0.24s step-end 5.32s infinite; }
+  .m5 .f-b { animation: run-b 0.24s step-end 5.32s infinite; }
   .m6 { left: 450px; }
-  .m6 .drop { animation: m6-drop 0.78s steps(13, end) 3.30s both; }
-  @keyframes m6-drop { to { transform: translateY(130px); } }
-  .m6 .run { animation: m6-run 3.24s steps(27, end) 3.42s both; }
-  @keyframes m6-run { to { transform: translateX(540px); } }
-  .m6 .f-a { animation: m-appear 0s step-end 3.30s forwards, run-a 0.24s step-end 3.42s infinite; }
-  .m6 .f-b { animation: run-b 0.24s step-end 3.42s infinite; }
+  .m6 .drop { animation: m6-drop 0.30s steps(5, end) 5.30s both; }
+  @keyframes m6-drop { to { transform: translateY(50px); } }
+  .m6 .run { animation: m6-run 2.04s steps(17, end) 5.42s both; }
+  @keyframes m6-run { to { transform: translate(510px, 170px); } }
+  .m6 .f-a { animation: m-appear 0s step-end 5.30s forwards, run-a 0.24s step-end 5.42s infinite; }
+  .m6 .f-b { animation: run-b 0.24s step-end 5.42s infinite; }
   .m7 { left: 430px; }
-  .m7 .drop { animation: m7-drop 0.96s steps(16, end) 3.70s both; }
-  @keyframes m7-drop { to { transform: translateY(160px); } }
-  .m7 .run { animation: m7-run 3.36s steps(28, end) 3.82s both; }
-  @keyframes m7-run { to { transform: translateX(-560px); } }
-  .m7 .f-a { animation: m-appear 0s step-end 3.70s forwards, run-a 0.24s step-end 3.82s infinite; }
-  .m7 .f-b { animation: run-b 0.24s step-end 3.82s infinite; }
+  .m7 .drop { animation: m7-drop 0.36s steps(6, end) 5.70s both; }
+  @keyframes m7-drop { to { transform: translateY(60px); } }
+  .m7 .run { animation: m7-run 1.43s steps(13, end) 5.82s both; }
+  @keyframes m7-run { to { transform: translate(-520px, 130px); } }
+  .m7 .f-a { animation: m-appear 0s step-end 5.70s forwards, run-a 0.24s step-end 5.82s infinite; }
+  .m7 .f-b { animation: run-b 0.24s step-end 5.82s infinite; }
   .m8 { left: 440px; }
-  .m8 .drop { animation: m8-drop 0.72s steps(12, end) 4.00s both; }
-  @keyframes m8-drop { to { transform: translateY(120px); } }
-  .m8 .run { animation: m8-run 3.51s steps(27, end) 4.12s both; }
-  @keyframes m8-run { to { transform: translateX(-540px); } }
-  .m8 .f-a { animation: m-appear 0s step-end 4.00s forwards, run-a 0.24s step-end 4.12s infinite; }
-  .m8 .f-b { animation: run-b 0.24s step-end 4.12s infinite; }
+  .m8 .drop { animation: m8-drop 0.24s steps(4, end) 6.00s both; }
+  @keyframes m8-drop { to { transform: translateY(40px); } }
+  .m8 .run { animation: m8-run 2.16s steps(18, end) 6.12s both; }
+  @keyframes m8-run { to { transform: translate(-540px, 180px); } }
+  .m8 .f-a { animation: m-appear 0s step-end 6.00s forwards, run-a 0.24s step-end 6.12s infinite; }
+  .m8 .f-b { animation: run-b 0.24s step-end 6.12s infinite; }
   .m9 { left: 420px; }
-  .m9 .drop { animation: m9-drop 0.90s steps(15, end) 4.20s both; }
-  @keyframes m9-drop { to { transform: translateY(150px); } }
-  .m9 .run { animation: m9-run 3.64s steps(28, end) 4.32s both; }
-  @keyframes m9-run { to { transform: translateX(560px); } }
-  .m9 .f-a { animation: m-appear 0s step-end 4.20s forwards, run-a 0.24s step-end 4.32s infinite; }
-  .m9 .f-b { animation: run-b 0.24s step-end 4.32s infinite; }
+  .m9 .drop { animation: m9-drop 0.30s steps(5, end) 6.20s both; }
+  @keyframes m9-drop { to { transform: translateY(50px); } }
+  .m9 .run { animation: m9-run 1.68s steps(14, end) 6.32s both; }
+  @keyframes m9-run { to { transform: translate(560px, 140px); } }
+  .m9 .f-a { animation: m-appear 0s step-end 6.20s forwards, run-a 0.24s step-end 6.32s infinite; }
+  .m9 .f-b { animation: run-b 0.24s step-end 6.32s infinite; }
   .m10 { left: 450px; }
-  .m10 .drop { animation: m10-drop 0.78s steps(13, end) 4.60s both; }
-  @keyframes m10-drop { to { transform: translateY(130px); } }
-  .m10 .run { animation: m10-run 3.78s steps(27, end) 4.72s both; }
-  @keyframes m10-run { to { transform: translateX(-540px); } }
-  .m10 .f-a { animation: m-appear 0s step-end 4.60s forwards, run-a 0.24s step-end 4.72s infinite; }
-  .m10 .f-b { animation: run-b 0.24s step-end 4.72s infinite; }
+  .m10 .drop { animation: m10-drop 0.36s steps(6, end) 6.60s both; }
+  @keyframes m10-drop { to { transform: translateY(60px); } }
+  .m10 .run { animation: m10-run 2.34s steps(18, end) 6.72s both; }
+  @keyframes m10-run { to { transform: translate(-360px, 180px); } }
+  .m10 .f-a { animation: m-appear 0s step-end 6.60s forwards, run-a 0.24s step-end 6.72s infinite; }
+  .m10 .f-b { animation: run-b 0.24s step-end 6.72s infinite; }
   .m11 { left: 430px; }
-  .m11 .drop { animation: m11-drop 0.84s steps(14, end) 4.90s both; }
-  @keyframes m11-drop { to { transform: translateY(140px); } }
-  .m11 .run { animation: m11-run 4.20s steps(30, end) 5.02s both; }
-  @keyframes m11-run { to { transform: translateX(600px); } }
-  .m11 .f-a { animation: m-appear 0s step-end 4.90s forwards, run-a 0.24s step-end 5.02s infinite; }
-  .m11 .f-b { animation: run-b 0.24s step-end 5.02s infinite; }
+  .m11 .drop { animation: m11-drop 0.24s steps(4, end) 6.90s both; }
+  @keyframes m11-drop { to { transform: translateY(40px); } }
+  .m11 .run { animation: m11-run 1.21s steps(11, end) 7.02s both; }
+  @keyframes m11-run { to { transform: translate(550px, 110px); } }
+  .m11 .f-a { animation: m-appear 0s step-end 6.90s forwards, run-a 0.24s step-end 7.02s infinite; }
+  .m11 .f-b { animation: run-b 0.24s step-end 7.02s infinite; }
 
   /* Reduced motion is a first-class rendering: rest on the canonical
      frame; the overture renders ONLY the resting Overseer (no UFO, no
@@ -180,12 +189,13 @@ mascot per page (the fly-in overture below is the one sanctioned
 exception); the mascot's alt text stays "Pixel-art Kangentic mascot".</p>
 
 <h1>Fly-in overture (the consumer contract)</h1>
-<p>The once-per-visitor load sequence: the UFO carries the Overseer in
-from the upper left, descending at an angle (it climbs out at the mirror
-angle) in stepped whole grid-unit hops, hovers, and hatches 11
-minions (one per agent CLI) at scattered times that run off both edges
-at varied speeds, never a formation. The Overseer hops down through the
-hatch, steps to its resting slot, the empty saucer departs, and the
+<p>The once-per-visitor load sequence: the UFO swoops in from the upper
+left on a stepped zigzag (down, up, a short dip, then a long shallow
+climb to the hover; it climbs out at the mirror angle), hovers, and
+hatches 11 minions (one per agent CLI) at scattered times that scatter
+off the stage on shallow descending runs, mostly horizontal, at varied
+angles and speeds, never a formation. The Overseer hops down through
+the hatch, steps to its resting slot, the empty saucer departs, and the
 blink idle starts only after settle. On kangentic.com this runs once per
 visitor (sessionStorage gate) in an absolutely positioned overlay with
 pointer-events none, aria-hidden UFO and minions, and zero layout shift;

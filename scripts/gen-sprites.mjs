@@ -184,46 +184,56 @@ const FRAMES = {
 //
 // Anti-grid scatter for the 11 minions (one per agent CLI in the proof
 // line): irregular spawn gaps, interleaved directions (6 right, 5 left),
-// drop heights spread over a 4-unit band, run speeds 90-140ms per 2-unit
-// hop. Two constraints keep the crowd readable: the run starts two hops
-// into the drop (minions leap out diagonally instead of stacking at the
+// short varied hatch drops, then a shallow DESCENDING run ray (mostly
+// horizontal: one unit down per hop, 2-5 units across, at varied angles
+// and speeds) until fully off the stage, past a side edge or below the
+// bottom. Two constraints keep the crowd readable: the run starts two
+// hops into the drop (minions leap out instead of stacking at the
 // hatch), and within each direction later spawns run slower, so early
 // runners pull away and nobody overtakes mid-stage. The crowd must never
 // read as an invader formation. All literals, fully deterministic.
-// Columns: [spawn s, dir (+1 right / -1 left), hatch x-offset px, drop px, run px, ms per 2-unit hop]
+// Columns: [spawn s, dir (+1 right / -1 left), hatch x-offset px, drop px, run dx u/hop, run dy u/hop, run hops, ms per hop]
 const MINIONS = [
-  [2.0, 1, 0, 130, 560, 90],
-  [2.3, -1, -10, 150, 540, 90],
-  [2.5, 1, 10, 120, 560, 100],
-  [2.9, 1, 0, 160, 580, 110],
-  [3.2, -1, -20, 140, 520, 110],
-  [3.3, 1, 20, 130, 540, 120],
-  [3.7, -1, 0, 160, 560, 120],
-  [4.0, -1, 10, 120, 540, 130],
-  [4.2, 1, -10, 150, 560, 130],
-  [4.6, -1, 20, 130, 540, 140],
-  [4.9, 1, 0, 140, 600, 140],
+  [4.0, 1, 0, 40, 3, 1, 18, 90],
+  [4.3, -1, -10, 60, 2, 1, 18, 90],
+  [4.5, 1, 10, 50, 4, 1, 13, 100],
+  [4.9, 1, 0, 60, 2, 1, 18, 110],
+  [5.2, -1, -20, 40, 3, 1, 17, 100],
+  [5.3, 1, 20, 50, 3, 1, 17, 120],
+  [5.7, -1, 0, 60, 4, 1, 13, 110],
+  [6.0, -1, 10, 40, 3, 1, 18, 120],
+  [6.2, 1, -10, 50, 4, 1, 14, 120],
+  [6.6, -1, 20, 60, 2, 1, 18, 130],
+  [6.9, 1, 0, 40, 5, 1, 11, 110],
 ];
-// Drops hop 1 unit per 60ms step; runs hop 2 units per step. Every end
-// position is fully off the 960px stage so `both` fill never parks a
-// sliver on screen. toFixed keeps the generated CSS byte-stable.
-const minionCss = MINIONS.map(([spawn, dir, xoff, drop, run, stepMs], i) => {
+// Drops hop 1 unit per 60ms step; runs hop (dx, dy) units per step. Every
+// end position is fully off the 960x340 stage so `both` fill never parks
+// a sliver on screen; the generator refuses a ray that parks on stage.
+// toFixed keeps the generated CSS byte-stable.
+const minionCss = MINIONS.map(([spawn, dir, xoff, drop, dxu, dyu, hops, stepMs], i) => {
   const n = i + 1;
   const dropSteps = drop / 10;
-  const dropDur = (dropSteps * 0.06).toFixed(2);
-  const runSteps = run / 20;
   // A fractional steps() count is invalid CSS the browser drops silently.
-  if (!Number.isInteger(dropSteps) || !Number.isInteger(runSteps) || xoff % 10 !== 0) {
-    throw new Error(`minion ${n}: drop/run/x-offset must be whole grid-unit hops`);
+  if (!Number.isInteger(dropSteps) || xoff % 10 !== 0) {
+    throw new Error(`minion ${n}: drop/x-offset must be whole grid-unit hops`);
   }
-  const runDur = ((runSteps * stepMs) / 1000).toFixed(2);
+  const startX = 430 + xoff;
+  const runX = dir * hops * dxu * 10;
+  const runY = hops * dyu * 10;
+  const endX = startX + runX;
+  const endY = 100 + drop + runY;
+  if (endX > -80 && endX < 960 && endY < 340) {
+    throw new Error(`minion ${n}: run parks on stage at ${endX},${endY} (must exit fully)`);
+  }
+  const dropDur = (dropSteps * 0.06).toFixed(2);
+  const runDur = ((hops * stepMs) / 1000).toFixed(2);
   const runDelay = (spawn + 0.12).toFixed(2);
   const at = spawn.toFixed(2);
-  return `  .m${n} { left: ${430 + xoff}px; }
+  return `  .m${n} { left: ${startX}px; }
   .m${n} .drop { animation: m${n}-drop ${dropDur}s steps(${dropSteps}, end) ${at}s both; }
   @keyframes m${n}-drop { to { transform: translateY(${drop}px); } }
-  .m${n} .run { animation: m${n}-run ${runDur}s steps(${runSteps}, end) ${runDelay}s both; }
-  @keyframes m${n}-run { to { transform: translateX(${dir * run}px); } }
+  .m${n} .run { animation: m${n}-run ${runDur}s steps(${hops}, end) ${runDelay}s both; }
+  @keyframes m${n}-run { to { transform: translate(${runX}px, ${runY}px); } }
   .m${n} .f-a { animation: m-appear 0s step-end ${at}s forwards, run-a 0.24s step-end ${runDelay}s infinite; }
   .m${n} .f-b { animation: run-b 0.24s step-end ${runDelay}s infinite; }`;
 }).join("\n");
@@ -273,37 +283,46 @@ const previewHtml = `<!doctype html>
   /* Fly-in overture: stepped translation ONLY (steps() in whole grid-unit
      hops at 10px per grid unit); frame swaps stay in the 120ms family.
      The nested UFO wrappers compose the entry, the hover bob, and the
-     departure without two animations fighting over one transform. Entry
-     and departure are both DIAGONAL (descend in from the upper left,
-     climb out to the upper right) so the rider's head is never shaved by
-     the stage edge mid-cruise. */
+     departure without two animations fighting over one transform. The
+     entry is a stepped ZIGZAG swoop (down from the upper left, up, a
+     short dip, then a long shallow climb to the hover); every segment
+     keeps whole grid-unit hops at 120ms via a per-keyframe steps()
+     timing function. The departure climbs out at the mirror angle. */
   .scene { position: relative; width: 960px; height: 340px; overflow: hidden; background: #f6f1e8; border: 1px solid rgba(36,32,27,0.16); }
   .scene svg { width: 100%; height: 100%; }
   .ufo { position: absolute; left: 0; top: 0; width: 260px; height: 110px; z-index: 3; }
   .ufo-go, .ufo-x, .ufo-bob { position: absolute; inset: 0; }
   .ufo .f { position: absolute; inset: 0; }
-  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 7.4s both; }
-  .ufo-x { animation: ufo-enter 1.44s steps(12, end) both; }
-  .ufo-bob { animation: bob 0.96s step-end 1.44s 4; }
-  @keyframes ufo-enter { from { transform: translate(-260px, -110px); } to { transform: translate(340px, 10px); } }
+  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 9.6s both; }
+  .ufo-x { animation: ufo-enter 3.6s both; }
+  .ufo-bob { animation: bob 0.96s step-end 3.6s 5; }
+  /* 30 hops at 120ms: 10 down (2u,3u), 7 up (2u,-2u), 3 down (2u,2u),
+     10 up (2u,-1u). Keyframe offsets are cumulative hops / 30. */
+  @keyframes ufo-enter {
+    0% { transform: translate(-260px, -110px); animation-timing-function: steps(10, end); }
+    33.3333% { transform: translate(-60px, 190px); animation-timing-function: steps(7, end); }
+    56.6667% { transform: translate(80px, 50px); animation-timing-function: steps(3, end); }
+    66.6667% { transform: translate(140px, 110px); animation-timing-function: steps(10, end); }
+    100% { transform: translate(340px, 10px); }
+  }
   @keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   @keyframes ufo-depart { to { transform: translate(700px, -100px); } }
 
   /* Scheduled frame swaps and spawns: 0s step-end visibility flips. */
   @keyframes m-appear { to { visibility: visible; } }
   @keyframes m-vanish { to { visibility: hidden; } }
-  .ufo .f-full { animation: m-vanish 0s step-end 6.2s forwards; }
-  .ufo .f-empty { visibility: hidden; animation: m-appear 0s step-end 6.2s forwards; }
+  .ufo .f-full { animation: m-vanish 0s step-end 8.4s forwards; }
+  .ufo .f-empty { visibility: hidden; animation: m-appear 0s step-end 8.4s forwards; }
 
-  /* The Overseer hops down through the hatch at 6.2s (pixels hop: the
+  /* The Overseer hops down through the hatch at 8.4s (pixels hop: the
      swap from dome to below-hull IS the disembark), steps to its rest
-     slot, then the blink idle takes over at 9s. */
+     slot, then the blink idle takes over at 11.2s. */
   .hero { position: absolute; left: 380px; top: 120px; width: 180px; height: 120px; z-index: 2; }
-  .hero .land { position: absolute; inset: 0; animation: hero-drop 0.84s steps(7, end) 6.2s both; }
+  .hero .land { position: absolute; inset: 0; animation: hero-drop 0.84s steps(7, end) 8.4s both; }
   @keyframes hero-drop { to { transform: translateY(70px); } }
   .hero .f { position: absolute; inset: 0; visibility: hidden; }
-  .hero .f-rest { animation: m-appear 0s step-end 6.2s forwards, blink-rest 5s step-end 9s infinite; }
-  .hero .f-eyes { animation: blink-eyes 5s step-end 9s infinite; }
+  .hero .f-rest { animation: m-appear 0s step-end 8.4s forwards, blink-rest 5s step-end 11.2s infinite; }
+  .hero .f-eyes { animation: blink-eyes 5s step-end 11.2s infinite; }
 
   /* Minions: frames gate their OWN visibility (a child's visibility:
      visible overrides a hidden ancestor, so hiding only a wrapper would
@@ -336,12 +355,13 @@ mascot per page (the fly-in overture below is the one sanctioned
 exception); the mascot's alt text stays "${LABEL}".</p>
 
 <h1>Fly-in overture (the consumer contract)</h1>
-<p>The once-per-visitor load sequence: the UFO carries the Overseer in
-from the upper left, descending at an angle (it climbs out at the mirror
-angle) in stepped whole grid-unit hops, hovers, and hatches 11
-minions (one per agent CLI) at scattered times that run off both edges
-at varied speeds, never a formation. The Overseer hops down through the
-hatch, steps to its resting slot, the empty saucer departs, and the
+<p>The once-per-visitor load sequence: the UFO swoops in from the upper
+left on a stepped zigzag (down, up, a short dip, then a long shallow
+climb to the hover; it climbs out at the mirror angle), hovers, and
+hatches 11 minions (one per agent CLI) at scattered times that scatter
+off the stage on shallow descending runs, mostly horizontal, at varied
+angles and speeds, never a formation. The Overseer hops down through
+the hatch, steps to its resting slot, the empty saucer departs, and the
 blink idle starts only after settle. On kangentic.com this runs once per
 visitor (sessionStorage gate) in an absolutely positioned overlay with
 pointer-events none, aria-hidden UFO and minions, and zero layout shift;
