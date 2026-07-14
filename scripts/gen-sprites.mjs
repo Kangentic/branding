@@ -209,6 +209,10 @@ const minionCss = MINIONS.map(([spawn, dir, xoff, drop, run, stepMs], i) => {
   const dropSteps = drop / 10;
   const dropDur = (dropSteps * 0.06).toFixed(2);
   const runSteps = run / 20;
+  // A fractional steps() count is invalid CSS the browser drops silently.
+  if (!Number.isInteger(dropSteps) || !Number.isInteger(runSteps) || xoff % 10 !== 0) {
+    throw new Error(`minion ${n}: drop/run/x-offset must be whole grid-unit hops`);
+  }
   const runDur = ((runSteps * stepMs) / 1000).toFixed(2);
   const runDelay = (spawn + 0.12).toFixed(2);
   const at = spawn.toFixed(2);
