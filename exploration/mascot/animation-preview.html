@@ -57,7 +57,7 @@
      hop and the Overseer's first sink hop land together one beat later
      (8.04s). The swap beat itself keeps the ship at the hover with the
      rider overlaying the dome, so the handoff frame stays seamless. */
-  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 7.92s both; }
+  .ufo-go { animation: ufo-depart 1.32s steps(11, end) 7.92s both; }
   .ufo-x { animation: ufo-enter 3.12s both; }
   .ufo-bob { animation: bob 0.96s step-end 3.12s 5; }
   /* 26 hops at 120ms: 12 up-left (-5u,-1u), 8 up-right (+4u,-1u),
@@ -69,7 +69,9 @@
     100% { transform: translate(340px, 20px); }
   }
   @keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-  @keyframes ufo-depart { to { transform: translate(700px, -100px); } }
+  /* 11 hops of (+6u,-1u): the exact mirror of the entry's final
+     approach leg, so the ship leaves at the speed it arrived. */
+  @keyframes ufo-depart { to { transform: translate(660px, -110px); } }
 
   /* Scheduled frame swaps and spawns: 0s step-end visibility flips. */
   @keyframes m-appear { to { visibility: visible; } }
