@@ -110,7 +110,7 @@ await sharp(Buffer.from(buildSvg(OVERSEER, { unit: 16, label: LABEL })))
   .png().toFile(join(EXPLORE, "overseer.png"));
 
 // The composite's rider must stay byte-faithful to the canonical Overseer
-// (rows 0-4, centered with 3 transparent columns each side, two rows
+// (rows 0-4, centered with 4 transparent columns each side, two rows
 // below the bubble apex), so the rider is the mascot, not a lookalike.
 function assertDome() {
   const ov = parseMap(OVERSEER);
@@ -118,7 +118,7 @@ function assertDome() {
   for (let y = 0; y < 5; y++) {
     for (let x = 0; x < 18; x++) {
       const ch = ov[y][x];
-      if (ch !== "." && comp[y + 2][x + 3] !== ch) throw new Error(`overseer-ufo: rider pixel drifted at canonical row ${y}, col ${x}`);
+      if (ch !== "." && comp[y + 2][x + 4] !== ch) throw new Error(`overseer-ufo: rider pixel drifted at canonical row ${y}, col ${x}`);
     }
   }
 }
@@ -244,7 +244,7 @@ const previewHtml = `<!doctype html>
   figcaption { margin-top: 8px; font-size: 12px; color: #6e6659; }
   .sprite { width: 180px; height: 120px; }
   .sprite svg { width: 100%; height: 100%; }
-  .sprite-ufo { width: 240px; height: 110px; }
+  .sprite-ufo { width: 260px; height: 110px; }
   .sprite-minion { width: 80px; height: 70px; }
   .sprite-ufo svg, .sprite-minion svg { width: 100%; height: 100%; }
   .demo { position: relative; width: 180px; height: 120px; }
@@ -279,13 +279,13 @@ const previewHtml = `<!doctype html>
      the stage edge mid-cruise. */
   .scene { position: relative; width: 960px; height: 340px; overflow: hidden; background: #f6f1e8; border: 1px solid rgba(36,32,27,0.16); }
   .scene svg { width: 100%; height: 100%; }
-  .ufo { position: absolute; left: 0; top: 0; width: 240px; height: 110px; z-index: 3; }
+  .ufo { position: absolute; left: 0; top: 0; width: 260px; height: 110px; z-index: 3; }
   .ufo-go, .ufo-x, .ufo-bob { position: absolute; inset: 0; }
   .ufo .f { position: absolute; inset: 0; }
   .ufo-go { animation: ufo-depart 1.2s steps(10, end) 7.4s both; }
   .ufo-x { animation: ufo-enter 1.44s steps(12, end) both; }
   .ufo-bob { animation: bob 0.96s step-end 1.44s 4; }
-  @keyframes ufo-enter { from { transform: translate(-250px, -110px); } to { transform: translate(350px, 10px); } }
+  @keyframes ufo-enter { from { transform: translate(-260px, -110px); } to { transform: translate(340px, 10px); } }
   @keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   @keyframes ufo-depart { to { transform: translate(700px, -100px); } }
 

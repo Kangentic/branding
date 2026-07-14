@@ -89,16 +89,18 @@ The first-visit load sequence on kangentic.com (sanctioned by maintainer
 decision, 2026-07-13; the constitution amendments live in
 `design-language`) ships four more frames next to the Overseer's:
 
-- `assets/mascot/overseer-ufo.svg` - the composite (24x11): the Overseer
+- `assets/mascot/overseer-ufo.svg` - the composite (26x11): the Overseer
   riding the saucer inside a glass bubble canopy (a 1px rust arc with a
-  clear air gap around the rider; rust, not cream, because cream is the
-  page ground color and cream "glass" pixels would vanish on it). The
-  rider rows are derived from canonical `OVERSEER` rows 0-4 at build time
-  (centered, 3 transparent columns each side, two rows below the bubble
+  clear air row above the crown and a two-pixel air channel down the
+  sides; rust, not cream, because cream is the page ground color and
+  cream "glass" pixels would vanish on it). The bubble base is as wide as
+  the hull rim, so the canopy closes flush onto the vehicle. The rider
+  rows are derived from canonical `OVERSEER` rows 0-4 at build time
+  (centered, 4 transparent columns each side, two rows below the bubble
   apex), so the rider can never drift from the canonical map; the hull
   occludes rows 5-11. Label: "Pixel-art UFO carrying the Kangentic
   mascot".
-- `assets/mascot/ufo.svg` - the empty saucer (same 24x11 grid) for the
+- `assets/mascot/ufo.svg` - the empty saucer (same 26x11 grid) for the
   departure after the Overseer disembarks; the bubble canopy belongs to
   the vehicle and stays. The hull and bubble rows are shared `SAUCER` /
   `BUBBLE` consts in the lib, byte-identical across both frames. The UFO
