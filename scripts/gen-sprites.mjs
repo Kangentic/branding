@@ -194,17 +194,17 @@ const FRAMES = {
 // read as an invader formation. All literals, fully deterministic.
 // Columns: [spawn s, dir (+1 right / -1 left), hatch x-offset px, drop px, run dx u/hop, run dy u/hop, run hops, ms per hop]
 const MINIONS = [
-  [4.0, 1, 0, 40, 3, 1, 18, 90],
-  [4.3, -1, -10, 60, 2, 1, 18, 90],
-  [4.5, 1, 10, 50, 4, 1, 13, 100],
-  [4.9, 1, 0, 60, 2, 1, 18, 110],
-  [5.2, -1, -20, 40, 3, 1, 17, 100],
-  [5.3, 1, 20, 50, 3, 1, 17, 120],
-  [5.7, -1, 0, 60, 4, 1, 13, 110],
-  [6.0, -1, 10, 40, 3, 1, 18, 120],
-  [6.2, 1, -10, 50, 4, 1, 14, 120],
-  [6.6, -1, 20, 60, 2, 1, 18, 130],
-  [6.9, 1, 0, 40, 5, 1, 11, 110],
+  [3.52, 1, 0, 40, 3, 1, 18, 90],
+  [3.82, -1, -10, 60, 2, 1, 18, 90],
+  [4.02, 1, 10, 50, 4, 1, 13, 100],
+  [4.42, 1, 0, 60, 2, 1, 18, 110],
+  [4.72, -1, -20, 40, 3, 1, 17, 100],
+  [4.82, 1, 20, 50, 3, 1, 17, 120],
+  [5.22, -1, 0, 60, 4, 1, 13, 110],
+  [5.52, -1, 10, 40, 3, 1, 18, 120],
+  [5.72, 1, -10, 50, 4, 1, 14, 120],
+  [6.12, -1, 20, 60, 2, 1, 18, 130],
+  [6.42, 1, 0, 40, 5, 1, 11, 110],
 ];
 // Drops hop 1 unit per 60ms step; runs hop (dx, dy) units per step. Every
 // end position is fully off the 960x340 stage so `both` fill never parks
@@ -221,7 +221,7 @@ const minionCss = MINIONS.map(([spawn, dir, xoff, drop, dxu, dyu, hops, stepMs],
   const runX = dir * hops * dxu * 10;
   const runY = hops * dyu * 10;
   const endX = startX + runX;
-  const endY = 100 + drop + runY;
+  const endY = 110 + drop + runY;
   if (endX > -80 && endX < 960 && endY < 340) {
     throw new Error(`minion ${n}: run parks on stage at ${endX},${endY} (must exit fully)`);
   }
@@ -284,26 +284,27 @@ const previewHtml = `<!doctype html>
      hops at 10px per grid unit); frame swaps stay in the 120ms family.
      The nested UFO wrappers compose the entry, the hover bob, and the
      departure without two animations fighting over one transform. The
-     entry is a stepped ZIGZAG swoop (down from the upper left, up, a
-     short dip, then a long shallow climb to the hover); every segment
-     keeps whole grid-unit hops at 120ms via a per-keyframe steps()
-     timing function. The departure climbs out at the mirror angle. */
+     entry is a stepped ZIGZAG climb from the lower right, banking left,
+     right, then left up to the hover; every segment keeps whole
+     grid-unit hops at 120ms via a per-keyframe steps() timing function.
+     On the site the whole swoop stays inside the hero's open whitespace
+     on the mascot's side, so it never crosses text or controls. The
+     departure climbs out at the mirror angle. */
   .scene { position: relative; width: 960px; height: 340px; overflow: hidden; background: #f6f1e8; border: 1px solid rgba(36,32,27,0.16); }
   .scene svg { width: 100%; height: 100%; }
   .ufo { position: absolute; left: 0; top: 0; width: 260px; height: 110px; z-index: 3; }
   .ufo-go, .ufo-x, .ufo-bob { position: absolute; inset: 0; }
   .ufo .f { position: absolute; inset: 0; }
-  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 9.6s both; }
-  .ufo-x { animation: ufo-enter 3.6s both; }
-  .ufo-bob { animation: bob 0.96s step-end 3.6s 5; }
-  /* 30 hops at 120ms: 10 down (2u,3u), 7 up (2u,-2u), 3 down (2u,2u),
-     10 up (2u,-1u). Keyframe offsets are cumulative hops / 30. */
+  .ufo-go { animation: ufo-depart 1.2s steps(10, end) 9.12s both; }
+  .ufo-x { animation: ufo-enter 3.12s both; }
+  .ufo-bob { animation: bob 0.96s step-end 3.12s 5; }
+  /* 26 hops at 120ms: 12 up-left (-5u,-1u), 8 up-right (+4u,-1u),
+     6 up-left (-6u,-1u). Keyframe offsets are cumulative hops / 26. */
   @keyframes ufo-enter {
-    0% { transform: translate(-260px, -110px); animation-timing-function: steps(10, end); }
-    33.3333% { transform: translate(-60px, 190px); animation-timing-function: steps(7, end); }
-    56.6667% { transform: translate(80px, 50px); animation-timing-function: steps(3, end); }
-    66.6667% { transform: translate(140px, 110px); animation-timing-function: steps(10, end); }
-    100% { transform: translate(340px, 10px); }
+    0% { transform: translate(980px, 280px); animation-timing-function: steps(12, end); }
+    46.1538% { transform: translate(380px, 160px); animation-timing-function: steps(8, end); }
+    76.9231% { transform: translate(700px, 80px); animation-timing-function: steps(6, end); }
+    100% { transform: translate(340px, 20px); }
   }
   @keyframes bob { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
   @keyframes ufo-depart { to { transform: translate(700px, -100px); } }
@@ -311,24 +312,24 @@ const previewHtml = `<!doctype html>
   /* Scheduled frame swaps and spawns: 0s step-end visibility flips. */
   @keyframes m-appear { to { visibility: visible; } }
   @keyframes m-vanish { to { visibility: hidden; } }
-  .ufo .f-full { animation: m-vanish 0s step-end 8.4s forwards; }
-  .ufo .f-empty { visibility: hidden; animation: m-appear 0s step-end 8.4s forwards; }
+  .ufo .f-full { animation: m-vanish 0s step-end 7.92s forwards; }
+  .ufo .f-empty { visibility: hidden; animation: m-appear 0s step-end 7.92s forwards; }
 
-  /* The Overseer hops down through the hatch at 8.4s (pixels hop: the
+  /* The Overseer hops down through the hatch at 7.92s (pixels hop: the
      swap from dome to below-hull IS the disembark), steps to its rest
-     slot, then the blink idle takes over at 11.2s. */
-  .hero { position: absolute; left: 380px; top: 120px; width: 180px; height: 120px; z-index: 2; }
-  .hero .land { position: absolute; inset: 0; animation: hero-drop 0.84s steps(7, end) 8.4s both; }
-  @keyframes hero-drop { to { transform: translateY(70px); } }
+     slot, then the blink idle takes over at 10.8s. */
+  .hero { position: absolute; left: 380px; top: 130px; width: 180px; height: 120px; z-index: 2; }
+  .hero .land { position: absolute; inset: 0; animation: hero-drop 0.72s steps(6, end) 7.92s both; }
+  @keyframes hero-drop { to { transform: translateY(60px); } }
   .hero .f { position: absolute; inset: 0; visibility: hidden; }
-  .hero .f-rest { animation: m-appear 0s step-end 8.4s forwards, blink-rest 5s step-end 11.2s infinite; }
-  .hero .f-eyes { animation: blink-eyes 5s step-end 11.2s infinite; }
+  .hero .f-rest { animation: m-appear 0s step-end 7.92s forwards, blink-rest 5s step-end 10.8s infinite; }
+  .hero .f-eyes { animation: blink-eyes 5s step-end 10.8s infinite; }
 
   /* Minions: frames gate their OWN visibility (a child's visibility:
      visible overrides a hidden ancestor, so hiding only a wrapper would
      leak). Drop hops 1 unit per 60ms step; run hops 2 units per step
      with the 240ms 2-pose foot toggle. */
-  .minion { position: absolute; top: 100px; width: 80px; height: 70px; z-index: 1; }
+  .minion { position: absolute; top: 110px; width: 80px; height: 70px; z-index: 1; }
   .minion .drop, .minion .run { position: absolute; inset: 0; }
   .minion .f { position: absolute; inset: 0; visibility: hidden; }
   @keyframes run-a { 0% { visibility: visible; } 50% { visibility: hidden; } }
@@ -341,7 +342,7 @@ ${minionCss}
   @media (prefers-reduced-motion: reduce) {
     .demo .f { animation: none !important; }
     .scene .ufo, .scene .minion { display: none; }
-    .scene .hero .land { animation: none; transform: translateY(70px); }
+    .scene .hero .land { animation: none; transform: translateY(60px); }
     .scene .hero .f-rest { animation: none; visibility: visible; }
     .scene .hero .f-eyes { animation: none; visibility: hidden; }
   }
@@ -355,14 +356,16 @@ mascot per page (the fly-in overture below is the one sanctioned
 exception); the mascot's alt text stays "${LABEL}".</p>
 
 <h1>Fly-in overture (the consumer contract)</h1>
-<p>The once-per-visitor load sequence: the UFO swoops in from the upper
-left on a stepped zigzag (down, up, a short dip, then a long shallow
-climb to the hover; it climbs out at the mirror angle), hovers, and
-hatches 11 minions (one per agent CLI) at scattered times that scatter
-off the stage on shallow descending runs, mostly horizontal, at varied
-angles and speeds, never a formation. The Overseer hops down through
-the hatch, steps to its resting slot, the empty saucer departs, and the
-blink idle starts only after settle. On kangentic.com this runs once per
+<p>The once-per-visitor load sequence: the UFO climbs in from the lower
+right on a stepped zigzag (banking left, right, then left up to the
+hover; it climbs out at the mirror angle), hovers, and hatches 11
+minions (one per agent CLI) at scattered times that scatter off the
+stage on shallow descending runs, mostly horizontal, at varied angles
+and speeds, never a formation. The Overseer hops down through the
+hatch, steps to its resting slot, the empty saucer departs, and the
+blink idle starts only after settle. On the site, run the entry on the
+mascot's side of the page and keep every waypoint inside the hero's
+open whitespace, so the swoop never crosses text or controls. On kangentic.com this runs once per
 visitor (sessionStorage gate) in an absolutely positioned overlay with
 pointer-events none, aria-hidden UFO and minions, and zero layout shift;
 the resting Overseer keeps its normal placement and alt text. Every
