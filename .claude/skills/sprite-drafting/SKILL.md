@@ -32,7 +32,7 @@ columns - side arms out and three feet. Canonical map = `OVERSEER` in
 | Script | Purpose |
 |--------|---------|
 | `scripts/lib/sprite.mjs` | THE engine: token `PALETTE`, the canonical `OVERSEER` map, `rects()` / `buildSvg()`. Import from here; never re-declare. |
-| `scripts/gen-sprites.mjs` | Writes `assets/mascot/overseer.svg` + the animation pose frames (canonical), plus every alternate/retired pose and the animation preview to `exploration/mascot/`. `npm run gen:sprites`. |
+| `scripts/gen-sprites.mjs` | Writes `assets/mascot/overseer.svg` + the animation pose frames + the fly-in overture set (canonical), plus every alternate/retired pose and the animation preview to `exploration/mascot/`. `npm run gen:sprites`. |
 | `scripts/gen-og.mjs` | The social share image (`resources/social/og-image.png`): pixel wordmark + the Overseer, no font dependency. `npm run gen:og`. |
 
 ## Conventions (enforced by `pixel-art-conventions.md`)
@@ -83,6 +83,50 @@ rest > wave > rest at ~120ms per step). `prefers-reduced-motion` rests
 on the canonical frame. `exploration/mascot/animation-preview.html` is
 the live reference recipe.
 
+## The fly-in overture set
+
+The first-visit load sequence on kangentic.com (sanctioned by maintainer
+decision, 2026-07-13; the constitution amendments live in
+`design-language`) ships four more frames next to the Overseer's:
+
+- `assets/mascot/overseer-ufo.svg` - the composite (26x11): the Overseer
+  riding the saucer inside a glass bubble canopy (a 1px rust arc with a
+  clear air row above the crown and a two-pixel air channel down the
+  sides; rust, not cream, because cream is the page ground color and
+  cream "glass" pixels would vanish on it). The bubble base is as wide as
+  the hull rim, so the canopy closes flush onto the vehicle. The rider
+  rows are derived from canonical `OVERSEER` rows 0-4 at build time
+  (centered, 4 transparent columns each side, two rows below the bubble
+  apex), so the rider can never drift from the canonical map; the hull
+  occludes rows 5-11. Label: "Pixel-art UFO carrying the Kangentic
+  mascot".
+- `assets/mascot/ufo.svg` - the empty saucer (same 26x11 grid) for the
+  departure after the Overseer disembarks; the bubble canopy belongs to
+  the vehicle and stays. The hull and bubble rows are shared `SAUCER` /
+  `BUBBLE` consts in the lib, byte-identical across both frames. The UFO
+  is a PROP, not a character: rust body (rust is the brand accent), four
+  cream port lights, no eyes, no face. Label: "Pixel-art empty UFO".
+- `assets/mascot/minion.svg` + `assets/mascot/minion-run.svg` - the
+  minion (8x7), one of the Overseer's agents: amber body, ONE ink+cream
+  sparkle eye (the parent's exact 2x2 eye unit), two feet. The run is a
+  2-pose toggle (rest <> run) changing row 6 only (the feet splay into a
+  stride). Symmetric on purpose so one sprite runs both directions. Both
+  frames share the label "Pixel-art Kangentic agent minion".
+
+Choreography is binding, not a suggestion: 11 minions (one per agent CLI
+in the proof line) spawn at scattered times, leap out diagonally in
+mixed directions at varied speeds, ground lines, and sizes; the crowd
+must NEVER read as a Space Invaders grid. All translation is stepped in
+whole grid-unit hops; the Overseer and the UFO share one integer display
+unit, and each minion may take its OWN integer unit (bigger roughly runs
+faster, so the crowd reads with near/far depth), but a fractional scale
+is never allowed. Pose swaps stay in the 120ms family. The fly-in scene in
+`exploration/mascot/animation-preview.html` is the consumer contract: on
+the site it runs once per visitor (sessionStorage), in an aria-hidden
+overlay with pointer-events none and zero layout shift, and under
+prefers-reduced-motion only the resting Overseer renders. Minions and
+the UFO appear only inside this sequence, never standalone.
+
 ## Review discipline
 
 - Preview at 16x nearest-neighbor (the `.png` next to each `.svg` in
@@ -108,6 +152,13 @@ Explored in `exploration/mascot/` and `archive/mascot-explorations/`:
 - **Color studies** - ochre (dull), ink (scary/dark), amber+ink-outline
   (outline swallows the silhouette), marshmallow, shaded/shadow variants:
   all lost to plain **amber**, which is friendly and reads at any size.
+- **UFO fly-in overture** (maintainer decision, 2026-07-13): a UFO
+  sanctioned as a PROP carrying the Overseer for the one-shot first-visit
+  load sequence, plus 11 minion sprites (one per agent CLI in the proof
+  line). This does not reopen the rejected arcade borrowings: the UFO is
+  a vehicle, not a character candidate, and the crowd must never read as
+  an invader grid (staggered spawns, mixed directions, varied speeds and
+  ground lines are binding).
 
 ## Where the mascot lives
 
@@ -115,6 +166,9 @@ Explored in `exploration/mascot/` and `archive/mascot-explorations/`:
   embed this; it is theme-agnostic amber on transparency).
 - `assets/mascot/overseer-{blink,wave}.svg` - the animation pose frames
   (same grid; consumers sequence them).
+- `assets/mascot/overseer-ufo.svg`, `assets/mascot/ufo.svg`,
+  `assets/mascot/minion.svg`, `assets/mascot/minion-run.svg` - the
+  fly-in overture set (see above).
 - `resources/social/og-image.png` - the share image built from it.
 - `exploration/mascot/` - alternates, retired poses, and
   `animation-preview.html` (reference).

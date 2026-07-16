@@ -112,6 +112,13 @@ Conventions (full harness: the `sprite-drafting` skill):
 - The Overseer is the only character. It may appear at most once per page. Poses
   (blink frames - the eyes can blink in sequence, one per agent - or wave frames)
   are variations of one map, not new characters.
+- Sanctioned exception (maintainer decision, 2026-07-13): the first-visit
+  fly-in overture. The Overseer arrives aboard a pixel-art UFO (a prop, a
+  vehicle, not a second character) and releases 11 minions, one per agent CLI
+  in the proof line: tiny amber blobs with ONE ink+cream sparkle eye each, the
+  Overseer's agents in its own visual DNA. Minions exist ONLY inside that load
+  sequence and never appear as standalone page decoration. The full-weight-amber
+  exception extends to the mascot family within the sequence.
 - Alt text always describes it plainly ("Pixel-art Kangentic mascot").
 
 Canonical map (18 wide, 12 tall; `a` amber, `k` ink eye, `c` cream sparkle):
@@ -170,6 +177,18 @@ Details live in the `motion-craft` skill. Summary:
   the app's own drop animation), the card's lamp turns green, and a terminal panel
   types real agent output. SPRITE animation, when used, is stepped (`steps()`
   between 2-4 poses), never tweened - pixels hop, they do not glide.
+- Sanctioned addition (maintainer decision, 2026-07-13): a one-shot first-visit
+  overture on the landing page. The Overseer flies in aboard the UFO, 11 minions
+  drop at scattered times and run across the screen on varied paths, speeds, and
+  sizes, each at its own integer display unit
+  (never rows, columns, or a formation; it must not read as an invader grid),
+  the Overseer settles at its static placement, and the empty saucer departs.
+  Once per visitor (sessionStorage gate), never looping; the board demo stays
+  the page's one set piece. All translation is stepped (`steps()` in whole
+  grid-unit hops, never eased) and pose swaps stay in the 120ms-per-step
+  family. Under prefers-reduced-motion only the resting Overseer renders. The
+  reference recipe is the fly-in scene in the branding repo's
+  `exploration/mascot/animation-preview.html`.
 - Everything else: micro-interactions at 150-200ms and small scroll reveals.
 - Reduced motion is a first-class rendering: rest on the completed frame.
 

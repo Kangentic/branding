@@ -91,7 +91,8 @@ checks.PALETTE = () => {
 
 // 2. Sprite constraints (pixel-art-conventions): <=4 fills, all brand tokens;
 //    crispEdges present; integer scale only (no fractional scale()); rect grid
-//    only (no freehand <path>); the OVERSEER map declared once in lib/sprite.mjs.
+//    only (no freehand <path>); every shipped sprite map declared once in
+//    lib/sprite.mjs.
 checks.SPRITE = () => {
   const brand = new Set(BRAND);
   const findings = [];
@@ -104,9 +105,13 @@ checks.SPRITE = () => {
     if (/scale\(\s*[0-9]*\.[0-9]+/.test(src)) findings.push(`${p}: fractional scale() (integer scale only)`);
     if (/<path\b/.test(src)) findings.push(`${p}: freehand <path> (sprites are rect grids)`);
   }
+  const SINGLE_SOURCE = ["OVERSEER", "OVERSEER_UFO", "UFO", "MINION", "MINION_RUN"];
   const owners = scriptFiles().filter((f) => rel(f) !== "scripts/lib/sprite.mjs" && rel(f) !== "scripts/check-invariants.mjs");
   for (const f of owners) {
-    if (/\bOVERSEER\s*=/.test(read(f))) findings.push(`${rel(f)}: re-declares OVERSEER (declare only in lib/sprite.mjs)`);
+    const src = read(f);
+    for (const name of SINGLE_SOURCE) {
+      if (new RegExp(`\\b${name}\\s*=`).test(src)) findings.push(`${rel(f)}: re-declares ${name} (declare only in lib/sprite.mjs)`);
+    }
   }
   return findings;
 };

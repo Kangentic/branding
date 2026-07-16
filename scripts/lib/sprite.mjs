@@ -77,6 +77,99 @@ aaaaaaaaaaaaaaaa..
 ....aa..aa..aa....
 `;
 
+// --- The fly-in overture set (maintainer decision, 2026-07-13) -------------
+// The Overseer arrives aboard a UFO on a visitor's first page load and
+// releases its minions (the agents it watches). The UFO is a sanctioned
+// PROP, not a second character; minions appear ONLY inside that load
+// sequence. See the sprite-drafting skill for the binding choreography.
+
+// The flying saucer hull (26 wide x 4 rows): rust body with four
+// mirror-symmetric cream port lights. Rust is the brand accent, so the
+// vehicle carries it. Shared verbatim by OVERSEER_UFO and UFO so the two
+// frames overlay pixel-perfectly in a stepped swap. The top rim is as
+// wide as the bubble base, so the canopy closes flush onto the hull.
+const SAUCER = `...rrrrrrrrrrrrrrrrrrrr...
+rrrcrrrrrrcrrrrcrrrrrrcrrr
+..rrrrrrrrrrrrrrrrrrrrrr..
+.......rrrrrrrrrrrr.......`;
+
+// The glass bubble canopy (24 wide x 6 rows): a 1px rust rim arcing over
+// the rider with a transparent air gap inside, terminating on the hull
+// rim corners. Rust, not cream, on purpose: cream is the page ground
+// color, so cream "glass" pixels would vanish (and break the arc) on the
+// deployed cream page; the rim plus the air gap carries the bubble read.
+// Declared as arc pixels only and merged around the rider below, with a
+// collision check so the bubble can never overwrite a rider pixel.
+const BUBBLE = `
+.......rrrrrrrrrrrr.......
+......r............r......
+.....r..............r.....
+....r................r....
+...r..................r...
+...r..................r...
+...r..................r...
+`;
+
+// Fly-in composite (26 wide x 11 tall): the Overseer riding the saucer
+// inside the bubble canopy, with a clear row of air above the crown and
+// a two-pixel air channel down the sides so the rider floats INSIDE the
+// bubble rather than wearing it. The rider rows are canonical OVERSEER
+// rows 0-4 centered on the 26-wide hull grid (4 transparent columns each
+// side, two rows below the bubble apex), derived at build time so they
+// can never drift from the canonical map; the hull occludes rows 5-11.
+// Renders as:
+//   .......rrrrrrrrrrrr.......
+//   ......r............r......
+//   .....r...aaaaaaaa...r.....
+//   ....r..aaaaaaaaaaaa..r....
+//   ...r..aaaaaaaaaaaaaa..r...
+//   ...r..aakcaakcaakcaa..r...
+//   ...r..aakkaakkaakkaa..r...
+//   ...rrrrrrrrrrrrrrrrrrrr...
+//   rrrcrrrrrrcrrrrcrrrrrrcrrr
+//   ..rrrrrrrrrrrrrrrrrrrrrr..
+//   .......rrrrrrrrrrrr.......
+const DOME_HEAD = parseMap(OVERSEER).slice(0, 5).map((r) => `....${r.join("")}....`);
+const DOME = parseMap(BUBBLE).map((row, y) => row.map((ch, x) => {
+  const head = y <= 1 ? "." : DOME_HEAD[y - 2][x];
+  if (head !== "." && ch !== ".") throw new Error(`overseer-ufo: bubble pixel collides with the rider at row ${y}, col ${x}`);
+  return head === "." ? ch : head;
+}).join("")).join("\n");
+export const OVERSEER_UFO = `\n${DOME}\n${SAUCER}\n`;
+
+// Departure frame: the empty saucer after the Overseer disembarks. The
+// bubble canopy belongs to the vehicle, so it stays; only the rider rows
+// differ from the composite, and the two frames overlay pixel-perfectly
+// on the same 24x11 grid.
+export const UFO = `\n${parseMap(BUBBLE).map((r) => r.join("")).join("\n")}\n${SAUCER}\n`;
+
+// THE MINION (8 wide x 7 tall): one of the Overseer's agents, released
+// during the fly-in overture. Same visual DNA as the parent: amber body,
+// ONE ink+cream sparkle eye (the parent's exact 2x2 eye unit), two feet.
+// Symmetric on purpose so one sprite runs both directions.
+export const MINION = `
+..aaaa..
+.aaaaaa.
+aaakcaaa
+aaakkaaa
+aaaaaaaa
+.aaaaaa.
+.aa..aa.
+`;
+
+// Run frame: a 2-pose toggle with MINION (rest <> run). Differs in row 6
+// only: the feet splay into a stride. Horizontal translation carries the
+// motion; the foot toggle adds the churn.
+export const MINION_RUN = `
+..aaaa..
+.aaaaaa.
+aaakcaaa
+aaakkaaa
+aaaaaaaa
+.aaaaaa.
+aa....aa
+`;
+
 export function parseMap(map) {
   return map.replace(/^\n/, "").replace(/\n$/, "").split("\n").map((r) => r.split(""));
 }
