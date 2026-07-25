@@ -50,6 +50,12 @@ also works for consumers that can't take an npm dependency.
 
 ## Animating the mascot
 
+**See them all: [exploration/mascot/MOTION.md](exploration/mascot/MOTION.md)** -
+every sequence as a looping GIF, viewable right here on GitHub, with its timings.
+For the interactive version at real display sizes, open
+`exploration/mascot/animation-preview.html` in a browser. Both are generated from
+the same declaration as the shipped files, so neither can drift.
+
 The mascot's motion is part of the brand, so the sequences ship here rather
 than being rebuilt in each app. Two representations, generated from one
 declaration, so nothing drifts:

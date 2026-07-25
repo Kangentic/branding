@@ -28,7 +28,7 @@
    frame shows, and every sequence returns here when it ends or is disabled. */
 .overseer-frame--rest { visibility: visible; }
 
-/* blinking: idle life. The human-blink model: gaps clustered short with the odd long pause rather than a flat spread, and an occasional double blink. The rate that falls out of the range is shown on the card, so it cannot go stale when the range is tuned */
+/* blinking: idle life. The human-blink model: gaps clustered short with the odd long pause rather than a flat spread, plus an occasional double blink. The blinks-per-minute figure is always derived from this range wherever it is displayed, never written down, so tuning the range cannot strand a stale number */
 @keyframes overseer-blink-loop--rest { 0% { visibility: visible; } 96.3226% { visibility: hidden; } 100% { visibility: visible; } }
 .overseer--blink-loop .overseer-frame--rest { animation: overseer-blink-loop--rest 3807ms step-end infinite; }
 @keyframes overseer-blink-loop--blink { 0% { visibility: hidden; } 96.3226% { visibility: visible; } 100% { visibility: hidden; } }

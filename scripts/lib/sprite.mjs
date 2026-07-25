@@ -251,7 +251,7 @@ export const SEQUENCES = {
 
   "blink-loop": {
     label: "blinking",
-    note: "idle life. The human-blink model: gaps clustered short with the odd long pause rather than a flat spread, and an occasional double blink. The rate that falls out of the range is shown on the card, so it cannot go stale when the range is tuned",
+    note: "idle life. The human-blink model: gaps clustered short with the odd long pause rather than a flat spread, plus an occasional double blink. The blinks-per-minute figure is always derived from this range wherever it is displayed, never written down, so tuning the range cannot strand a stale number",
     loop: true,
     idle: { frame: "rest", minMs: 2000, maxMs: 7000, bias: "square" },
     clip: [{ frame: "blink", durationMs: 140 }],
