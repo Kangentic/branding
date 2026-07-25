@@ -2,6 +2,32 @@
 
 <!-- releases -->
 
+## [v2.3.0] - 2026-07-25
+
+### Features
+- Ship the Overseer animation contract and a waiting-state pose vocabulary.
+  The package now owns the mascot's MOTION, not just its pixels: sequences
+  and timings are declared once and generated into
+  `assets/mascot/animations.json` (framework-agnostic data, usable in React
+  Native where there is no CSS) and `assets/mascot/animations.css` (a
+  drop-in stepped frame swap for any browser or Electron surface). The
+  format splits `clip` (the frame timeline) from `idle` (the scheduling
+  policy), so a consumer keeps a randomised right-skewed cadence instead of
+  being flattened to a bare interval. Eight sequences: `none`,
+  `blink-loop`, `wave-once`, `double-arm-wave-once`,
+  `double-arm-alternating-wave-once`, `looking-left-and-right-loop`,
+  `running-loop`, `waiting-loop`. Seven new frames back them (10 total),
+  including two compound running-plus-gaze frames. Purely additive: no
+  existing frame changed and no `exports` map was introduced, which would
+  have broken every consumer's `assets/*.svg?raw` deep imports. A new
+  `ANIMATION` invariant enforces the motion budget mechanically for the
+  first time (e65750f)
+
+### Other
+- Add a GitHub-viewable motion reference: `exploration/mascot/MOTION.md`
+  renders every sequence as a looping GIF inline on GitHub, generated from
+  the same declaration as the shipped files so it cannot drift (91a03a7)
+
 ## [v2.2.0] - 2026-07-13
 
 ### Features
