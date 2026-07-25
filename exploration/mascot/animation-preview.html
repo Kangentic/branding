@@ -73,7 +73,7 @@ resting on the canonical frame, which is the correct rendering. Turn off
     </figure><figure class="card">
       <figcaption><b>blinking</b><br><code class="key">blink-loop</code></figcaption>
       <div class="stage"><div class="overseer overseer--blink-loop" data-loop="true" role="img" aria-label="Pixel-art Kangentic mascot"><div class="overseer-frame overseer-frame--rest" aria-hidden="true"><svg viewBox="0 0 18 12" shape-rendering="crispEdges"><use href="#ovr-rest"/></svg></div><div class="overseer-frame overseer-frame--blink" aria-hidden="true"><svg viewBox="0 0 18 12" shape-rendering="crispEdges"><use href="#ovr-blink"/></svg></div></div></div>
-      <p class="note">idle life. The human-blink model: gaps clustered short with the odd long pause rather than a flat spread, and an occasional double blink. The rate that falls out of the range is shown on the card, so it cannot go stale when the range is tuned</p>
+      <p class="note">idle life. The human-blink model: gaps clustered short with the odd long pause rather than a flat spread, plus an occasional double blink. The blinks-per-minute figure is always derived from this range wherever it is displayed, never written down, so tuning the range cannot strand a stale number</p>
       <p class="timing">idle 2000-7000ms right-skewed, mean 3667ms (~16/min) &middot; blink 140ms &middot; 30% double</p>
     </figure><figure class="card">
       <figcaption><b>single arm wave</b> <span class="tag">one-shot</span><br><code class="key">wave-once</code></figcaption>
