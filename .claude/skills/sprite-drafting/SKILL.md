@@ -76,12 +76,82 @@ Rules for frames (mechanically enforced by `assertPose` in
   (`OVERSEER_BLINK`, `OVERSEER_WAVE`).
 - Alt text on every frame stays exactly "Pixel-art Kangentic mascot".
 
-Sequencing is consumer-side and stepped, never tweened (the motion
-budget in `design-language`): blink as an occasional idle loop (closed
-~120ms every 4-6s), wave as a one-shot on load or hover (rest > wave >
-rest > wave > rest at ~120ms per step). `prefers-reduced-motion` rests
-on the canonical frame. `exploration/mascot/animation-preview.html` is
-the live reference recipe.
+## The animation contract (sequences ship, not just frames)
+
+Timings are part of the brand, so they ship as data instead of being
+retyped in each app. `SEQUENCES` in `scripts/lib/sprite.mjs` is the ONE
+declaration; `gen-sprites.mjs` emits two artifacts from it:
+
+- `assets/mascot/animations.json` - framework-agnostic data (any
+  runtime, including React Native where there is no CSS).
+- `assets/mascot/animations.css` - a drop-in stepped frame swap for any
+  browser or Electron surface. Class contract: `.overseer` (container,
+  carries the accessible name), `.overseer-frame--<key>` (one per pose),
+  `.overseer--<sequence>` (the sequence).
+
+Why this exists: the timings had drifted three ways. The website ran a
+right-skewed 2000-9000ms blink with a 30% double, the mobile app a flat
+2800-6400ms one with a 140ms hold, and this repo's own preview a fixed
+5000ms. **The website's interval model is canonical**, because it is
+grounded in human blinking: gaps clustered short with the odd long pause,
+plus an occasional double, where a flat distribution reads as a
+metronome. The range was then tuned to 2000-7000ms, and the hold taken
+from the mobile app's 140ms rather than the website's 120ms - a close
+that short reads as a flicker at the sizes the mascot actually ships at.
+So the canonical blink is the website's distribution with the mobile
+app's hold. Selected at the live review, 2026-07-25.
+
+Do not restate the resulting rate ("about N blinks a minute") in prose
+anywhere. It is a function of the range and the bias, so a hand-written
+copy goes stale the moment the range is tuned - the demo page derives and
+displays it instead.
+
+Format notes that are load-bearing:
+
+- `clip` is the frame timeline; `idle` is the resting gap for a looping
+  sequence. Splitting them is what lets a consumer keep a randomized,
+  right-skewed schedule (`bias: "square"` = `min + (max-min) * rand^2`)
+  while CSS, which cannot randomize, runs at the distribution mean.
+  Generators are banned from `Math.random()`, so the range ships static
+  and the CONSUMER draws from it.
+- **Exactly one frame is visible at a time.** A pose that VACATES a
+  pixel the rest frame paints (the wave's arm leaving row 6, a step's
+  foot leaving row 11) lets the rest frame bleed through if it is merely
+  layered on top. Each frame's `compositing` is computed and recorded;
+  the generated CSS keeps one frame visible so the trap is unhittable.
+- **No `animation-fill-mode`.** The desktop app's animations-off setting
+  zeroes `animation-duration`, and a filled 0s animation snaps to its
+  100% keyframe. Every track instead carries an explicit terminal
+  keyframe: the rest state for a one-shot, the 0% state for a loop.
+- `prefers-reduced-motion` rests on the canonical frame, always.
+
+`exploration/mascot/animation-preview.html` is the demo page. It LINKS
+the shipped CSS rather than restating it, so the demo and the artifact
+cannot drift; it renders every sequence at 5x / 4x / 3x (the sizes
+consumers actually use) plus 10x for inspection.
+
+## Drafting a new pose
+
+Add the map to `lib/sprite.mjs`, add a `FRAMES` entry in
+`gen-sprites.mjs` with accurate `changedRows` and `draft: true`, and add
+a `SEQUENCES` entry (also `draft: true`) that uses it. Draft frames
+render to `exploration/mascot/` only, so `assets/` stays honest until
+sign-off; **promoting a pose is deleting the flag**. `assertPose` fails
+the build in both directions: a row that drifted without being declared,
+AND a row declared as animated that did not actually change (the second
+catches the copy-paste that ships a loop where nothing moves).
+
+At promotion, **delete the maps that lost**. A rejected pose left in
+`lib/sprite.mjs` is dead weight that the next person has to re-litigate.
+Comparison-only sequences (`compare:`) and any map that exists solely to
+feed one go out with them.
+
+Note the gating asymmetry: `check-invariants` reads the shipped
+manifest, so it can only see promoted sequences. Candidates are gated at
+generation time instead (`gen-sprites.mjs` checks the motion budget,
+unknown frame refs, and CSS-track coverage over ALL sequences, draft
+included). Keep it that way - if candidate checks move out of the
+generator, they stop running.
 
 ## Review discipline
 
@@ -105,6 +175,11 @@ Explored in `exploration/mascot/` and `archive/mascot-explorations/`:
 - **Board creature** (`board-creature`, the kanban board come alive): a
   strong runner-up, kept viable.
 - **Rust Overseer**: one shade from Claude Code's terracotta -> went amber.
+- **Alternating outer-foot march** (`shuffle-march-loop`, step-l <> step-r
+  with the middle foot planted): rejected 2026-07-25. With three legs and a
+  planted centre it does not map to any gait a viewer can read - it looks
+  like a glitch, not a walk. The tripod bounce (`shuffle-loop`, middle foot
+  up then the outer two) reads as a weight shift and was kept instead.
 - **Color studies** - ochre (dull), ink (scary/dark), amber+ink-outline
   (outline swallows the silhouette), marshmallow, shaded/shadow variants:
   all lost to plain **amber**, which is friendly and reads at any size.
