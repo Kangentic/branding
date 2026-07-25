@@ -5,7 +5,8 @@
 // ("reads as craft, not AI clip-art") is NOT here - it stays a human decision.
 //
 // Checks: palette membership, sprite constraints, mark tiering (no card-K on a
-// downscaled master), frozen-K / single-source geometry, banned colors.
+// downscaled master), frozen-K / single-source geometry, banned colors, and the
+// shared animation contract (motion budget, compositing safety, packaging).
 // archive/ is frozen and never scanned. Usage: npm run check
 //
 // Sources of truth cross-referenced here (change them, not this file):
@@ -28,15 +29,24 @@ const BRAND = ["fdfbf7", "24201b", "c0562f", "e8a33d"];
 // (knockout masks paint #fff/#000) but never in a sprite.
 const STRUCT = ["fff", "000", "ffffff", "000000"];
 
+const spriteSvgs = () => {
+  const dir = join(ROOT, "assets", "mascot");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/mascot/${f}`);
+};
+
 // Shipped vector assets consumers embed. resources/web/brandmark*.svg are
 // byte copies of the assets/ ones (gen-icons copyFile), scanned for defense.
+// The mascot list is globbed, not enumerated: pose frames used to be invisible
+// to the PALETTE and BANNED checks because only overseer.svg was listed, so
+// every new frame had to remember to register itself. It no longer does.
 const SHIPPED_SVG = [
   "assets/brandmark.svg",
   "assets/brandmark-small.svg",
   "assets/brandmark-filled.svg",
   "assets/brandmark-mono.svg",
   "assets/brandmark-mono-amber.svg",
-  "assets/mascot/overseer.svg",
+  ...spriteSvgs(),
   "resources/web/brandmark.svg",
   "resources/web/brandmark-small.svg",
 ].filter(has);
@@ -44,12 +54,6 @@ const SHIPPED_SVG = [
 // The brandmark/icon SVGs specifically (no mascot) - these must never carry a
 // <text> element (the K is frozen K_PATH -> <path>, font-independent).
 const BRANDMARK_SVG = SHIPPED_SVG.filter((p) => /brandmark/.test(p));
-
-const spriteSvgs = () => {
-  const dir = join(ROOT, "assets", "mascot");
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/mascot/${f}`);
-};
 
 // Every generator/source file under scripts/ (archive/ is not under scripts/,
 // so it is excluded by construction). Used for single-source declaration scans.
@@ -221,8 +225,75 @@ checks.MONO = () => {
   return findings;
 };
 
+// 7. The shared animation contract (assets/mascot/animations.{json,css}).
+//    The motion budget used to be prose in design-language; now that sequences
+//    ship as data it is enforceable. This also guards the two failure modes
+//    that stay invisible until a consumer breaks: a pose that VACATES a pixel
+//    with no inverse track (the rest frame bleeds through underneath), and an
+//    `exports` map that silently kills every consumer's deep asset import.
+checks.ANIMATION = () => {
+  const jsonPath = "assets/mascot/animations.json";
+  const cssPath = "assets/mascot/animations.css";
+  if (!has(jsonPath) || !has(cssPath)) return [`${jsonPath} / ${cssPath} missing (run npm run gen:sprites)`];
+
+  let manifest;
+  try {
+    manifest = JSON.parse(load(jsonPath));
+  } catch (e) {
+    return [`${jsonPath}: not valid JSON (${e.message})`];
+  }
+
+  const findings = [];
+  const css = load(cssPath);
+  const frames = manifest.frames ?? {};
+  const rest = manifest.restFrame;
+
+  for (const [key, f] of Object.entries(frames)) {
+    if (!has(`assets/mascot/${f.file}`)) findings.push(`${jsonPath}: frame "${key}" names a missing file ${f.file}`);
+  }
+
+  for (const [name, seq] of Object.entries(manifest.sequences ?? {})) {
+    if (seq.reducedMotion !== rest) {
+      findings.push(`${name}: reducedMotion must be "${rest}" (reduced motion is a rendering, not a mute button)`);
+    }
+    const used = [...new Set([...(seq.idle ? [seq.idle.frame] : []), ...(seq.clip ?? []).map((s) => s.frame)])];
+    if (!used.length) continue; // e.g. `none`: the base composition IS the rendering
+    // Motion budget (design-language): a stepped swap between 2-4 poses.
+    if (used.length > 4) findings.push(`${name}: ${used.length} distinct frames (motion budget is 4)`);
+    for (const f of used) if (!frames[f]) findings.push(`${name}: references frame "${f}" the manifest does not declare`);
+    // Exactly one frame visible at a time is what makes an `exclusive` pose
+    // safe. Every frame the sequence touches, PLUS the rest frame it covers,
+    // needs its own track or the rest frame shows through the vacated pixels.
+    for (const f of new Set([...used, rest])) {
+      if (!css.includes(`.overseer--${name} .overseer-frame--${f} {`)) {
+        findings.push(`${name}: no CSS track for frame "${f}" (an exclusive pose would let ${rest} bleed through)`);
+      }
+    }
+  }
+
+  // A fill mode breaks the desktop app's animations-off setting, which zeroes
+  // animation-duration: a FILLED 0s animation snaps to its 100% keyframe
+  // instead of falling back to the canonical frame.
+  if (/fill-mode|animation:[^;]*\b(?:forwards|backwards|both)\b/.test(css)) {
+    findings.push(`${cssPath}: uses an animation fill mode (breaks a zeroed animation-duration)`);
+  }
+  if (!/prefers-reduced-motion/.test(css)) findings.push(`${cssPath}: no prefers-reduced-motion block`);
+
+  // Deep asset imports are how the consumers read this package: kangentic.com
+  // and the desktop app both do `@kangentic/branding/assets/...svg?raw`. There
+  // is no `exports` map today, so those resolve through Node's legacy subpath
+  // fallback. Adding one without re-exposing ./assets/* breaks every consumer,
+  // and none of their test suites would catch it.
+  const pkg = JSON.parse(load("package.json"));
+  if (pkg.exports && !pkg.exports["./assets/*"]) {
+    findings.push('package.json: "exports" map without "./assets/*" (breaks consumer deep imports of assets/)');
+  }
+
+  return findings;
+};
+
 // ---------------------------------------------------------------------------
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {
