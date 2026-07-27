@@ -2,6 +2,34 @@
 
 <!-- releases -->
 
+## [v2.4.0] - 2026-07-27
+
+### Features
+- Add the missing store and OS-owned mobile assets. Six new files under
+  `resources/mobile/`: the Play Store feature graphic
+  (`android-feature-graphic-1024x500.png`, REQUIRED by Google Play on every
+  track beyond internal testing and the one output in the package with no
+  alpha channel), the Android notification icon (`notification-icon.png`,
+  white on transparent - Android discards RGB on the small icon and keeps
+  only alpha, so the full-color asset consumers pointed at rendered as a
+  silhouette that lost the amber card), the iOS 18+ dark and tinted home
+  screen variants (`ios-appstore-1024-dark.png`, `-tinted.png`, both
+  background-free because the system composites its own material, tinted
+  grayscale because iOS maps luminance onto the user's tint), the Android
+  13+ themed icon (`android-adaptive-monochrome.png`), and a dedicated
+  `splash-1024.png` that ends the mobile splash silently following a
+  desktop asset. Every variant keeps the CANONICAL F4k geometry and varies
+  color only, so the three iOS icons stay pixel-consistent as the user
+  toggles appearance; the notification icon is the sole exception, taking
+  the mono-tuned geometry because it displays at 24dp. Two new libs keep
+  this single-source: `lib/pixelfont.mjs` (the 5x7 plate font, extracted
+  from `gen-og.mjs`) and `lib/feature-graphic.mjs` (the 1024x500
+  composition). `lib/mark.mjs` gains COLOR parameters only, no new
+  geometry, so every existing asset stays byte-identical (7c30579)
+
+### Other
+- Add context7 MCP server (05c7b19)
+
 ## [v2.3.0] - 2026-07-25
 
 ### Features
