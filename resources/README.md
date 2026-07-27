@@ -55,6 +55,20 @@ macOS tray would take a template PNG derived from the pure mono, not an SVG.
 | File | Use | Mark |
 |------|-----|------|
 | ios-appstore-1024.png | App Store master (downscales to the home-screen icon) | F4k (opaque, unrounded) |
+| ios-appstore-1024-dark.png | `ios.icon.dark`; iOS 18+ dark home screen | F4k (transparent) |
+| ios-appstore-1024-tinted.png | `ios.icon.tinted`; iOS 18+ tinted home screen | F4k (grayscale, transparent) |
 | android-playstore-512.png | Play Store listing | F4k (opaque square) |
 | android-adaptive-foreground.png (432) | adaptive icon foreground; mark in the 66% safe zone | F4k |
 | android-adaptive-background.png (432) | adaptive icon background | solid cream |
+| android-adaptive-monochrome.png (432) | `adaptiveIcon.monochromeImage`; Android 13+ themed icon | F4k (white, alpha-shaped) |
+| notification-icon.png (96) | `expo-notifications` plugin icon; Android status bar | F4k mono-tuned (white on transparent) |
+| splash-1024.png | splash mark (displays large) | card-K |
+| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + Overseer |
+
+The iOS dark and tinted variants carry NO background: iOS composites its own
+material behind them and applies the user's tint, so baking one in would
+double it. Tinted is grayscale because iOS maps luminance onto the tint.
+
+The feature graphic is the ONE file here with no alpha channel (Play rejects
+transparency and crops the edges in some placements), which is why it uses the
+panel tint rather than near-white cream and keeps all content inset.

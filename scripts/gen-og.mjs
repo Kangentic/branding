@@ -1,79 +1,22 @@
 // gen-og.mjs - the social share image. Warm Craft: cream ground, ink pixel
 // wordmark, rust rule, the amber Overseer. Text is drawn as pixel-font
-// rects so there is no system-font dependency at render time. The mascot
-// comes from the shared sprite engine (lib/sprite.mjs).
+// rects so there is no system-font dependency at render time. Both shared
+// libs supply their piece: the mascot from lib/sprite.mjs, the 5x7 plate
+// font from lib/pixelfont.mjs (also used by the Play feature graphic).
 //
 // Usage: npm run gen:og
 // Output: resources/social/og-image.png (1200x630)
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { OVERSEER, rects as spriteRects, PALETTE } from "./lib/sprite.mjs";
+import { word } from "./lib/pixelfont.mjs";
+import { CREAM, INK, INK_SOFT, RUST } from "./lib/mark.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "resources", "social");
-
-const CREAM = "#fdfbf7";
-const INK = "#24201b";
-const INK_SOFT = "#6e6659";
-const RUST = "#c0562f";
-
-// --- 5x7 pixel font (the wordmark + the proof-line caption) ----------------
-// Uppercase-only plate font in the spirit of Departure Mono: every character
-// on this image is drawn as rects so there is zero system-font dependency and
-// the PNG is byte-identical on any OS (the /release + CI determinism gate).
-const parse = (m) => m.replace(/^\n/, "").replace(/\n$/, "").split("\n").map((r) => r.split(""));
-function glyphRects(map, fill) {
-  const g = parse(map);
-  const h = g.length;
-  const w = Math.max(...g.map((r) => r.length));
-  const out = [];
-  for (let y = 0; y < h; y++) {
-    let x = 0;
-    while (x < w) {
-      if ((g[y][x] ?? ".") !== "#") { x++; continue; }
-      let run = 1;
-      while (x + run < w && (g[y][x + run] ?? ".") === "#") run++;
-      out.push(`<rect x="${x}" y="${y}" width="${run}" height="1" fill="${fill}"/>`);
-      x += run;
-    }
-  }
-  return { svg: out.join(""), w, h };
-}
-const FONT = {
-  K: "#...#\n#..#.\n#.#..\n##...\n#.#..\n#..#.\n#...#",
-  A: ".###.\n#...#\n#...#\n#####\n#...#\n#...#\n#...#",
-  N: "#...#\n##..#\n#.#.#\n#..##\n#...#\n#...#\n#...#",
-  G: ".###.\n#...#\n#....\n#.###\n#...#\n#...#\n.###.",
-  E: "#####\n#....\n#....\n####.\n#....\n#....\n#####",
-  T: "#####\n..#..\n..#..\n..#..\n..#..\n..#..\n..#..",
-  I: ".###.\n..#..\n..#..\n..#..\n..#..\n..#..\n.###.",
-  C: ".###.\n#...#\n#....\n#....\n#....\n#...#\n.###.",
-  L: "#....\n#....\n#....\n#....\n#....\n#....\n#####",
-  S: ".####\n#....\n#....\n.###.\n....#\n....#\n####.",
-  O: ".###.\n#...#\n#...#\n#...#\n#...#\n#...#\n.###.",
-  F: "#####\n#....\n#....\n####.\n#....\n#....\n#....",
-  R: "####.\n#...#\n#...#\n####.\n#.#..\n#..#.\n#...#",
-  V: "#...#\n#...#\n#...#\n#...#\n#...#\n.#.#.\n..#..",
-  0: ".###.\n#...#\n#..##\n#.#.#\n##..#\n#...#\n.###.",
-  1: "..#..\n.##..\n..#..\n..#..\n..#..\n..#..\n.###.",
-  "/": "....#\n....#\n...#.\n..#..\n.#...\n#....\n#....",
-  "%": "##..#\n##.#.\n...#.\n..#..\n.#...\n.#.##\n#..##",
-  $: "..#..\n.####\n#.#..\n.###.\n..#.#\n####.\n..#..",
-};
-function word(text, fill) {
-  let x = 0;
-  const parts = [];
-  for (const ch of text) {
-    if (ch === " ") { x += 4; continue; }
-    const { svg, w } = glyphRects(FONT[ch], fill);
-    parts.push(`<g transform="translate(${x},0)">${svg}</g>`);
-    x += w + 1;
-  }
-  return { svg: parts.join(""), w: x - 1, h: 7 };
-}
 
 const W = 1200;
 const H = 630;

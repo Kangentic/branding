@@ -86,9 +86,18 @@ emit; one command fills the in-situ gap.
 - `npm run gen:sprites` writes the mascot at 16x to `exploration/mascot/`.
 - `npm run gen:icons` writes `exploration/icon-concepts/preview.png` - the desktop ladder
   on light and dark bars, showing the card-K / F4k tier boundary.
-- `npm run gen:review` writes `exploration/review/in-situ.png` - the
-  IN-SITU header mocks: light site header + dark docs header + browser tabs,
-  the mark at nav and favicon size on both themes.
+- `npm run gen:review` writes two sheets to `exploration/review/`:
+  - `in-situ.png` - the IN-SITU header mocks: light site header + dark
+    docs header + browser tabs, the mark at nav and favicon size on both
+    themes.
+  - `mobile.png` - the OS-owned mobile surfaces, none of which appear in
+    the header mocks: iOS light/dark/tinted on the system material at 120
+    and at 60 (real home-screen size), the tinted candidates side by side,
+    the notification icon at 24px in a status bar plus its x8 zoom, the
+    Android 13+ themed layer under circle and squircle masks, and the Play
+    feature graphic across ground candidates at listing and thumbnail size.
+    It reads the SHIPPED files back out of `resources/mobile/`, so what it
+    shows is what consumers get.
 
 Point the human at those exact paths. Judge the mark at 16-32px FIRST -
 that is where icons live - and confirm it is **unmistakable at 24x24** (the
@@ -108,9 +117,13 @@ Any FAIL is BLOCKING. It checks:
   `scale()`); rect grid only (no freehand `<path>`); `OVERSEER` declared
   once in `lib/sprite.mjs`.
 - **TIERING** - no OS-downscaled single-image master (`squarePng`, the
-  store / PWA / apple-touch / favicon surfaces) is fed card-K. Feeding
-  `cardKParts`/`markFor`/`discPng`/a >=128 ladder entry into one is the
-  wrong-icon bug the rule exists for.
+  store / PWA / apple-touch / favicon surfaces, the iOS dark/tinted
+  variants, the Android themed and notification layers) is fed card-K.
+  Feeding `cardKParts`/`markFor`/`discPng`/a >=128 ladder entry into one is
+  the wrong-icon bug the rule exists for. `splash-1024.png` and the Play
+  feature graphic are deliberately outside this list - the splash displays
+  large so it is correctly card-K, and the feature graphic carries no mark
+  to tier.
 - **FROZEN-K** - no `<text>` in a shipped brandmark/icon SVG (the K is
   frozen `K_PATH` -> `<path>`); no geometry constant declared outside
   `lib/mark.mjs`.

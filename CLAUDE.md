@@ -21,12 +21,16 @@ scripts/lib/mark.mjs      THE mark geometry: frozen K path, cuts, tight card,
 scripts/lib/sprite.mjs    THE sprite engine: token palette, canonical Overseer
                           map, ASCII-map -> rect-grid SVG builder.
                           (Both libs: the only place their geometry is declared.)
+scripts/lib/pixelfont.mjs THE 5x7 plate font (uppercase, narrow coverage);
+                          word() throws on a glyph it does not have.
+scripts/lib/feature-graphic.mjs  THE Play feature graphic composition (1024x500)
 scripts/gen-brandmark.mjs Icon exploration harness + canonical SVGs (npm run gen)
 scripts/gen-icons.mjs     Production icon tree -> resources/ (npm run gen:icons)
 scripts/gen-sprites.mjs   Mascot -> assets/mascot/ + exploration (npm run gen:sprites)
 scripts/gen-og.mjs        Social image -> resources/social/ (npm run gen:og)
-scripts/gen-review.mjs    In-situ header mocks -> exploration/review/ (npm run
-                          gen:review); used by /brand-review
+scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
+                          exploration/review/ (npm run gen:review); used by
+                          /brand-review
 scripts/check-invariants.mjs  Mechanical brand-invariant gate: palette, sprite,
                           tiering, frozen-K, banned colors (npm run check)
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
@@ -36,12 +40,14 @@ assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
                           mascot/overseer{,-blink,-wave}.svg
                           (mascot + animation pose frames)
 resources/                Production rasters consumers ship: web/, desktop/,
-                          mobile/ (icons), social/og-image.png (see README)
+                          mobile/ (app icons incl. iOS dark/tinted, adaptive +
+                          Android 13+ themed layers, notification icon, splash,
+                          Play feature graphic), social/og-image.png (see README)
 archive/v1/               The blue-K brand, frozen verbatim. Never touch.
 archive/mascot-explorations/  Every creature round, superseded mascot-icon
                           sets, and legacy logo candidates. Never touch.
 exploration/              Icon contact sheets, mascot alternate/retired poses,
-                          review/ in-situ header mocks
+                          review/ in-situ header mocks + mobile-surface sheet
 CHANGELOG.md              Release log (managed by /release)
 ```
 

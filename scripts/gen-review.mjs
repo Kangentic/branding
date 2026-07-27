@@ -10,21 +10,19 @@
 // exploration/, not a shipped asset, so it is exempt from the determinism gate.
 // Usage: npm run gen:review
 
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { knockout, f4kParts, f4kMonoSvg, f4kDuoSvg, cardKParts } from "./lib/mark.mjs";
+import { CREAM, PANEL, INK, INK_SOFT, RUST, knockout, f4kParts, f4kAlphaParts, f4kMonoSvg, f4kDuoSvg, cardKParts } from "./lib/mark.mjs";
+import { featureGraphicSvg } from "./lib/feature-graphic.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "exploration", "review");
 await mkdir(OUT, { recursive: true });
 
-// Warm Craft surfaces (design-language tokens). Kept local: these are mock
-// chrome colors, not mark geometry.
-const CREAM = "#fdfbf7";
-const INK = "#24201b";
-const INK_SOFT = "#6e6659";
+// Mock chrome colors only - browser/OS surfaces this sheet imitates, not brand
+// tokens. The Warm Craft tokens themselves come from lib/mark.mjs.
 const HAIRLINE = "#ece7dd";
 const TERMINAL = "#1d1915";
 const TERM_TEXT = "#f3ede3";
@@ -52,16 +50,29 @@ const img = (b64, x, y, s) =>
 
 const W = 1120;
 const PAD = 40;
-const parts = [];
-let y = 0;
 
-// A captioned band: a monospace caption strip, then the mock content.
-function band(caption, height, content) {
-  parts.push(`<text x="${PAD}" y="${y + 20}" font-family="monospace" font-size="13" fill="#9a8f7d">${caption}</text>`);
-  const top = y + 32;
-  parts.push(`<g transform="translate(0,${top})">${content(top)}</g>`);
-  y = top + height + 28;
+// A sheet is a stack of captioned bands. Each band is a monospace caption
+// strip followed by the mock content, laid out top-down.
+function newSheet() {
+  const parts = [];
+  let y = 0;
+  const band = (caption, height, content) => {
+    parts.push(`<text x="${PAD}" y="${y + 20}" font-family="monospace" font-size="13" fill="#9a8f7d">${caption}</text>`);
+    const top = y + 32;
+    parts.push(`<g transform="translate(0,${top})">${content(top)}</g>`);
+    y = top + height + 28;
+  };
+  const render = async (file) => {
+    await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}">
+      <rect width="${W}" height="${y}" fill="#ffffff"/>
+      ${parts.join("\n")}
+    </svg>`)).png().toFile(join(OUT, file));
+    console.log(`Wrote ${join(OUT, file)}`);
+  };
+  return { band, render };
 }
+
+const { band, render } = newSheet();
 
 // 1. Light site header - the F4k mark at nav size, wordmark, nav links, and the
 //    card-K at hero scale on the right.
@@ -141,10 +152,164 @@ async function themeBand(caption, surface, tint, softFill) {
 await themeBand("desktop app title bar (dark) - in-app marks tinted with the theme foreground", TERMINAL, TERM_TEXT, TERM_SOFT);
 await themeBand("desktop app title bar (light) - in-app marks tinted ink", CREAM, INK, INK_SOFT);
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${y}">
-  <rect width="${W}" height="${y}" fill="#ffffff"/>
-  ${parts.join("\n")}
-</svg>`;
+await render("in-situ.png");
 
-await sharp(Buffer.from(svg)).png().toFile(join(OUT, "in-situ.png"));
-console.log(`Wrote in-situ header mocks to ${join(OUT, "in-situ.png")}`);
+// ---------------------------------------------------------------------------
+// MOBILE sheet: the OS-owned surfaces that ship in resources/mobile/. These
+// are judged in their real context (dark home screen, tinted home screen,
+// status bar, launcher mask, Play listing) because none of them are visible
+// on the site header the sheet above mocks.
+//
+// The SHIPPED artifacts are read back from resources/mobile/ rather than
+// re-derived, so this reviews exactly what consumers get. Only ALTERNATES
+// (the tinted candidate that lost, the feature-graphic ground candidates) are
+// built here.
+// ---------------------------------------------------------------------------
+const MOB = join(ROOT, "resources", "mobile");
+const shipped = async (name) => (await readFile(join(MOB, name))).toString("base64");
+const b64 = (buf) => buf.toString("base64");
+const imgRect = (data, x, y, w, h) =>
+  `<image x="${x}" y="${y}" width="${w}" height="${h}" href="data:image/png;base64,${data}"/>`;
+// iOS applies the user's tint by mapping the grayscale artwork's luminance
+// onto a hue. sharp's tint does the same thing (chroma in LAB, luminance
+// preserved), so this is a faithful stand-in for the real rendering.
+const tinted = async (name, color) => b64(await sharp(join(MOB, name)).tint(color).png().toBuffer());
+
+const m = newSheet();
+const iosLight = await shipped("ios-appstore-1024.png");
+const iosDark = await shipped("ios-appstore-1024-dark.png");
+const iosTint = await shipped("ios-appstore-1024-tinted.png");
+// Apple's dark material is a subtle gradient; these two flats bracket its range.
+const DARK_HI = "#313131";
+const DARK_LO = "#141414";
+const TINT_BLUE = "#4a7fd4";
+const TINT_GREEN = "#3f9a63";
+
+// 1. The three iOS variants, each on the material the system puts behind it,
+//    at 120 (inspection) and 60 (actual home-screen size).
+m.band("ios app icon variants - light / dark / tinted, on the system material, at 120 and at 60", 210, () => {
+  const cells = [
+    { data: iosDark, ground: DARK_HI, label: "dark on #313131" },
+    { data: iosDark, ground: DARK_LO, label: "dark on #141414" },
+    { data: iosLight, ground: "#8d8577", label: "light (opaque)" },
+  ];
+  let out = `<rect width="${W}" height="210" fill="#2a2a2a"/>`;
+  let x = PAD;
+  for (const c of cells) {
+    out += `<rect x="${x}" y="16" width="120" height="120" rx="27" fill="${c.ground}"/>
+      ${imgRect(c.data, x, 16, 120, 120)}
+      <rect x="${x + 140}" y="76" width="60" height="60" rx="14" fill="${c.ground}"/>
+      ${imgRect(c.data, x + 140, 76, 60, 60)}
+      <text x="${x}" y="164" font-family="monospace" font-size="12" fill="#c9c2b6">${c.label}</text>
+      <text x="${x + 140}" y="182" font-family="monospace" font-size="11" fill="#8a8378">60px</text>`;
+    x += 230;
+  }
+  return out;
+});
+
+// 2. The tinted variant under real tints, plus the candidate that lost. The
+//    call this band exists to settle: does the card survive as a brighter
+//    chip (B, shipped) or should it be knocked out like the mono mark (A)?
+const altTintSvg = knockout(256, f4kAlphaParts().holes, "", "#ffffff");
+const altTintRaw = await png(altTintSvg);
+const altTint = b64(altTintRaw);
+const altTintBlue = b64(await sharp(altTintRaw).tint(TINT_BLUE).png().toBuffer());
+const shipTintBlue = await tinted("ios-appstore-1024-tinted.png", TINT_BLUE);
+const shipTintGreen = await tinted("ios-appstore-1024-tinted.png", TINT_GREEN);
+const altTintGreen = b64(await sharp(altTintRaw).tint(TINT_GREEN).png().toBuffer());
+m.band("ios TINTED candidates - B (shipped: card as a brighter chip) vs A (card knocked out). grayscale, then system-tinted, at 120 and 60", 200, () => {
+  const rows = [
+    { label: "B  SHIPPED  disc a8a8a8 / card ffffff", gray: iosTint, blue: shipTintBlue, green: shipTintGreen },
+    { label: "A  alternate  white disc, card as 4th hole", gray: altTint, blue: altTintBlue, green: altTintGreen },
+  ];
+  let out = `<rect width="${W}" height="200" fill="#2a2a2a"/>`;
+  let ry = 8;
+  for (const r of rows) {
+    let x = PAD;
+    for (const d of [r.gray, r.blue, r.green]) {
+      out += `<rect x="${x}" y="${ry}" width="84" height="84" rx="19" fill="#3a3a3a"/>
+        ${imgRect(d, x, ry, 84, 84)}
+        <rect x="${x + 94}" y="${ry + 24}" width="60" height="60" rx="14" fill="#3a3a3a"/>
+        ${imgRect(d, x + 94, ry + 24, 60, 60)}`;
+      x += 180;
+    }
+    out += `<text x="${x + 4}" y="${ry + 48}" font-family="monospace" font-size="12" fill="#c9c2b6">${r.label}</text>`;
+    ry += 96;
+  }
+  return out;
+});
+
+// 3. Notification icon in the status bar at its real 24px, plus pixel truth.
+const notif = await shipped("notification-icon.png");
+const notifSrc = join(MOB, "notification-icon.png");
+const notifZoom = b64(await sharp(notifSrc).resize(24 * 8, 24 * 8, { kernel: "nearest" }).png().toBuffer());
+// In the shade the OS tints the small icon with the notification color (the
+// expo-notifications `color` option), so mocking it white-on-white would be a
+// lie. Rust is what the app should set that option to.
+const notifRust = b64(await sharp(notifSrc).tint(RUST).png().toBuffer());
+m.band("android notification icon - 24px in the status bar (OS keeps ALPHA ONLY and tints it), plus 24px x8", 210, () => `
+  <rect width="${W}" height="210" fill="#f2efe9"/>
+  <rect x="${PAD}" y="8" width="420" height="28" fill="${TERMINAL}"/>
+  ${imgRect(notif, PAD + 10, 10, 24, 24)}
+  ${imgRect(notif, PAD + 42, 10, 24, 24)}
+  <text x="${PAD + 300}" y="27" font-family="monospace" font-size="12" fill="${TERM_SOFT}">9:41</text>
+  <text x="${PAD + 434}" y="27" font-family="monospace" font-size="12" fill="${INK_SOFT}">status bar: white on the dark bar</text>
+  <rect x="${PAD}" y="48" width="420" height="64" rx="10" fill="#ffffff"/>
+  ${imgRect(notifRust, PAD + 14, 62, 22, 22)}
+  <text x="${PAD + 46}" y="72" font-family="sans-serif" font-size="13" font-weight="600" fill="${INK}">Kangentic</text>
+  <text x="${PAD + 46}" y="92" font-family="sans-serif" font-size="12" fill="${INK_SOFT}">Agent finished on task #24</text>
+  <text x="${PAD + 434}" y="86" font-family="monospace" font-size="12" fill="${INK_SOFT}">shade: tinted with the app color (rust)</text>
+  <text x="${PAD}" y="134" font-family="monospace" font-size="12" fill="${INK_SOFT}">white-on-transparent (mono-tuned geometry: this is the one 24dp surface)</text>
+  <text x="${W - 232}" y="14" font-family="monospace" font-size="12" fill="${INK_SOFT}">24px x8</text>
+  <rect x="${W - 232}" y="22" width="192" height="192" fill="${TERMINAL}"/>
+  ${imgRect(notifZoom, W - 232, 22, 192, 192)}
+`);
+
+// 4. The Android 13+ themed layer under the two masks launchers actually use.
+const monoSrc = join(MOB, "android-adaptive-monochrome.png");
+const monoTint = async (color) => b64(await sharp(monoSrc).tint(color).png().toBuffer());
+const monoA = await monoTint("#b9c7a8");
+const monoB = await monoTint("#d8b48a");
+m.band("android 13+ themed icon - the monochrome layer masked (circle + squircle) and tinted from wallpaper", 160, () => {
+  const tiles = [
+    { d: monoA, bg: "#3c4432" },
+    { d: monoB, bg: "#4a3a2b" },
+  ];
+  let out = `<rect width="${W}" height="160" fill="#2a2a2a"/>`;
+  let x = PAD;
+  for (const t of tiles) {
+    out += `<circle cx="${x + 54}" cy="62" r="54" fill="${t.bg}"/>
+      ${imgRect(t.d, x, 8, 108, 108)}
+      <rect x="${x + 130}" y="8" width="108" height="108" rx="26" fill="${t.bg}"/>
+      ${imgRect(t.d, x + 130, 8, 108, 108)}`;
+    x += 280;
+  }
+  out += `<text x="${PAD}" y="140" font-family="monospace" font-size="12" fill="#c9c2b6">alpha-shaped, canonical F4k geometry, card knocked out as a fourth hole</text>`;
+  return out;
+});
+
+// 5. Play feature graphic: the shipped ground against candidates, at listing
+//    size and at the thumbnail size Play actually shows in the grid.
+const fgGrounds = [
+  { name: "PANEL f6f1e8  SHIPPED", ground: PANEL },
+  { name: "CREAM fdfbf7  (near-white; Play warns off it)", ground: CREAM },
+  { name: "TERMINAL 1d1915  (dark) - REJECTED: ink text vanishes", ground: "#1d1915" },
+];
+const fgShots = [];
+for (const g of fgGrounds) {
+  fgShots.push({ ...g, data: b64(await sharp(Buffer.from(featureGraphicSvg(g.ground))).flatten({ background: g.ground }).png().toBuffer()) });
+}
+const FG_PITCH = 235;
+m.band("play feature graphic 1024x500 - ground candidates, at 440 wide and at Play's grid thumbnail", 3 * FG_PITCH + 16, () => {
+  let out = `<rect width="${W}" height="${3 * FG_PITCH + 16}" fill="#e8e6e1"/>`;
+  let ry = 8;
+  for (const s of fgShots) {
+    out += `${imgRect(s.data, PAD, ry, 440, 215)}
+      ${imgRect(s.data, PAD + 460, ry + 54, 220, 107)}
+      <text x="${PAD + 700}" y="${ry + 112}" font-family="monospace" font-size="12" fill="#4a463f">${s.name}</text>`;
+    ry += FG_PITCH;
+  }
+  return out;
+});
+
+await m.render("mobile.png");

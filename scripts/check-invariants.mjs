@@ -16,6 +16,11 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve, relative, extname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
+// The only executed import: the mark builders, so the mobile-variant geometry
+// contract can be asserted behaviorally instead of by grepping for a name.
+// lib/mark.mjs is pure declarations and pure functions - importing it has no
+// side effects and pulls in no third-party dependency.
+import { f4kParts, f4kAlphaParts } from "./lib/mark.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
@@ -133,26 +138,51 @@ checks.TIERING = () => {
     return src.slice(i, end < 0 ? undefined : end);
   };
   const cardK = /markFor\s*\(|cardKParts\s*\(|discPng\s*\(|pngs\[\s*(?:128|256|512|1024)\s*\]/;
+  // Every builder that resolves to the F4k board glyph. Case matters: the
+  // lowercase f4k* builders would not match a bare /F4K/.
+  const f4k = /F4K|squarePng|f4kParts\s*\(|f4kAlphaParts\s*\(|f4kMonoSvg\s*\(/;
 
   // The squarePng definition must pass F4K (not card-K) as its mark.
   const def = stmt("const squarePng");
   if (!def) findings.push(`${file}: squarePng definition not found`);
   else if (cardK.test(def)) findings.push(`${file}: squarePng is fed card-K - a downscaled master must be F4k`);
 
-  // Each downscaled single-image master write must resolve to F4K/squarePng.
+  // Each downscaled single-image master write must resolve to an F4k builder.
+  // Deliberately NOT here: splash-1024.png (displays large, so it is correctly
+  // card-K and would fail the F4k assertion) and
+  // android-feature-graphic-1024x500.png (a marketing raster, not an icon
+  // master - it carries no mark to tier).
   const masters = [
     "apple-touch-icon.png",
     "icon-192.png",
     "icon-512.png",
     "ios-appstore-1024.png",
+    "ios-appstore-1024-dark.png",
+    "ios-appstore-1024-tinted.png",
     "android-playstore-512.png",
     "android-adaptive-foreground.png",
+    "android-adaptive-monochrome.png",
+    "notification-icon.png",
   ];
   for (const name of masters) {
     const s = stmt(`"${name}"`);
     if (!s) { findings.push(`${file}: write for ${name} not found`); continue; }
     if (cardK.test(s)) findings.push(`${file}: ${name} sourced from card-K - downscaled masters stay F4k`);
-    if (!/F4K|squarePng/.test(s)) findings.push(`${file}: ${name} does not resolve to F4k (F4K/squarePng)`);
+    if (!f4k.test(s)) findings.push(`${file}: ${name} does not resolve to F4k (${f4k.source})`);
+  }
+
+  // The tint-driven renditions (iOS tinted, the Android 13+ themed layer)
+  // claim CANONICAL geometry with the card knocked out as a FOURTH hole. The
+  // grep above only proves the builder is referenced, so assert the builder's
+  // actual contract here - otherwise the claim decays into a comment.
+  const colorParts = f4kParts();
+  const alphaParts = f4kAlphaParts();
+  const holeCount = (p) => (p.holes.match(/<rect/g) ?? []).length;
+  if (holeCount(alphaParts) !== holeCount(colorParts) + 1) {
+    findings.push(`lib/mark.mjs: f4kAlphaParts must knock the card out as exactly one extra hole (colored ${holeCount(colorParts)}, alpha ${holeCount(alphaParts)})`);
+  }
+  if (alphaParts.filled !== "") {
+    findings.push(`lib/mark.mjs: f4kAlphaParts must paint nothing on top - a filled overlay defeats a single-color tinted layer`);
   }
   return findings;
 };

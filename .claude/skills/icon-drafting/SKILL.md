@@ -89,6 +89,30 @@ column-to-card gap smudges shut at 20-24px and the card rounds to a
 blob. The colored F4k keeps the canonical geometry; shipped icons are
 untouched.
 
+**The mobile OS-variant set** (added 2026-07-27, maintainer sign-off from
+`exploration/review/mobile.png` the same day, `resources/mobile/`): the
+platforms now ask for renditions of the SAME F4k glyph under system
+recoloring, so all of them keep the CANONICAL geometry and vary only color:
+
+- **iOS dark** (`ios-appstore-1024-dark.png`): the plain knockout - rust
+  disc, alpha holes, amber card, NO background. iOS composites its own
+  dark material behind it, so baking one in would double it.
+- **iOS tinted** (`ios-appstore-1024-tinted.png`): grayscale, because iOS
+  maps luminance onto the user's tint. Disc `#a8a8a8`, card `#ffffff` -
+  the brand pair converted to sRGB luma (rust 113 / amber 172, ratio
+  0.658) and normalised so the card lands at white. Keeping the card as a
+  BRIGHTER CHIP is the same call the mono-vs-duotone review made: the
+  card is the gesture that makes the glyph a mark.
+- **Android themed** (`android-adaptive-monochrome.png`): white,
+  alpha-shaped, card knocked out as a fourth hole (a painted card vanishes
+  once the whole layer is one color). Same 66% safe zone as the foreground.
+- **Android notification** (`notification-icon.png`): the ONE mobile
+  surface on the MONO-TUNED geometry, because it displays at 24dp -
+  exactly the band that tuning was selected for. Pure white on
+  transparency (Android discards color and keeps only alpha), inset to
+  Material's circular keyline (20 of 24dp) so it does not read oversized
+  beside system icons.
+
 Alternates kept viable as exports: `kdisc-knockout.svg` (K is the hole),
 `kdisc-filled.svg` (cream K painted), F5k pinwheel (spinners/motion).
 `assets/brandmark-filled.svg` is the fixed-appearance card-K for contexts
@@ -105,6 +129,8 @@ Mascot != brandmark is deliberate (Claude Code's Clawd-vs-starburst split).
 | `scripts/lib/mark.mjs` | THE geometry: frozen K path, split-tip cuts, tight card, F4k glyph, knockout/square document builders, the `partsFor(size)` tier picker. Import from here; never re-declare. |
 | `scripts/gen-brandmark.mjs` | Exploration harness: concept rounds, contact sheets, canonical SVG exports to `assets/`. `npm run gen`. |
 | `scripts/gen-icons.mjs` | Production tree: every size/type for web, desktop (ICO/ICNS), and mobile into `resources/`. `npm run gen:icons`. |
+| `scripts/lib/feature-graphic.mjs` | THE Play Store feature graphic composition (1024x500). Imported by `gen-icons.mjs` (ships it) and `gen-review.mjs` (renders ground candidates). |
+| `scripts/lib/pixelfont.mjs` | THE 5x7 plate font shared by the social image and the feature graphic. Narrow coverage on purpose; `word()` throws on an unknown glyph. |
 
 Still in kangentic.com `scripts/` pending migration: `gen-sprites.mjs`
 (mascot), `gen-app-icons.mjs` (mascot icon sets), `gen-brand.mjs` (OG
@@ -157,7 +183,12 @@ Key mechanics:
 3. **Contact sheets alone did NOT predict the F4k win; the live nav
    did.** For the final call, render candidates in an exact replica of the
    consuming surface (site header light + docs dark + browser-tab mocks)
-   and review in place.
+   and review in place. `npm run gen:review` also writes
+   `exploration/review/mobile.png` for the OS-owned mobile surfaces -
+   home screen (light/dark/tinted), status bar, launcher mask, Play
+   listing - because none of those are visible in the header mocks. That
+   sheet reads the SHIPPED files back out of `resources/mobile/`, so it
+   reviews the real artifact rather than a re-derivation.
 4. Iterate in numbers, not adjectives: tip length, gap width, margin,
    ring, corner radius are all named constants in `lib/mark.mjs`.
 5. Contrast math is non-negotiable: amber on cream is 2.05:1 (never text,
@@ -193,6 +224,24 @@ Key mechanics:
   typeface for letterforms; construct only what type can't give you.
 - The original fixed 56-unit card: 7-13 units of uneven cream margin -
   dead pixels at icon sizes -> replaced by the glyph-derived tight card.
+- Mono-tuned geometry for the iOS tinted icon: rejected 2026-07-27. The
+  tuning is scoped to 20-24px themed chrome; light and tinted sit in the
+  same asset-catalog slot and the user toggles between them on one home
+  screen, so a geometry change reads as the icon morphing. Tinted keeps
+  canonical geometry and varies color only.
+- Card knocked out (strict-mono logic) for the iOS tinted icon: rejected
+  at maintainer sign-off 2026-07-27, from the side-by-side in
+  `exploration/review/mobile.png`. At 60px the card hole and the
+  shortened middle column merge into one notch - the exact failure the
+  mono breakoff tuning exists to fix, which canonical geometry does not
+  carry. The duotone-grayscale variant (card as a brighter chip, disc
+  `#a8a8a8` / card `#ffffff`) won and shipped.
+- Cream ground for the Play feature graphic: rejected at maintainer
+  sign-off 2026-07-27. Play warns off pure-white grounds and cream is a
+  near-white; the panel tint is the warmer, compliant ground and shipped.
+  A dark/terminal ground was rendered in the same review and rejected -
+  the ink wordmark vanishes on it and it would need a separately
+  recolored lockup.
 - Canonical F4k rects in the mono pair: review finding 2026-07-13, the
   breakoff is illegible at 20-24px when theme-tinted. Five geometries
   (v0-v4) rendered at 16/24 and 64/192, pixel-truth zooms; the
