@@ -28,8 +28,11 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
   here so consumers stop re-deriving them. See "Animating the mascot" below.
 - **The production tree** - `resources/`. Everything each surface ships:
   `desktop/` (Electron .ico/.icns + PNG ladder), `web/` (favicons,
-  manifest icons, logo), `mobile/` (store + adaptive icons), and
-  `social/og-image.png`. See `resources/README.md` for the per-file table.
+  manifest icons, logo), `mobile/` (every OS-owned and store-facing asset
+  Expo needs: app icons including the iOS dark/tinted variants, adaptive
+  and Android 13+ themed layers, the notification icon, the splash mark,
+  and the Play feature graphic), and `social/og-image.png`. See
+  `resources/README.md` for the per-file table.
 
 `assets/` is the vector home (consumer-agnostic SVGs); `resources/` holds
 the shipped per-consumer files, mostly rasters for surfaces that cannot

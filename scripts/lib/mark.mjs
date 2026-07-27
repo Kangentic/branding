@@ -4,8 +4,13 @@
 // FormattedText.BuildGeometry at em=100) so renders are deterministic and
 // exported SVGs are portable - no installed-font dependency anywhere.
 
+// Warm Craft palette tokens (design-language skill). Declared once here so a
+// generator never re-types a hex; sprite.mjs keeps its own sprite-scoped
+// PALETTE map keyed by ASCII-map character.
 export const CREAM = "#fdfbf7";
+export const PANEL = "#f6f1e8";
 export const INK = "#24201b";
+export const INK_SOFT = "#6e6659";
 export const RUST = "#c0562f";
 export const AMBER = "#e8a33d";
 
@@ -136,10 +141,27 @@ export const F4K_CARD = { x: 43.5, y: 55, w: 12.5, h: 14, rx: 3 };
 const f4kRect = (r, fill) =>
   `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${r.rx}" fill="${fill}"/>`;
 
-export function f4kParts() {
+// cardFill is a COLOR, not geometry: it exists so a grayscale rendition (the
+// iOS tinted app icon, which the system recolors) can reuse the canonical F4k
+// geometry instead of drifting to the mono-tuned one. Default keeps every
+// existing call site byte-identical.
+export function f4kParts(cardFill = AMBER) {
   return {
     holes: enlarged(F4K_COLS.map((r) => f4kRect(r, "#000")).join("\n            ")),
-    filled: enlarged(f4kRect(F4K_CARD, AMBER)),
+    filled: enlarged(f4kRect(F4K_CARD, cardFill)),
+  };
+}
+
+// CANONICAL F4k with the card knocked out as a FOURTH HOLE - same reasoning
+// f4kMonoSvg documents: a single-color card painted on a single-color disc
+// vanishes, so in any tint-driven rendition the card has to be alpha. Unlike
+// f4kMonoSvg this keeps the canonical geometry (the mono tuning is scoped to
+// the 20-24px theme-tinted pair), which is what an app-icon-sized surface
+// needs so the light/dark/tinted variants stay pixel-consistent.
+export function f4kAlphaParts() {
+  return {
+    holes: enlarged([...F4K_COLS, F4K_CARD].map((r) => f4kRect(r, "#000")).join("\n            ")),
+    filled: "",
   };
 }
 
@@ -244,7 +266,10 @@ export function cardKParts(sizePx = 512) {
 // ---------------------------------------------------------------------------
 // Knockout disc: rust circle with true alpha holes (theme/wallpaper flows
 // through), filled overlays on top. holes must paint fill="#000".
-export function knockout(size, holes100, filled100) {
+// discFill is a COLOR, not geometry - grayscale/white renditions (iOS tinted,
+// the Android themed layer) recolor the disc while keeping this geometry.
+// Default keeps every existing call site byte-identical.
+export function knockout(size, holes100, filled100, discFill = RUST) {
   const c = size / 2;
   const s = size / 100;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
@@ -252,7 +277,7 @@ export function knockout(size, holes100, filled100) {
       <circle cx="${c}" cy="${c}" r="${c}" fill="#fff"/>
       <g transform="scale(${s})">${holes100}</g>
     </mask></defs>
-    <circle cx="${c}" cy="${c}" r="${c}" fill="${RUST}" mask="url(#m)"/>
+    <circle cx="${c}" cy="${c}" r="${c}" fill="${discFill}" mask="url(#m)"/>
     <g transform="scale(${s})">${filled100}</g>
   </svg>`;
 }
