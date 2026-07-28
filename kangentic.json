@@ -15,13 +15,15 @@
       "color": "#8b5cf6",
       "autoSpawn": true,
       "permissionMode": "plan",
+      "modelOverride": "claude-opus-5",
       "planExitTarget": "Executing"
     },
     {
       "id": "ff7635b2-4f47-422e-840e-81d1a5be4cf5",
       "name": "Executing",
       "icon": "square-terminal",
-      "autoSpawn": true
+      "autoSpawn": true,
+      "modelOverride": "claude-opus-5"
     },
     {
       "id": "e517ee41-ce43-4d6c-8b7e-3e326dcb4618",
@@ -30,6 +32,8 @@
       "color": "#f59e0b",
       "autoSpawn": true,
       "autoCommand": "/brand-review",
+      "modelOverride": "claude-opus-5",
+      "effortOverride": "high",
       "sessionTarget": "isolated",
       "sessionSpawnStrategy": "always_spawn_new"
     },
@@ -39,7 +43,9 @@
       "icon": "flask-conical",
       "color": "#06b6d4",
       "autoSpawn": true,
-      "autoCommand": "/pull-request"
+      "autoCommand": "/pull-request",
+      "modelOverride": "claude-sonnet-5",
+      "effortOverride": "high"
     },
     {
       "id": "9c5aa6d3-b380-427d-927f-6b9f78699494",
@@ -47,7 +53,9 @@
       "icon": "merge",
       "color": "#F97316",
       "autoSpawn": true,
-      "autoCommand": "/merge-pull-request"
+      "autoCommand": "/merge-pull-request",
+      "modelOverride": "claude-sonnet-5",
+      "effortOverride": "high"
     },
     {
       "id": "cf59af53-634f-4e03-a840-4c2100171fc7",
