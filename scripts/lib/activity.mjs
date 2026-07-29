@@ -308,6 +308,15 @@ export const CONTROL_RENDER_PX = 20;
 // what shrank the controls by 10 percent in 2.5.0. Within a keyline each form is
 // still sized optically - the envelope is 18 wide and 14.4 tall on the indicator
 // keyline, because an envelope's aspect is its identity.
+//
+// The control span is WRITTEN OUT rather than derived from CONTROL_RING_R, 13
+// lines above. That is deliberate and it is the one place in this file where an
+// inline number beats the named constant: a keyline is the SPECIFICATION the
+// gate holds the geometry to, so deriving it from the geometry makes the
+// assertion compare a value to itself. Verified 2026-07-29 - with the span
+// written as `(VIEW - 2 * CONTROL_RING_R) / 2` and CONTROL_RING_R set to 9, the
+// gate reports ACTIVITY PASS on the exact 2.5.0 regression it exists to catch;
+// with the literal, it reports four findings. Do not "clean this up".
 export const KEYLINES = {
   indicator: { span: [INK_MIN, INK_MAX], note: "14px label in a counter row" },
   control: { span: [(VIEW - 2 * 10) / 2, VIEW - (VIEW - 2 * 10) / 2], note: "20px target in a header" },
@@ -589,12 +598,27 @@ const stopSquare = (scale = 1) => {
 /**
  * The pause / stop control ring. `glyph` is "pause" or "stop".
  *
- * `onGrid` is the question this raises. As shipped the ring is r=10, chosen
- * because lucide's Loader2 at r=9 "rendered ~10% smaller" beside it - but that
- * was a comparison against lucide's own inconsistent grid, which is the problem
- * this set exists to remove. Once every mark fills an 18 ink box, r=9 IS the
- * set's ring, the controls join the family, and the hand-computed 47/16 pair
- * is replaced by the same pathLength-normalized 75/25 every other mark uses.
+ * Ships at `CONTROL_RING_R` (10), the CONTROL keyline. `onGrid: true` is the
+ * REJECTED alternative, kept only so the review sheet can render the comparison
+ * it was rejected from: it drops the ring to the indicator's `RING_R` (9) and
+ * scales the centred glyph by the same factor so the glyph-to-ring proportion
+ * survives. Nothing under `CONTROLS` below passes it.
+ *
+ * Corrected 2026-07-29. This docstring used to argue FOR onGrid as the
+ * direction of travel - "Once every mark fills an 18 ink box, r=9 IS the set's
+ * ring, the controls join the family, and the hand-computed 47/16 pair is
+ * replaced by the same pathLength-normalized 75/25 every other mark uses." That
+ * premise was reverted; see the dated note at the CONTROLS call site below.
+ * Briefly shipping r=9 overrode a human judgement recorded in the desktop app's
+ * own source, that r=9 "rendered ~10% smaller" beside these buttons, and an
+ * indicator (a 14px label) and a control (a 20px target) are different roles
+ * that take different keylines. Leaving the argument here as current made the
+ * file assert both positions at once, 100 lines apart.
+ *
+ * The last clause is the part that survived the revert, and it survived
+ * INTACT: pathLength 75/25 on r=10's circumference of 62.83 resolves to
+ * 47.12/15.71, so the normalized dash reproduces the app's hand-computed
+ * `47 16` almost exactly. The cleanup never depended on the radius moving.
  */
 export const controlRing = (glyph, { onGrid = false } = {}) => {
   const r = onGrid ? RING_R : CONTROL_RING_R;

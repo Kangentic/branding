@@ -22,14 +22,20 @@ is owned here to prevent.
 
 - All activity geometry is DECLARED once, in `scripts/lib/activity.mjs`. Every
   generator imports from it and declares none of its own.
-- **One grid, one stroke, one 18-unit layout SLOT.** 24 viewBox, stroke 2,
-  round caps and joins. Every mark's outline spans x 3 to 21. Within that slot
-  each form is sized **optically**, not stretched to a shared rectangle.
-  - The slot is the invariant because WIDTH is what aligns the row: icons in a
-    horizontal row behave like glyphs in a line of type, where width is the
-    advance and height is absorbed by centring. The counts beside these marks
-    already render `tabular-nums`, so slot parity is that same discipline
-    extended one element left. Height never contributed to that column.
+- **One grid, one stroke, TWO keylines - one per ROLE.** 24 viewBox, stroke 2,
+  round caps and joins. An INDICATOR is a 14px label in a counter row and sits
+  on the 18-unit slot, x 3 to 21. A CONTROL is a 20px target in a header and
+  sits on x 2 to 22 (`CONTROL_RING_R` = 10). Both spans are declared in
+  `KEYLINES` and a mark is assigned one by `keylineFor()`, on its id prefix.
+  Within its keyline each form is sized **optically**, not stretched to a
+  shared rectangle.
+  - A keyline is the invariant WITHIN A ROLE because width is what aligns the
+    row: icons in a horizontal row behave like glyphs in a line of type, where
+    width is the advance and height is absorbed by centring. The counts beside
+    these marks already render `tabular-nums`, so keyline parity is that same
+    discipline extended one element left. Height never contributed to that
+    column. Roles do not share a row, which is why they need not share a span:
+    a header's controls and a counter row's indicators are never adjacent.
   - **Geometric parity is not optical parity.** At an identical 18x18 box the
     ring encloses ~21% less area than the chip (a circle fills only pi/4 of its
     box) and carries 39% less ink. Forcing one silhouette onto every mark
@@ -43,6 +49,17 @@ is owned here to prevent.
     removes." That asserted an invariant the stock glyphs never had (their own
     mail was 20x16, loader 18 wide, circle 20 wide), conflated two separable
     properties, and ruled out the fix categorically rather than on evidence.
+  - Corrected again 2026-07-29, second pass. This bullet and the Enforcement
+    bullet below both used to read "Every mark's outline spans x 3 to 21",
+    asserting ONE keyline for the whole set. That had been false for the four
+    `control-*` marks since the per-role split: they ship at r=10, so they span
+    2 to 22, and `KEYLINES` has declared two spans since. Holding both roles to
+    one span is precisely what shrank the controls by 10 percent in 2.5.0. The
+    change that restored `CONTROL_RING_R = 10` and made the gate per-role
+    updated only the envelope half of this rule, so the sentence its own
+    decision had just falsified survived it. That is the point worth keeping:
+    this is the record-drift failure the same change was correcting, committed
+    by that change, in this file. It is why `brand-record-fidelity.md` exists.
 - **A flap ratio is not a flap angle.** Flap ratios are fractions of the box,
   so transplanting them onto a box of a different aspect does NOT carry the
   angle across: half-width moves with the width, depth moves with the height.
@@ -97,11 +114,28 @@ is owned here to prevent.
   regeneration. It also enforces the grid, `currentColor`, the dash pair, the
   declared reduced-motion rendering, the fill-mode ban, and that no file outside
   the lib re-declares a named geometry constant.
-- **Ink-width parity is mechanical.** The same check measures every shipped
-  mark's outline span and fails any mark that does not run x 3 to 21, so the
-  column-alignment property this set exists for is enforced rather than
-  reviewed. Verified to bite: promoting a 20-wide envelope reports
-  `agent-idle: outline spans x 2..22, not 3..21`.
+- **Keyline parity is mechanical, PER ROLE.** The same check measures every
+  shipped mark's outline span and fails any mark that runs off the keyline
+  `keylineFor()` gives it, so the column-alignment property this set exists for
+  is enforced rather than reviewed, without holding a 20px target to a 14px
+  label's extent. Verified to bite 2026-07-29 by reintroducing the 2.5.0
+  regression itself - setting `CONTROL_RING_R = 9`, regenerating so the
+  byte-equality assertion still passes, then running the gate:
+
+  ```
+  ACTIVITY  FAIL
+      - control-pause-idle: outline spans x 3..21, off its keyline 2..22 (20px target in a header)
+  ```
+
+  (one such line per control mark, four in total).
+- **The control keyline's span is written out, NOT derived from
+  `CONTROL_RING_R`.** It looks like a constant begging to be substituted, and
+  substituting it silently disables the check above: the keyline is the
+  SPECIFICATION and the ring radius is the implementation, so coupling them
+  makes the assertion compare a value to itself. Verified 2026-07-29: with
+  `CONTROL_RING_R = 9` and the keyline derived from it, the four findings quoted
+  above disappear and `ACTIVITY` reports PASS on the exact regression it exists
+  to catch. This is the one place in the lib where an inline number is correct.
 - **Release gate (blocking):** `npm run gen:activity` runs in the determinism
   gate alongside the other generators.
 

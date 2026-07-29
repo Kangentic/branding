@@ -30,8 +30,10 @@ was created to end, starting over in a new place.
   so they sit level in the same row. Declaring a second copy of those numbers is
   the drift this repo's single-source rules exist to prevent, and
   `npm run check` fails on it.
-- **The slot fixes width, not height.** Every outline spans x 3 to 21, because
-  width is what aligns a row of icons the way an advance aligns a line of type.
+- **The slot fixes width, not height.** Every outline spans x 3 to 21 - the
+  activity set's INDICATOR keyline, which every ui glyph sits on (that set's
+  controls take a wider one, and nothing here is a control). Width is what
+  aligns a row of icons the way an advance aligns a line of type.
   Within the slot a form is sized OPTICALLY rather than stretched to a shared
   rectangle, per `activity-icon-geometry.md`. The kanban frame is square, so its
   slot and its box coincide; a future ui glyph need not be square.
