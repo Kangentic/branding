@@ -2,6 +2,41 @@
 
 <!-- releases -->
 
+## [v2.5.0] - 2026-07-29
+
+### Features
+- Own the agent, terminal and control status marks (aae8b99). New
+  `assets/activity/`: nine marks across four silhouettes on one 24 grid
+  with an 18x18 ink box, stroke 2, `currentColor` only, plus
+  `activity.css` (drop-in keyframes) and `activity.json` (the same
+  contract as framework-agnostic data). These were stock library defaults
+  on every surface, and their ink boxes disagreed: measured live, the
+  loader and the terminal chip filled 18x18 but the mail filled 20x16,
+  about 11% wider and 11% shorter. Bounding boxes matched and areas were
+  within 1%, but the aspect ratios did not, so scaling could not
+  reconcile them and only redrawing could. Because all three consumers
+  inherited the same defaults, fixing one surface alone would have broken
+  cross-surface parity rather than restored it. States ship as NAMED
+  marks (`agent-idle`, `agent-working`, `terminal-idle`,
+  `terminal-working`, `terminal-new`, and idle/working pairs for the
+  pause and stop controls) rather than a base glyph a consumer composes
+  with a tone and an animation class, because that assembly step is where
+  three renderings drift apart; rest is the `-idle` geometry in a muted
+  tone, so there is no `-rest` file to fall out of sync with its twin.
+  The set also absorbs a live instance of that drift: the pause and stop
+  controls carried a hand-computed `47 16` dash duplicated verbatim
+  across two desktop files, which breaks silently if the ring radius
+  changes. Motion is one primitive, a dash marching via
+  `stroke-dashoffset` normalized by `pathLength="100"`, and every dash
+  ships in user units alongside the ratio because browsers honour
+  `pathLength` while librsvg and react-native-svg do not, where a `75`
+  dash covers a 56-unit circle entirely and the motion disappears. Nine
+  directions were drawn and eight retired, each keeping its `draft` flag
+  and a dated reason in `scripts/lib/activity.mjs`.
+
+### Other
+- Set per-column model and effort overrides (41a5c95).
+
 ## [v2.4.0] - 2026-07-27
 
 ### Features
