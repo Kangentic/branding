@@ -2,6 +2,44 @@
 
 <!-- releases -->
 
+## [v2.6.0] - 2026-07-29
+
+### Features
+- Own the kanban board glyph as a shared asset (962e6c2). New
+  `assets/ui/kanban.svg`, a FOURTH visual vocabulary distinct from the
+  brandmark, the mascot and the activity status set. kangentic-mobile
+  needed a Board tab icon; SF Symbols ships no kanban glyph, so mobile had
+  rasterised lucide `SquareKanban` locally behind a private pipeline (a
+  build script, a checked-in PNG set, a devDependency) that existed only
+  because no package owned the glyph, while Android rendered Material
+  `view_kanban`, close but not identical. `lib/ui-glyphs.mjs` imports the
+  activity set's 24 grid, 18x18 ink box and stroke 2 rather than restating
+  them, so a navigation icon and an agent status mark sit level in one
+  row. Proportions follow lucide `SquareKanban` (ISC), declared as named
+  constants rather than vendored path data. Web and desktop take the SVG
+  directly; iOS gets `resources/mobile/kanban-tab-{25,50,75}.png` as
+  template images (alpha-only white on transparency, verified before
+  writing). A new mechanical check (`gen:ui` in the determinism gate,
+  `npm run check` now wired into both CI workflows) closes a pre-existing
+  gap where CI only checked for byte drift.
+
+### Fixes
+- Correct the envelope aspect and restore the control ring radius
+  (2e47ca7). The 2.5.0 activity set held every mark to one 18x18 ink box;
+  that premise broke two marks. The needs-you envelope squared from 20x16
+  to 18x18, which read as a photo placeholder on a real task card and
+  sharpened its flap angle 11.6 degrees past the reference glyph. It now
+  uses an 18x14.4 box, a uniform 0.9 scale of the reference glyph, fixing
+  the aspect and the flap angle together while keeping the 18-unit width
+  that aligns the tabular counter column. The pause/stop controls were
+  shrunk from their shipped `r=10` to `r=9` on the same premise, silently
+  overriding a human judgement recorded in the desktop app's own source
+  ("r=9 rendered ~10% smaller"); restored to `r=10`, which also makes the
+  normalized dash resolve to `47.12/15.71`, matching the app's original
+  hand-computed `47 16` almost exactly. The mechanical gate now asserts
+  ink extent per ROLE (indicator vs. control) instead of one hardcoded
+  span, so this class of regression cannot reoccur silently.
+
 ## [v2.5.0] - 2026-07-29
 
 ### Features
