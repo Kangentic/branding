@@ -231,11 +231,18 @@ Key mechanics:
   canonical geometry and varies color only.
 - Card knocked out (strict-mono logic) for the iOS tinted icon: rejected
   at maintainer sign-off 2026-07-27, from the side-by-side in
-  `exploration/review/mobile.png`. At 60px the card hole and the
-  shortened middle column merge into one notch - the exact failure the
-  mono breakoff tuning exists to fix, which canonical geometry does not
-  carry. The duotone-grayscale variant (card as a brighter chip, disc
-  `#a8a8a8` / card `#ffffff`) won and shipped.
+  `exploration/review/mobile.png`. Knocking the card out drops it to the
+  columns' value, so the card stops reading as a card and the gesture
+  that distinguishes the mark from three bars is lost. The
+  duotone-grayscale variant (card as a brighter chip, disc `#a8a8a8` /
+  card `#ffffff`) won and shipped.
+  - Corrected 2026-07-29. This entry also claimed "at 60px the card hole
+    and the shortened middle column merge into one notch". Measured down
+    the centre column, they never merge: at 60px the disc bridge between
+    them is 5px, about 8% of icon height and visible in an x8 crop (at
+    120px it is 8px). The decision stands on the value-collapse reason
+    above, which the render does support; the merge claim would have sent
+    later work chasing a defect that is not there.
 - Cream ground for the Play feature graphic: rejected at maintainer
   sign-off 2026-07-27. Play warns off pure-white grounds and cream is a
   near-white; the panel tint is the warmer, compliant ground and shipped.

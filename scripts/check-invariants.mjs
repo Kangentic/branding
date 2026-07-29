@@ -1,4 +1,5 @@
-// check-invariants.mjs - the mechanical gate for /brand-review. Read-only,
+// check-invariants.mjs - the mechanical brand gate, run by CI on every push and
+// by /pull-request, /merge-pull-request, /merge-back and /release. Read-only,
 // deterministic, no deps: it verifies the invariants the .claude/rules and the
 // design-language skill declare, and that a grep can decide, then prints a
 // PASS/FAIL findings report and exits nonzero on any FAIL. The aesthetic call
@@ -334,6 +335,23 @@ checks.ANIMATION = () => {
       findings.push(`${name}: reducedMotion must be "${rest}" (reduced motion is a rendering, not a mute button)`);
     }
     const used = [...new Set([...(seq.idle ? [seq.idle.frame] : []), ...(seq.clip ?? []).map((s) => s.frame)])];
+    // The MOUNT set is the played set plus the rest frame, and a sequence that
+    // never plays `rest` still falls back to it. A consumer that mounts only
+    // the played frames renders nothing at all under reduced motion, so the
+    // manifest has to state the mount set rather than imply it.
+    //
+    // Deliberately ABOVE the `!used.length` continue below: a sequence that
+    // plays nothing (`none`) still has to declare `["rest"]`, because that is
+    // precisely the frame a consumer would otherwise fail to mount. The CSS
+    // track assertions after the continue stay skipped for it, since the base
+    // stylesheet rule already rests it.
+    const mustMount = [...new Set([...used, rest])];
+    const declared = seq.mountFrames;
+    if (!Array.isArray(declared)) {
+      findings.push(`${name}: no mountFrames array (a consumer cannot tell which frames to mount)`);
+    } else if ([...declared].sort().join() !== [...mustMount].sort().join()) {
+      findings.push(`${name}: mountFrames is [${declared}], must be [${mustMount}] (played frames plus "${rest}")`);
+    }
     if (!used.length) continue; // e.g. `none`: the base composition IS the rendering
     // Motion budget (design-language): a stepped swap between 2-4 poses.
     if (used.length > 4) findings.push(`${name}: ${used.length} distinct frames (motion budget is 4)`);

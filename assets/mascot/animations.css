@@ -2,9 +2,13 @@
    SEQUENCES in scripts/lib/sprite.mjs - do not hand-edit; regenerate with
    `npm run gen:sprites`.
 
-   Stack one frame div per pose inside a container, give the container a width,
-   and put the sequence class on it. The container carries the accessible name;
-   the frames are aria-hidden so it reads as one image.
+   Stack one frame div for every name in that sequence's `mountFrames` (see
+   animations.json), give the container a width, and put the sequence class on
+   it. `mountFrames` is NOT the same as the frames the clip plays: a sequence
+   also rests on `rest` when it ends and under reduced motion, even when
+   the clip never names it, so mounting only the played poses renders nothing
+   once motion is off. The container carries the accessible name; the frames are
+   aria-hidden so it reads as one image.
 
      <div class="overseer overseer--blink-loop" role="img"
           aria-label="Pixel-art Kangentic mascot" style="width: 90px">

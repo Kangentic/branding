@@ -33,8 +33,17 @@ scaling, or a fifth color turn it into generic clip-art.
   `animations.json` and enforces the motion budget (<= 4 distinct frames
   per sequence), that every sequence declares `reducedMotion` and names
   frames that exist, that every frame a sequence touches has a CSS track
-  (so a pixel-vacating pose cannot let the rest frame bleed through), and
-  that no `animation-fill-mode` is emitted.
+  (so a pixel-vacating pose cannot let the rest frame bleed through), that
+  every sequence declares `mountFrames` equal to its played frames plus
+  the rest frame, and that no `animation-fill-mode` is emitted. CI runs it
+  on every push.
+  - The `mountFrames` assertion was added 2026-07-29, after the manifest
+    shipped in 2.5.0 telling consumers which frames a sequence PLAYS but
+    not which it must MOUNT. `running-loop` and `waiting-loop` rest on
+    `rest` without ever naming it, so a consumer following the README
+    rendered nothing at all under `prefers-reduced-motion`. Verified to
+    bite: stripping `rest` from `running-loop` reports `mountFrames is
+    [step-a,step-b], must be [step-a,step-b,rest]`.
 - **Review:** changes under `scripts/` that touch sprite maps or the
   engine are checked for off-palette colors, non-integer scale, freehand
   paths, and re-declared maps. The `/release` determinism gate is the

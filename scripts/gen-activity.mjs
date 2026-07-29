@@ -1108,7 +1108,7 @@ await writeFile(join(SHIP, "activity.json"), JSON.stringify(manifest(), null, 2)
 console.log(`Wrote ${SET_MARKS.length} marks + activity.css + activity.json -> assets/activity/`);
 
 // ---------------------------------------------------------------------------
-// Size strips for /brand-review. Review artifacts, so exploration/, and they
+// Size strips for the aesthetic review. Review artifacts, so exploration/, and they
 // resolve each dash into user units first because librsvg ignores pathLength.
 // ---------------------------------------------------------------------------
 
@@ -1149,7 +1149,7 @@ console.log(`Wrote ${GROUNDS.length} size strips -> exploration/activity/_sheet-
 
 // ---------------------------------------------------------------------------
 // The isolation sheet. The same instrument as the section at the top of
-// compare.html, rendered to PNG so /brand-review reads a real artifact rather
+// compare.html, rendered to PNG so the review reads a real artifact rather
 // than a re-derivation - the discipline the mobile review sheet already follows.
 //
 // One mark, on the real task card, with no sibling glyph and no alignment datum,

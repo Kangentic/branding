@@ -86,8 +86,15 @@ declaration; `gen-sprites.mjs` emits two artifacts from it:
   runtime, including React Native where there is no CSS).
 - `assets/mascot/animations.css` - a drop-in stepped frame swap for any
   browser or Electron surface. Class contract: `.overseer` (container,
-  carries the accessible name), `.overseer-frame--<key>` (one per pose),
-  `.overseer--<sequence>` (the sequence).
+  carries the accessible name), `.overseer-frame--<key>` (one per mounted
+  frame), `.overseer--<sequence>` (the sequence).
+
+A consumer mounts every frame in a sequence's `mountFrames`, which is the
+played `clip` PLUS the rest frame it falls back to. Those differ, and
+manifesting only the played set is how `running-loop` and `waiting-loop`
+shipped in 2.5.0 rendering nothing under `prefers-reduced-motion`. The
+mount set is emitted rather than derived, and `npm run check`'s
+`ANIMATION` gate asserts it.
 
 Why this exists: the timings had drifted three ways. The website ran a
 right-skewed 2000-9000ms blink with a 30% double, the mobile app a flat

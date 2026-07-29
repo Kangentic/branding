@@ -54,6 +54,9 @@
       "note": "the default, and the reduced-motion rendering",
       "loop": false,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "rest"
+      ],
       "clip": []
     },
     "blink-loop": {
@@ -61,6 +64,10 @@
       "note": "idle life. The human-blink model: gaps clustered short with the odd long pause rather than a flat spread, plus an occasional double blink. The blinks-per-minute figure is always derived from this range wherever it is displayed, never written down, so tuning the range cannot strand a stale number",
       "loop": true,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "rest",
+        "blink"
+      ],
       "idle": {
         "frame": "rest",
         "minMs": 2000,
@@ -84,6 +91,10 @@
       "note": "a greeting, or the payoff when a connection lands. One arm, five steps. The key stays `wave-once` because kangentic-mobile's animation union already uses that string",
       "loop": false,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "rest",
+        "wave"
+      ],
       "clip": [
         {
           "frame": "rest",
@@ -112,6 +123,10 @@
       "note": "both arms up together: he is trying to get your attention. The urgent one - it says 'over here', not 'hello'. Same 120ms step rate as the single arm wave, because it is the same mechanic on the same body part",
       "loop": false,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "rest",
+        "arms-up"
+      ],
       "clip": [
         {
           "frame": "rest",
@@ -140,6 +155,11 @@
       "note": "arms pump alternately rather than together, which reads as playful where the double arm wave reads as urgent. Kept as its own sequence, not an alternate: the two say different things",
       "loop": false,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "rest",
+        "wave",
+        "wave-left"
+      ],
       "clip": [
         {
           "frame": "rest",
@@ -168,6 +188,10 @@
       "note": "the gaze shifts side to side, looking for something that has not arrived yet. The base waiting idle. Deliberately long dwells - a wait screen loops indefinitely, so this has to read as calm, not as a twitch",
       "loop": true,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "rest",
+        "look"
+      ],
       "clip": [
         {
           "frame": "rest",
@@ -184,6 +208,11 @@
       "note": "legs cycling on the spot, which reads as running. Middle foot up, then the outer two. Chosen over an alternating outer-foot march at the 2026-07-25 review - with three legs and a planted centre, a march reads as nothing recognisable",
       "loop": true,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "step-a",
+        "step-b",
+        "rest"
+      ],
       "clip": [
         {
           "frame": "step-a",
@@ -200,6 +229,13 @@
       "note": "the legs never stop - he runs on the spot the whole time, glancing left and right as he goes. Permanent running means the legs are baked into every frame, so at the 4-frame motion budget this carries running plus ONE other behaviour; the gaze won it over the arms. Fire a wave sequence separately if the wait needs a bigger signal",
       "loop": true,
       "reducedMotion": "rest",
+      "mountFrames": [
+        "step-a",
+        "step-b",
+        "step-a-look",
+        "step-b-look",
+        "rest"
+      ],
       "clip": [
         {
           "frame": "step-a",
