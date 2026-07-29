@@ -27,6 +27,12 @@ scripts/lib/activity.mjs  THE activity icon geometry: one 18-unit layout slot on
                           retired candidates and envelope boxes with their dated
                           reasons, and the march/spin motion contract. No glyph
                           comes from an icon library.
+scripts/lib/ui-glyphs.mjs THE ui glyph geometry: the NAVIGATION marks (the
+                          kanban board glyph today). Imports the activity set's
+                          24 grid / 18-unit slot / stroke 2 rather than
+                          restating it; no state, no motion. Proportions may
+                          follow an icon library, path data is never copied -
+                          see THIRD-PARTY-NOTICES.md.
 scripts/lib/pixelfont.mjs THE 5x7 plate font (uppercase, narrow coverage);
                           word() throws on a glyph it does not have.
 scripts/lib/feature-graphic.mjs  THE Play feature graphic composition (1024x500)
@@ -38,6 +44,9 @@ scripts/gen-activity.mjs  Activity marks -> assets/activity/ + the candidate
                           review sheet, the size strips, and the one-mark-alone
                           isolation + pixel-truth sheets ->
                           exploration/activity/ (npm run gen:activity)
+scripts/gen-ui.mjs        UI glyphs -> assets/ui/ + the iOS tab rasters ->
+                          resources/mobile/ + review sheets ->
+                          exploration/ui/ (npm run gen:ui)
 scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
                           exploration/review/ (npm run gen:review); used by
                           /brand-review
@@ -51,11 +60,15 @@ assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
                           (mascot + animation pose frames) +
                           activity/*.svg + activity.{css,json} (the agent,
                           terminal and control status marks consumers render
-                          in-app; currentColor, tinted by each surface)
+                          in-app; currentColor, tinted by each surface) +
+                          ui/*.svg + ui.json (the navigation glyphs: kanban.svg
+                          is the Board mark for the mobile tab, the desktop app
+                          and the website)
 resources/                Production rasters consumers ship: web/, desktop/,
                           mobile/ (app icons incl. iOS dark/tinted, adaptive +
                           Android 13+ themed layers, notification icon, splash,
-                          Play feature graphic), social/og-image.png (see README)
+                          Play feature graphic, kanban-tab-{25,50,75}.png for
+                          the iOS tab bar), social/og-image.png (see README)
 archive/v1/               The blue-K brand, frozen verbatim. Never touch.
 archive/mascot-explorations/  Every creature round, superseded mascot-icon
                           sets, and legacy logo candidates. Never touch.
@@ -100,6 +113,7 @@ npm run gen:icons    # production icon tree -> resources/ (web, desktop, mobile)
 npm run gen:sprites  # mascot -> assets/mascot/ + exploration/mascot/
 npm run gen:og       # social image -> resources/social/og-image.png
 npm run gen:activity # activity marks -> assets/activity/ + review sheet
+npm run gen:ui       # ui glyphs -> assets/ui/ + iOS tab rasters + review sheets
 npm run gen:review   # in-situ header mocks -> exploration/review/ (light + dark)
 npm run check        # mechanical brand-invariant gate (palette, sprite, tiering)
 ```
@@ -131,6 +145,7 @@ matching file enters context. Each rule names its enforcement.
 **Path-scoped rules (load with their subsystem):**
 - `mark-geometry-single-source.md` - all mark geometry lives only in `scripts/lib/mark.mjs`; tier by displayed context (card-K in size-specific container entries >=128, F4k in every OS-downscaled master) (`scripts/**`).
 - `activity-icon-geometry.md` - the activity set's geometry lives only in `scripts/lib/activity.mjs`; one 18-unit layout SLOT on a 24 grid with each form sized optically inside it (geometric parity is not optical parity), stroke 2, currentColor only, motion ships as data plus CSS, and every candidate is reviewed alone as well as in adjacency (`scripts/**`, `assets/activity/**`).
+- `ui-glyph-geometry.md` - the ui navigation set's geometry lives only in `scripts/lib/ui-glyphs.mjs`; it imports the activity grid rather than restating it, carries no state or motion, and its iOS tab rasters must be alpha-only template images (`scripts/**`, `assets/ui/**`).
 - `pixel-art-conventions.md` - sprites are ASCII maps -> `lib/sprite.mjs` rect grids: crispEdges, <=4 palette colors, integer scale only, one canonical map (`scripts/**`).
 - `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the `/release` gate enforces it (`assets/**`, `resources/**`, generators).
 

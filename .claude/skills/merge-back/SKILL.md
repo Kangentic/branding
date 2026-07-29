@@ -61,11 +61,13 @@ ship something no script can reproduce.
    - `npm run gen:sprites`
    - `npm run gen:og`
    - `npm run gen:activity`
+   - `npm run gen:ui`
 3. Check the tree: `git status --porcelain assets resources`. If it prints ANY line, regenerating
    changed a committed asset - STOP. Report the changed files and tell the user this is exactly what
    the determinism gate exists to catch: either a committed asset was hand-edited (fix the generator
    / `scripts/lib/mark.mjs` and regenerate, never the asset), or the last asset change was committed
    without its regenerated output. Do not push a drifted tree.
+4. Run `npm run check`. It MUST pass. CI runs it on the push, so a failure here lands red.
 
 If the tree is clean under `assets/` and `resources/`, proceed. (This is the branding analog of
 kangentic's typecheck/lint/guard; there is no code test tier to run here.)

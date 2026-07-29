@@ -34,6 +34,17 @@ import {
   motionCss as aMotionCss,
   shippedSet as aShippedSet,
 } from "./lib/activity.mjs";
+// The ui glyph set (ui-glyph-geometry). Same contract again: pure declarations
+// and pure functions. It imports its grid FROM lib/activity.mjs rather than
+// restating it, which is why there is no second set of grid constants here.
+import {
+  GLYPHS as U_GLYPHS,
+  TAB_SIZES as U_TAB_SIZES,
+  fileFor as uFileFor,
+  glyphSvg as uGlyphSvg,
+  manifest as uManifest,
+  rasterFileFor as uRasterFileFor,
+} from "./lib/ui-glyphs.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
@@ -62,6 +73,13 @@ const activitySvgs = () => {
   return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/activity/${f}`);
 };
 
+// Globbed for the same reason the two lists above are.
+const uiSvgs = () => {
+  const dir = join(ROOT, "assets", "ui");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/ui/${f}`);
+};
+
 // Shipped vector assets consumers embed. resources/web/brandmark*.svg are
 // byte copies of the assets/ ones (gen-icons copyFile), scanned for defense.
 // The mascot list is globbed, not enumerated: pose frames used to be invisible
@@ -75,6 +93,7 @@ const SHIPPED_SVG = [
   "assets/brandmark-mono-amber.svg",
   ...spriteSvgs(),
   ...activitySvgs(),
+  ...uiSvgs(),
   "resources/web/brandmark.svg",
   "resources/web/brandmark-small.svg",
 ].filter(has);
@@ -175,6 +194,11 @@ checks.TIERING = () => {
   // card-K and would fail the F4k assertion) and
   // android-feature-graphic-1024x500.png (a marketing raster, not an icon
   // master - it carries no mark to tier).
+  // Also NOT here: resources/mobile/*-tab-*.png, the ui glyph rasters. They
+  // carry no brandmark at all, so there is no tier to pick, and they are written
+  // by gen-ui.mjs rather than this file - the grep below only reads gen-icons.
+  // Their own contract (alpha-only, byte-equal to lib/ui-glyphs.mjs) is enforced
+  // by the UI check and by gen-ui.mjs's assertion, not here.
   const masters = [
     "apple-touch-icon.png",
     "icon-192.png",
@@ -486,8 +510,81 @@ checks.ACTIVITY = () => {
   return findings;
 };
 
+// 9. The ui glyph set (ui-glyph-geometry). The same behavioural shape as
+//    ACTIVITY, plus one assertion that set does not need: the iOS tab rasters
+//    must EXIST. They are the only thing this repo ships that a consumer cannot
+//    regenerate from the vector, and their alpha-only contract is asserted at
+//    generation time in gen-ui.mjs (it needs sharp; this file stays sync and
+//    dependency-free).
+checks.UI = () => {
+  const jsonPath = "assets/ui/ui.json";
+  const svgs = uiSvgs();
+  if (!svgs.length) return []; // set not generated yet: nothing to enforce
+  if (!has(jsonPath)) return [`${jsonPath} missing (run npm run gen:ui)`];
+
+  const findings = [];
+
+  // Same grid contract as the activity set, because it is literally the same
+  // grid: lib/ui-glyphs.mjs imports VIEW/INK_BOX/STROKE rather than restating.
+  for (const p of svgs) {
+    const src = load(p);
+    if (!src.includes(`viewBox="0 0 ${A_VIEW} ${A_VIEW}"`)) findings.push(`${p}: not on the ${A_VIEW} grid`);
+    if (!src.includes(`stroke-width="${A_STROKE}"`)) findings.push(`${p}: stroke-width is not ${A_STROKE}`);
+    if (hexes(src).length) findings.push(`${p}: carries a hex color (ui glyphs are currentColor only)`);
+    if (!/stroke="currentColor"/.test(src)) findings.push(`${p}: no currentColor stroke`);
+  }
+
+  // Behavioural: bytes must equal the builder output, glyph for glyph.
+  const expected = new Set();
+  for (const g of U_GLYPHS) {
+    const p = `assets/ui/${uFileFor(g)}`;
+    expected.add(uFileFor(g));
+    if (!has(p)) {
+      findings.push(`${p}: missing (declared by lib/ui-glyphs.mjs)`);
+      continue;
+    }
+    if (load(p) !== uGlyphSvg(g) + "\n") {
+      findings.push(`${p}: drifts from lib/ui-glyphs.mjs output (regenerate, never hand-edit)`);
+    }
+    // The rasters iOS needs. A missing one is a broken tab bar in a shipped
+    // build, and nothing else in this repo would notice.
+    for (const size of U_TAB_SIZES) {
+      const r = `resources/mobile/${uRasterFileFor(g, size)}`;
+      if (!has(r)) findings.push(`${r}: missing (declared by lib/ui-glyphs.mjs, run npm run gen:ui)`);
+    }
+  }
+  for (const f of svgs.map((p) => basename(p))) {
+    if (!expected.has(f)) findings.push(`assets/ui/${f}: not declared by lib/ui-glyphs.mjs (stale file)`);
+  }
+
+  if (load(jsonPath) !== JSON.stringify(uManifest(), null, 2) + "\n") {
+    findings.push(`${jsonPath}: drifts from lib/ui-glyphs.mjs output (regenerate, never hand-edit)`);
+  }
+
+  // Single-source geometry, the FROZEN-K rule applied to this set.
+  // Distinctive names only. TAB_PT / TAB_SIZES were deliberately left out: they
+  // are packaging, not geometry a silent drift could corrupt (byte equality
+  // already covers any change to them), and they are generic enough that an
+  // unrelated future tab strip declaring `const TAB_SIZES` would fail here
+  // naming a lib it never touched.
+  const GEO = ["FRAME_R", "LANE_TOP", "LANE_X", "LANE_END", "FRAME_R_ALTERNATES"];
+  const owners = scriptFiles().filter(
+    (f) => rel(f) !== "scripts/lib/ui-glyphs.mjs" && rel(f) !== "scripts/check-invariants.mjs",
+  );
+  for (const f of owners) {
+    const src = read(f);
+    for (const name of GEO) {
+      if (new RegExp(`(?:^|\\s)(?:export\\s+)?(?:const|let|var)\\s+${name}\\s*=`).test(src)) {
+        findings.push(`${rel(f)}: re-declares ui glyph constant ${name} (declare only in lib/ui-glyphs.mjs)`);
+      }
+    }
+  }
+
+  return findings;
+};
+
 // ---------------------------------------------------------------------------
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {

@@ -67,9 +67,10 @@ generates. A dirty tree here means a generator changed without regenerating
 3. `npm run gen:sprites`
 4. `npm run gen:og`
 5. `npm run gen:activity`
-6. `git status --porcelain -- assets/ resources/`
+6. `npm run gen:ui`
+7. `git status --porcelain -- assets/ resources/`
 
-Step 6 must be EMPTY. Anything listed is a BLOCKING finding - report which
+Step 7 must be EMPTY. Anything listed is a BLOCKING finding - report which
 files drifted and stop until it is resolved. (Generators are deterministic:
 no `Date.now()`, no `Math.random()`, no network. Same inputs, same bytes.)
 
@@ -87,6 +88,12 @@ emit; one command fills the in-situ gap.
 - `npm run gen:sprites` writes the mascot at 16x to `exploration/mascot/`.
 - `npm run gen:icons` writes `exploration/icon-concepts/preview.png` - the desktop ladder
   on light and dark bars, showing the card-K / F4k tier boundary.
+- `npm run gen:ui` writes two sheets to `exploration/ui/`
+  (`_sheet-light.png`, `_sheet-dark.png`): the ui glyph size strips at
+  16/20/24/26/32/48 with each candidate frame radius on its own row, the
+  ADJACENCY band (the glyph beside the F4k brandmark, which is itself a board
+  glyph, and beside an activity mark to confirm they share a baseline), an iOS
+  tab bar at true 25px, and the x8 pixel-truth zoom.
 - `npm run gen:review` writes two sheets to `exploration/review/`:
   - `in-situ.png` - the IN-SITU header mocks: light site header + dark
     docs header + browser tabs, the mark at nav and favicon size on both
@@ -96,9 +103,15 @@ emit; one command fills the in-situ gap.
     and at 60 (real home-screen size), the tinted candidates side by side,
     the notification icon at 24px in a status bar plus its x8 zoom, the
     Android 13+ themed layer under circle and squircle masks, and the Play
-    feature graphic across ground candidates at listing and thumbnail size.
+    feature graphic across ground candidates at listing and thumbnail size,
+    and the iOS Board tab icon at true 25px on a light and a dark tab bar.
     It reads the SHIPPED files back out of `resources/mobile/`, so what it
-    shows is what consumers get.
+    shows is what consumers get. Note the two tinting helpers are NOT
+    interchangeable: `tinted()` preserves luminance (right for the iOS tinted
+    app icon, which really is a luminance-to-hue map), `templateTinted()`
+    paints a solid color through the alpha channel (right for a tab icon,
+    which UIKit renders as a template). Using the first for a template image
+    mocks white artwork as nearly invisible on a light bar.
 - `npm run gen:activity` writes to `exploration/activity/`:
   - `compare.html` - the full candidate sheet.
   - `_sheet-*.png` - the size strips per consumer ground.
@@ -145,6 +158,17 @@ Any FAIL is BLOCKING. It checks:
   `lib/mark.mjs`.
 - **BANNED** - the grep-able slice of the anti-template checklist: no
   navy/indigo/purple families, no gradient fills.
+- **UI** - each `assets/ui/*.svg`: the 24 grid, stroke 2, `currentColor` only,
+  and bytes byte-equal to `lib/ui-glyphs.mjs` output. Also that every iOS tab
+  raster the lib declares EXISTS under `resources/mobile/`, that no undeclared
+  SVG sits in the directory, and that no file outside the lib re-declares a
+  named geometry constant. The rasters' alpha-only contract is asserted in
+  `gen-ui.mjs` instead, because it needs sharp and the checker is deliberately
+  sync and dependency-free. They are outside TIERING by design: they carry no
+  brandmark, so there is no tier to pick.
+- **MONO**, **ANIMATION** and **ACTIVITY** also run. See
+  `scripts/check-invariants.mjs` for what each asserts; the report names every
+  finding with its file.
 
 ## Step 5 - Anti-template checklist
 

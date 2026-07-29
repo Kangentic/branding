@@ -38,6 +38,10 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { CREAM, PANEL, knockout, discOnSquare, f4kParts, f4kAlphaParts, f4kMonoSvg, cardKParts } from "./lib/mark.mjs";
 import { featureGraphicSvg } from "./lib/feature-graphic.mjs";
+// Only to DOCUMENT the ui set's rasters in resources/README.md below. gen-ui.mjs
+// writes those files; this script owns the README that indexes resources/, and
+// deriving the rows from the lib keeps a filename from going stale here.
+import { GLYPHS as UI_GLYPHS, TAB_SCALES as UI_TAB_SCALES, TAB_SIZES as UI_TAB_SIZES, rasterFileFor as uiRasterFileFor } from "./lib/ui-glyphs.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const RES = join(ROOT, "resources");
@@ -241,6 +245,15 @@ await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}
 </svg>`)).png().toFile(join(EXPLORE, "preview.png"));
 
 // --- README ------------------------------------------------------------------
+// The ui set's tab rasters, indexed here because they live under resources/
+// even though gen-ui.mjs writes them.
+const uiRasterRows = UI_GLYPHS.flatMap((g) =>
+  UI_TAB_SIZES.map(
+    (size, i) =>
+      `| ${uiRasterFileFor(g, size)} | iOS tab bar, ${UI_TAB_SCALES[i]}x of the 25pt metric | ${g.id} glyph (white on transparent) |`,
+  ),
+).join("\n");
+
 await writeFile(join(RES, "README.md"), `# Kangentic brand resources (v2, Warm Craft)
 
 TWO-TIER APP ICON, keyed to displayed context (not raster resolution):
@@ -307,6 +320,15 @@ macOS tray would take a template PNG derived from the pure mono, not an SVG.
 | notification-icon.png (96) | \`expo-notifications\` plugin icon; Android status bar | F4k mono-tuned (white on transparent) |
 | splash-1024.png | splash mark (displays large) | card-K |
 | android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + Overseer |
+${uiRasterRows}
+
+The \`*-tab-*.png\` files are UI GLYPHS, not brandmark renditions, and are
+written by \`npm run gen:ui\` from \`../assets/ui/\`. They exist only because
+\`UITabBarItem\` needs a real \`UIImage\`: Android and the web render
+\`../assets/ui/*.svg\` directly and take no raster. They are TEMPLATE images -
+UIKit discards color and renders the ALPHA channel in the tab bar's tint - so
+they ship as white on transparency and must never be composited onto a
+background before use.
 
 The iOS dark and tinted variants carry NO background: iOS composites its own
 material behind them and applies the user's tint, so baking one in would
