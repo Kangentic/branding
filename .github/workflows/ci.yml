@@ -49,6 +49,6 @@ jobs:
       # Drift only proves the committed bytes match the generators. The
       # invariants (palette, tiering, the frozen K, the activity and ui set
       # contracts) are a separate question, and every rule that calls them a
-      # "blocking gate" was relying on a human running /brand-review.
+      # "blocking gate" is relying on this step.
       - name: Brand invariants
         run: npm run check

@@ -17,9 +17,16 @@
 // The one library path in this file is ARC_D, used solely by BASELINE to draw
 // what ships today for comparison.
 //
-// The set is UNDER REVIEW. Candidate directions are declared below, all
-// `draft: true`; the maintainer picks one from exploration/activity/compare.html
-// and promotion is deleting that flag. Nothing here ships to assets/ until then.
+// The set SHIPS. Direction d1 was picked from exploration/activity/compare.html
+// and promoted, and nine marks live in assets/activity/ today. The `draft: true`
+// entries below are the directions and envelope boxes that LOST, kept with their
+// dated reasons rather than deleted, per .claude/rules/activity-icon-geometry.md,
+// so a later change re-argues them from the record instead of from scratch.
+// Promotion is deleting that flag; nothing still carrying it reaches assets/.
+//
+// Corrected 2026-07-29. This header used to say the set was UNDER REVIEW and
+// that "nothing here ships to assets/ until then", which stayed behind after
+// the promotion and read as false to anyone opening this file.
 
 // ---------------------------------------------------------------------------
 // The grid. One grid, one stroke weight, one ink box, for every mark in the set.

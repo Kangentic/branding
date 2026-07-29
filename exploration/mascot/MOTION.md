@@ -101,6 +101,9 @@ the legs never stop - he runs on the spot the whole time, glancing left and righ
   they do not glide.
 - Every sequence rests on the canonical frame under
   `prefers-reduced-motion` - reduced motion is a rendering, not a mute button.
+  So **mount every name in the sequence's `mountFrames`**, which is the played
+  clip PLUS that resting frame. Mounting only what the clip names renders
+  nothing at all once motion is off.
 - Display at **integer multiples** of the 18x12 grid only.
   Fractional scaling blurs the pixels and kills the craft.
 - Exactly **one frame is visible at a time**. Some poses vacate pixels the rest

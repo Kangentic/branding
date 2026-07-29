@@ -48,8 +48,9 @@ scripts/gen-ui.mjs        UI glyphs -> assets/ui/ + the iOS tab rasters ->
                           resources/mobile/ + review sheets ->
                           exploration/ui/ (npm run gen:ui)
 scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
-                          exploration/review/ (npm run gen:review); used by
-                          /brand-review
+                          exploration/review/ (npm run gen:review); the
+                          aesthetic sign-off artifacts, reviewed while the
+                          change is being made
 scripts/check-invariants.mjs  Mechanical brand-invariant gate: palette, sprite,
                           tiering, frozen-K, banned colors (npm run check)
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
@@ -126,7 +127,6 @@ npm run check        # mechanical brand-invariant gate (palette, sprite, tiering
 | `sprite-drafting` | The pixel-art mascot harness: the sprite engine, the ASCII-map method, review discipline, and the rejected-creature history. Read before any mascot/sprite work. |
 | `design-language` | The Warm Craft constitution: palette, typography, mascot conventions, anti-AI-template checklist. Kept in sync with kangentic.com's copy. |
 | `release` | `/release [patch|minor|major]`: determinism gate, bump, changelog, tag, GitHub release, npm publish. Major = new brand generation only (archive gate). |
-| `brand-review` | `/brand-review`: the review station (the Brand Review column runs it). Code review of the generators + design review of the assets - determinism gate, in-situ + size-strip renders (`npm run gen:review`), mechanical invariants (`npm run check`), then HUMAN aesthetic sign-off. |
 | `pull-request` | Testing column: run the determinism gate locally, commit, rebase, open a clean PR, and drive its CI checks to green (auto-fixing generators/scripts). Never merges. |
 | `merge-pull-request` | Merge column: verify a green PR, merge it (rebase, delete branch), realign the worktree, and fast-forward local `main`. Does NOT publish (that is `/release`). |
 
@@ -147,6 +147,7 @@ matching file enters context. Each rule names its enforcement.
 - `activity-icon-geometry.md` - the activity set's geometry lives only in `scripts/lib/activity.mjs`; one 18-unit layout SLOT on a 24 grid with each form sized optically inside it (geometric parity is not optical parity), stroke 2, currentColor only, motion ships as data plus CSS, and every candidate is reviewed alone as well as in adjacency (`scripts/**`, `assets/activity/**`).
 - `ui-glyph-geometry.md` - the ui navigation set's geometry lives only in `scripts/lib/ui-glyphs.mjs`; it imports the activity grid rather than restating it, carries no state or motion, and its iOS tab rasters must be alpha-only template images (`scripts/**`, `assets/ui/**`).
 - `pixel-art-conventions.md` - sprites are ASCII maps -> `lib/sprite.mjs` rect grids: crispEdges, <=4 palette colors, integer scale only, one canonical map (`scripts/**`).
+- `brand-record-fidelity.md` - the record must match what the code does: status comments are re-read when the status changes, a stated rationale must survive measurement, a generated manifest must serve its documented consumption pattern, and a review artifact must render what its caption claims. Enforced by `/code-review` on the PR (`scripts/**`, `assets/**`, `.claude/skills/**`).
 - `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the `/release` gate enforces it (`assets/**`, `resources/**`, generators).
 
 **Authoring a rule:** one concern per file, descriptive kebab-case name.

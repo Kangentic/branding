@@ -97,8 +97,13 @@ reads as one image. The sequences:
 | `running-loop` | running | legs cycling on the spot |
 | `waiting-loop` | waiting | runs continuously while glancing left and right. For a wait that runs long |
 
-Each frame div only needs to exist for the frames its sequence names (check
-`animations.json`); a sequence never touches a frame it did not declare.
+Mount one frame div for every name in that sequence's **`mountFrames`** in
+`animations.json`. That is not the same as the frames its `clip` plays: a
+sequence also rests on `restFrame` when it ends and under reduced motion, even
+when the clip never names it. `running-loop` plays `step-a` and `step-b` but
+mounts `step-a`, `step-b` and `rest`, and mounting only the played pair renders
+nothing at all once motion is off. `clip` is what to play; `mountFrames` is what
+to mount.
 
 Rules worth knowing before you build your own player:
 
