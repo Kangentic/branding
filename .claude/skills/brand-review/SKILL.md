@@ -99,6 +99,21 @@ emit; one command fills the in-situ gap.
     feature graphic across ground candidates at listing and thumbnail size.
     It reads the SHIPPED files back out of `resources/mobile/`, so what it
     shows is what consumers get.
+- `npm run gen:activity` writes to `exploration/activity/`:
+  - `compare.html` - the full candidate sheet.
+  - `_sheet-*.png` - the size strips per consumer ground.
+  - `_isolation-*.png` and `_isolation-zoom-*.png` - **ONE MARK, ALONE**:
+    each candidate on the real task-card chrome with no sibling glyph and
+    no alignment datum, plus the x8 nearest-neighbor pixel-truth zoom at
+    the card's 14px.
+
+**Isolation is not optional for an activity mark.** Every other cell on
+`compare.html` is comparative by construction (stacked rows, adjacency
+pairs, counters against a hairline datum), and a mark that only fails with
+nothing beside it has no cell there that can see it. That is exactly how a
+square envelope shipped in 2.5.0 and then read as a photo placeholder on a
+real board. Open `_isolation-zoom-*.png` FIRST, and treat any activity
+candidate that has only been reviewed in adjacency as unreviewed.
 
 Point the human at those exact paths. Judge the mark at 16-32px FIRST -
 that is where icons live - and confirm it is **unmistakable at 24x24** (the

@@ -21,11 +21,12 @@ scripts/lib/mark.mjs      THE mark geometry: frozen K path, cuts, tight card,
 scripts/lib/sprite.mjs    THE sprite engine: token palette, canonical Overseer
                           map, ASCII-map -> rect-grid SVG builder.
                           (Both libs: the only place their geometry is declared.)
-scripts/lib/activity.mjs  THE activity icon geometry: one 18x18 ink box on a 24
-                          grid, stroke 2, currentColor; the nine shipped marks,
-                          the retired candidates with their reasons, and the
-                          march/spin motion contract. No glyph comes from an
-                          icon library.
+scripts/lib/activity.mjs  THE activity icon geometry: one 18-unit layout slot on
+                          a 24 grid with each form sized optically inside it,
+                          stroke 2, currentColor; the nine shipped marks, the
+                          retired candidates and envelope boxes with their dated
+                          reasons, and the march/spin motion contract. No glyph
+                          comes from an icon library.
 scripts/lib/pixelfont.mjs THE 5x7 plate font (uppercase, narrow coverage);
                           word() throws on a glyph it does not have.
 scripts/lib/feature-graphic.mjs  THE Play feature graphic composition (1024x500)
@@ -34,8 +35,9 @@ scripts/gen-icons.mjs     Production icon tree -> resources/ (npm run gen:icons)
 scripts/gen-sprites.mjs   Mascot -> assets/mascot/ + exploration (npm run gen:sprites)
 scripts/gen-og.mjs        Social image -> resources/social/ (npm run gen:og)
 scripts/gen-activity.mjs  Activity marks -> assets/activity/ + the candidate
-                          review sheet -> exploration/activity/
-                          (npm run gen:activity)
+                          review sheet, the size strips, and the one-mark-alone
+                          isolation + pixel-truth sheets ->
+                          exploration/activity/ (npm run gen:activity)
 scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
                           exploration/review/ (npm run gen:review); used by
                           /brand-review
@@ -128,7 +130,7 @@ matching file enters context. Each rule names its enforcement.
 
 **Path-scoped rules (load with their subsystem):**
 - `mark-geometry-single-source.md` - all mark geometry lives only in `scripts/lib/mark.mjs`; tier by displayed context (card-K in size-specific container entries >=128, F4k in every OS-downscaled master) (`scripts/**`).
-- `activity-icon-geometry.md` - the activity set's geometry lives only in `scripts/lib/activity.mjs`; one 18x18 ink box on a 24 grid, stroke 2, currentColor only, motion ships as data plus CSS (`scripts/**`, `assets/activity/**`).
+- `activity-icon-geometry.md` - the activity set's geometry lives only in `scripts/lib/activity.mjs`; one 18-unit layout SLOT on a 24 grid with each form sized optically inside it (geometric parity is not optical parity), stroke 2, currentColor only, motion ships as data plus CSS, and every candidate is reviewed alone as well as in adjacency (`scripts/**`, `assets/activity/**`).
 - `pixel-art-conventions.md` - sprites are ASCII maps -> `lib/sprite.mjs` rect grids: crispEdges, <=4 palette colors, integer scale only, one canonical map (`scripts/**`).
 - `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the `/release` gate enforces it (`assets/**`, `resources/**`, generators).
 

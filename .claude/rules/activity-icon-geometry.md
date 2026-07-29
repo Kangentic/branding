@@ -22,9 +22,42 @@ is owned here to prevent.
 
 - All activity geometry is DECLARED once, in `scripts/lib/activity.mjs`. Every
   generator imports from it and declares none of its own.
-- **One grid, one stroke, one ink box.** 24 viewBox, 18x18 ink, stroke 2, round
-  caps and joins. A mark that does not fill the ink box reintroduces the exact
-  misalignment this set removes.
+- **One grid, one stroke, one 18-unit layout SLOT.** 24 viewBox, stroke 2,
+  round caps and joins. Every mark's outline spans x 3 to 21. Within that slot
+  each form is sized **optically**, not stretched to a shared rectangle.
+  - The slot is the invariant because WIDTH is what aligns the row: icons in a
+    horizontal row behave like glyphs in a line of type, where width is the
+    advance and height is absorbed by centring. The counts beside these marks
+    already render `tabular-nums`, so slot parity is that same discipline
+    extended one element left. Height never contributed to that column.
+  - **Geometric parity is not optical parity.** At an identical 18x18 box the
+    ring encloses ~21% less area than the chip (a circle fills only pi/4 of its
+    box) and carries 39% less ink. Forcing one silhouette onto every mark
+    produces disparity that nobody chose; sizing each form to look right within
+    the slot is what actually delivers parity.
+  - So height is per-form. The envelope is **18 x 14.4**: an envelope's aspect
+    is its identity, and it also needs a silhouette that is not the terminal
+    chip's exact rect. Boxes are declared in `ENVELOPE_CANDIDATES`.
+  - Corrected 2026-07-29. This bullet used to read "one ink box... a mark that
+    does not fill the ink box reintroduces the exact misalignment this set
+    removes." That asserted an invariant the stock glyphs never had (their own
+    mail was 20x16, loader 18 wide, circle 20 wide), conflated two separable
+    properties, and ruled out the fix categorically rather than on evidence.
+- **A flap ratio is not a flap angle.** Flap ratios are fractions of the box,
+  so transplanting them onto a box of a different aspect does NOT carry the
+  angle across: half-width moves with the width, depth moves with the height.
+  The angle is `2*atan((w/2)/depth)` and it is what the eye reads. Getting this
+  wrong is how the shipped envelope ended up 11.6 degrees pointier than the
+  reference it was derived from, while the record claimed the angle was
+  preserved. Only a uniform scale preserves an angle. A candidate may therefore
+  declare a target `angle` instead of a flap variant (`candidateFlap()`), which
+  pins the V across any box; prefer that over ratios whenever a box moves.
+- **An activity candidate is reviewed ALONE, not only in adjacency.** Stacked
+  rows, adjacency pairs and counters against a hairline datum measure alignment;
+  they cannot see a recognition failure, because every glyph in them has a
+  neighbour. The board renders one mark on a card. `gen:activity` emits
+  `_isolation-*.png` and `_isolation-zoom-*.png` for exactly this, and a
+  candidate reviewed only in adjacency is unreviewed.
 - **`currentColor` only. Never a hex.** The three consumers do not share status
   token values (desktop `#34d399`/`#e3b341`, mobile `#3ddc84`/`#d9b83f`, web
   `#218a4c`/`#d98324`), and a hex in a mark would pick one surface's palette for
@@ -64,6 +97,11 @@ is owned here to prevent.
   regeneration. It also enforces the grid, `currentColor`, the dash pair, the
   declared reduced-motion rendering, the fill-mode ban, and that no file outside
   the lib re-declares a named geometry constant.
+- **Ink-width parity is mechanical.** The same check measures every shipped
+  mark's outline span and fails any mark that does not run x 3 to 21, so the
+  column-alignment property this set exists for is enforced rather than
+  reviewed. Verified to bite: promoting a 20-wide envelope reports
+  `agent-idle: outline spans x 2..22, not 3..21`.
 - **Release gate (blocking):** `npm run gen:activity` runs in the determinism
   gate alongside the other generators.
 
