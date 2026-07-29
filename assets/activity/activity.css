@@ -1,0 +1,8 @@
+@keyframes kng-activity-march { to { stroke-dashoffset: -100; } }
+@keyframes kng-activity-spin { to { transform: rotate(360deg); } }
+.kng-march { animation: kng-activity-march 1400ms linear infinite; }
+.kng-spin { animation: kng-activity-spin 1200ms linear infinite; transform-origin: 12px 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .kng-march, .kng-spin { animation: none; }
+  svg[data-rest="drop-dash"] * { stroke-dasharray: none; }
+}

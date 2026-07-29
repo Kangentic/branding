@@ -60,6 +60,7 @@ ship something no script can reproduce.
    - `npm run gen:icons`
    - `npm run gen:sprites`
    - `npm run gen:og`
+   - `npm run gen:activity`
 3. Check the tree: `git status --porcelain assets resources`. If it prints ANY line, regenerating
    changed a committed asset - STOP. Report the changed files and tell the user this is exactly what
    the determinism gate exists to catch: either a committed asset was hand-edited (fix the generator

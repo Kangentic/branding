@@ -44,6 +44,13 @@ scaling, or a fifth color turn it into generic clip-art.
 ## Scope
 
 `scripts/lib/sprite.mjs`, `scripts/gen-sprites.mjs`, `scripts/gen-og.mjs`,
-and any future sprite generator. The full mascot rationale and decision
+and any future sprite generator.
+
+Does NOT govern the activity icon set (`scripts/lib/activity.mjs`,
+`assets/activity/**`). Those are stroked UI affordance glyphs, not
+illustration, so the "never freehand `<path>`" and "rect grids only" rules do
+not apply to them - they have their own rule in `activity-icon-geometry.md`.
+Pixel art remains the only sanctioned ILLUSTRATION style; a status icon is not
+illustration. The full mascot rationale and decision
 history live in the `sprite-drafting` skill; the mascot's role in the
 visual system lives in `design-language`.

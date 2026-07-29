@@ -74,7 +74,8 @@ must never ship hand-edited or stale renders.
 2. Run `npm run gen:icons`
 3. Run `npm run gen:sprites`
 4. Run `npm run gen:og`
-5. Run `git status --porcelain -- assets/ resources/`. Must be empty. If
+5. Run `npm run gen:activity`
+6. Run `git status --porcelain -- assets/ resources/`. Must be empty. If
    anything changed, stop and report: either a generator changed without
    regenerating (commit the regenerated output first) or an asset was
    hand-edited (never allowed - fix the script instead).

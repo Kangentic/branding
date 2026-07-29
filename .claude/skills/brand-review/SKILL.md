@@ -66,9 +66,10 @@ generates. A dirty tree here means a generator changed without regenerating
 2. `npm run gen:icons`
 3. `npm run gen:sprites`
 4. `npm run gen:og`
-5. `git status --porcelain -- assets/ resources/`
+5. `npm run gen:activity`
+6. `git status --porcelain -- assets/ resources/`
 
-Step 5 must be EMPTY. Anything listed is a BLOCKING finding - report which
+Step 6 must be EMPTY. Anything listed is a BLOCKING finding - report which
 files drifted and stop until it is resolved. (Generators are deterministic:
 no `Date.now()`, no `Math.random()`, no network. Same inputs, same bytes.)
 

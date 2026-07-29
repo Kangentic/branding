@@ -115,6 +115,53 @@ Rules worth knowing before you build your own player:
 - **Display at integer multiples of the 18x12 grid only.** Fractional scaling
   blurs the pixels.
 
+## Activity icons
+
+`assets/activity/` holds the agent, Command Terminal and pause/stop status
+marks the desktop app, the mobile app and the website all render in-app. Nine
+marks, four silhouettes, on one 24 grid with an 18x18 ink box and a 2px stroke.
+
+```
+agent-idle              envelope        needs you, static
+agent-working           ring            working, marching
+terminal-idle           prompt chip     needs you, static
+terminal-working        prompt chip     working, marching
+terminal-new            plus chip       the new-terminal action
+control-pause-idle      ring + bars     needs you, static
+control-pause-working   ring + bars     working, marching
+control-stop-idle       ring + square   needs you, static
+control-stop-working    ring + square   working, marching
+```
+
+Every mark is `currentColor`, so **you apply your own tokens**. Do not hardcode
+a hex: the three consumers deliberately differ (desktop `#34d399`/`#e3b341`,
+mobile `#3ddc84`/`#d9b83f`, web `#218a4c`/`#d98324`).
+
+```html
+<link rel="stylesheet" href="…/assets/activity/activity.css">
+<span style="color: var(--your-working-token)"><!-- agent-working.svg --></span>
+```
+
+Rules worth knowing:
+
+- **Pick a mark; never assemble one.** States are named files. Composing a base
+  glyph with a tone and an animation class is where three renderings drift
+  apart, which is the whole reason this set is owned here.
+- **Rest is the `-idle` geometry in a muted tone.** There is no `-rest` file.
+- **Two legibility floors: 12px for indicators, 16px for the controls**, whose
+  centred glyph gets a fraction of an already small box. Below the floor, draw
+  a dot instead of a mark.
+- **Motion ships; do not re-author it.** `activity.css` is a drop-in. For a
+  runtime with no CSS, read `activity.json`: it carries the same contract as
+  data, including each mark's `reducedMotion` rendering.
+- **Use `dashUserUnits`, not `dash`, wherever `pathLength` is unreliable.**
+  Browsers honour `pathLength`; librsvg and react-native-svg do not, and a ratio
+  dash silently falls back to user units there, where a "75" dash covers a
+  56-unit circle entirely and the motion disappears.
+- **Reduced motion is a rendering, not a mute button.** The spinner rests
+  holding its arc; the chip drops its dash entirely, because a frozen 65/35
+  outline reads as torn rather than as at rest.
+
 ## Regenerate
 
 Assets are generated and committed - never hand-edit one. To change an
@@ -126,11 +173,13 @@ npm run gen          # canonical assets/ + exploration sheets
 npm run gen:icons    # production icon tree -> resources/
 npm run gen:sprites  # mascot -> assets/mascot/
 npm run gen:og       # social image -> resources/social/
+npm run gen:activity # activity marks -> assets/activity/
 ```
 
-All mark geometry lives in `scripts/lib/mark.mjs` (the K is frozen path
-data, so there's no font dependency at render time). Generators are
-deterministic; the release pipeline fails if committed output drifts.
+All brandmark geometry lives in `scripts/lib/mark.mjs` (the K is frozen path
+data, so there's no font dependency at render time) and all activity geometry in
+`scripts/lib/activity.mjs`. Generators are deterministic; the release pipeline
+fails if committed output drifts.
 
 ## Release
 

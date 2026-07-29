@@ -68,7 +68,7 @@ is for local git only.
    (resolve conflicts the same way `/pull-request` does, or abort and report). If the rebase changed
    history, push the local HEAD to the PR's remote head: `git push origin HEAD:<prHead> --force-with-lease`.
    After any rebase that touched a generator or a file under `scripts/`, re-run branding's
-   determinism gate (`npm run gen`, `gen:icons`, `gen:sprites`, `gen:og`, then
+   determinism gate (`npm run gen`, `gen:icons`, `gen:sprites`, `gen:og`, `gen:activity`, then
    `git status --porcelain -- assets/ resources/` must be empty) before merging.
 3. Re-read the PR state: `gh pr view <pr> --json mergeable,mergeStateStatus,statusCheckRollup`.
    **Require every required status check in `statusCheckRollup` to be green (SUCCESS).** That is the
