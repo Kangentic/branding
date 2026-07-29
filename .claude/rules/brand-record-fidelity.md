@@ -48,16 +48,42 @@ every case the bytes were exactly what the generator produced.
 - **A review artifact must RENDER what its caption claims.** The sheets under
   `exploration/` are the evidence a human signs off from, so a caption that
   overstates them is worse than no caption. Verify the mock actually
-  demonstrates its effect before trusting it. Known live instance: `sharp()`'s
+  demonstrates its effect before trusting it. The worked instance: `sharp()`'s
   `.tint()` preserves LAB luminance and therefore cannot recolor pure white, so
-  three bands of `exploration/review/mobile.png` render white on white and
-  demonstrate nothing. Compositing through alpha (`blend: 'dest-in'`) is the
-  fix.
+  three bands of `exploration/review/mobile.png` rendered white on white and
+  demonstrated nothing.
+  - RESOLVED 2026-07-29, and the resolution is not what this bullet predicted.
+    It used to close "Compositing through alpha (`blend: 'dest-in'`) is the
+    fix", written before anyone had read `gen-review.mjs`. What shipped instead:
+    `dest-in` is nowhere in `scripts/`, and the repo already had the alpha
+    pattern in `templateTinted` (solid color, the artwork's alpha joined as the
+    mask), so the alpha-only surfaces reuse it - the notification icon and the
+    Android monochrome layer, joining the iOS tab raster that used it already.
+    The iOS tinted master is different in kind: it is genuinely grayscale
+    (`#a8a8a8` disc, `#ffffff` card), so a flat mask would have erased the very
+    disc-vs-card difference its band exists to judge. It takes a luminance ramp
+    (`systemTinted`) instead. One prescribed fix, two kinds of surface, two
+    different right answers - which is the argument for reading the code before
+    writing the remedy into a rule.
+  - Both helpers now call `assertRecolored`, which throws if any opaque pixel
+    survives the recolor still pure white. Verified to bite 2026-07-29 by
+    pointing `templateTinted` back at `.tint()`: `npm run gen:review` fails with
+    `notification-icon.png: an opaque pixel is still pure white after recoloring
+    to #c0562f`. That is the bullet below applied to this one.
+    - Scope it honestly: this is a GENERATOR assertion, not a CI gate.
+      `gen:review` is the one generator neither `ci.yml` nor `publish.yml` runs,
+      because its output is a review artifact exempt from byte determinism. So
+      it fires when the sheet is regenerated, which is the moment that matters
+      for a sheet, and never on a push that leaves the sheet alone.
 - **Prefer making a claim mechanical over restating it.** When a check can be
   expressed as an assertion, put it in `scripts/check-invariants.mjs` and note
   that it was verified to bite. `ANIMATION`'s `mountFrames` assertion and
   `ACTIVITY`'s byte-equality assertion are the pattern: both replaced a sentence
-  that could go stale with a test that cannot.
+  that could go stale with a test that cannot. Where the assertion needs sharp,
+  it goes in the generator instead, because the checker is deliberately sync and
+  dependency-free: `gen-ui.mjs`'s `assertTemplateImage` and `gen-review.mjs`'s
+  `assertRecolored` are that variant. Say which of the two a claim got, since
+  only the first runs in CI.
 
 ## Enforcement (self-maintaining)
 

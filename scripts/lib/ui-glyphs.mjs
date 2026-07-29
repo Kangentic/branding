@@ -12,7 +12,8 @@
 // sprites, not this file.
 //
 // It shares the activity set's grid rather than restating it: same 24 viewBox,
-// same 18-unit layout slot (every outline spans x 3 to 21), same stroke 2, so a
+// same 18-unit layout slot (every outline spans x 3 to 21, the activity set's
+// INDICATOR keyline - its controls sit on a wider one), same stroke 2, so a
 // board tab icon and an agent status mark sit on one baseline in the same row.
 // Those constants are DECLARED in lib/activity.mjs and IMPORTED here, because
 // declaring them twice is the drift this repo's single-source rules exist to
