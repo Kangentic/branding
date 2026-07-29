@@ -61,12 +61,14 @@ the local proof of correctness.
    - `npm run gen:sprites`
    - `npm run gen:og`
    - `npm run gen:activity`
+   - `npm run gen:ui`
    If any generator errors, report it and stop.
 3. Run `git status --porcelain -- assets/ resources/`. It MUST be empty. If anything changed, a
    generator was changed without committing its regenerated output, or an asset was hand-edited
    (never allowed). Stop and report which files drifted - the fix is to commit the regenerated
    output or to fix the script, never to hand-edit the asset. This mirrors the `/release`
    determinism gate and the `generated-assets-determinism` rule.
+4. Run `npm run check`. It MUST pass. CI runs it too, so a failure here is a red PR either way.
 
 ## Step 1 - Commit Changes
 

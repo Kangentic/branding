@@ -64,6 +64,17 @@ macOS tray would take a template PNG derived from the pure mono, not an SVG.
 | notification-icon.png (96) | `expo-notifications` plugin icon; Android status bar | F4k mono-tuned (white on transparent) |
 | splash-1024.png | splash mark (displays large) | card-K |
 | android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + Overseer |
+| kanban-tab-25.png | iOS tab bar, 1x of the 25pt metric | kanban glyph (white on transparent) |
+| kanban-tab-50.png | iOS tab bar, 2x of the 25pt metric | kanban glyph (white on transparent) |
+| kanban-tab-75.png | iOS tab bar, 3x of the 25pt metric | kanban glyph (white on transparent) |
+
+The `*-tab-*.png` files are UI GLYPHS, not brandmark renditions, and are
+written by `npm run gen:ui` from `../assets/ui/`. They exist only because
+`UITabBarItem` needs a real `UIImage`: Android and the web render
+`../assets/ui/*.svg` directly and take no raster. They are TEMPLATE images -
+UIKit discards color and renders the ALPHA channel in the tab bar's tint - so
+they ship as white on transparency and must never be composited onto a
+background before use.
 
 The iOS dark and tinted variants carry NO background: iOS composites its own
 material behind them and applies the user's tint, so baking one in would

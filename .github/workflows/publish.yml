@@ -59,12 +59,18 @@ jobs:
           npm run gen:sprites
           npm run gen:og
           npm run gen:activity
+          npm run gen:ui
           if [ -n "$(git status --porcelain -- assets/ resources/)" ]; then
             echo "::error::Committed assets/ or resources/ drift from generator output. Regenerate and commit before tagging."
             git status --porcelain -- assets/ resources/
             git diff -- assets/ resources/
             exit 1
           fi
+
+      # The invariants, for the same reason CI runs them: drift only proves the
+      # bytes match the generators, not that they satisfy the brand rules.
+      - name: Brand invariants
+        run: npm run check
 
       # Idempotent: re-running an already-published version (a workflow_dispatch
       # retry) must not fail on npm's "cannot publish over previous version".

@@ -26,13 +26,16 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
 - **The animation contract** - `assets/mascot/animations.json` and
   `assets/mascot/animations.css`. The named sequences and their timings live
   here so consumers stop re-deriving them. See "Animating the mascot" below.
+- **The UI glyphs** - `assets/ui/*.svg`. The navigation marks, `currentColor`
+  on the same 24 grid as the activity set. `kanban.svg` is the Board mark, and
+  it exists because SF Symbols ships no kanban glyph. See "UI icons" below.
 - **The production tree** - `resources/`. Everything each surface ships:
   `desktop/` (Electron .ico/.icns + PNG ladder), `web/` (favicons,
   manifest icons, logo), `mobile/` (every OS-owned and store-facing asset
   Expo needs: app icons including the iOS dark/tinted variants, adaptive
   and Android 13+ themed layers, the notification icon, the splash mark,
-  and the Play feature graphic), and `social/og-image.png`. See
-  `resources/README.md` for the per-file table.
+  the Play feature graphic, and the iOS Board tab rasters), and
+  `social/og-image.png`. See `resources/README.md` for the per-file table.
 
 `assets/` is the vector home (consumer-agnostic SVGs); `resources/` holds
 the shipped per-consumer files, mostly rasters for surfaces that cannot
@@ -162,6 +165,52 @@ Rules worth knowing:
   holding its arc; the chip drops its dash entirely, because a frozen 65/35
   outline reads as torn rather than as at rest.
 
+## UI icons
+
+`assets/ui/` holds the NAVIGATION glyphs, as distinct from the status marks
+above. Same 24 grid, same 18-unit layout slot, same 2px stroke, so the two sets
+sit level in one row - `lib/ui-glyphs.mjs` imports that grid rather than
+restating it. No state, no motion.
+
+```
+kanban    the board surface (mobile Board tab, desktop and web board nav)
+```
+
+It exists because SF Symbols ships no kanban glyph. The catalogue was searched
+for `kanban`, `board`, `column` and `lane`; the only `column` hits are
+`building.columns`, a bank facade, and the nearest shapes are split rectangles
+that read as "split view". Mobile rasterised its own and Android rendered a
+different one, which is the three-way drift this package exists to prevent.
+
+Like the activity marks it is `currentColor`, so **you apply your own token**.
+
+```html
+<span style="color: var(--your-nav-token)"><!-- assets/ui/kanban.svg --></span>
+```
+
+Rules worth knowing:
+
+- **Web and desktop take the SVG. There is no raster for them**, deliberately.
+- **iOS takes `resources/mobile/kanban-tab-{25,50,75}.png`** (1x/2x/3x of the
+  25pt tab metric), because `UITabBarItem` needs a real `UIImage`. These are
+  **template images**: UIKit discards colour and paints the bar's tint through
+  the alpha channel. Hand them over as shipped. Compositing one onto a
+  background first turns the whole tab slot into a tinted block.
+- **The 25pt size and the 2px stroke were chosen for the iOS tab bar.** If
+  another surface wants a different optical weight, that is a variant, not a
+  replacement: changing these invalidates the store screenshots captured
+  against them.
+- **`kanban` is not called `board`.** The F4k brandmark is already "the board
+  glyph" throughout this repo, and one name for two assets is exactly the
+  ambiguity these sets exist to remove.
+- `ui.json` carries the same contract as data, including the raster filenames,
+  which live under `resources/` and are otherwise undiscoverable from
+  `assets/ui/`.
+
+The kanban glyph's proportions follow lucide's `SquareKanban` (ISC). The
+geometry is declared as named constants, not vendored as path data; see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## Regenerate
 
 Assets are generated and committed - never hand-edit one. To change an
@@ -174,12 +223,15 @@ npm run gen:icons    # production icon tree -> resources/
 npm run gen:sprites  # mascot -> assets/mascot/
 npm run gen:og       # social image -> resources/social/
 npm run gen:activity # activity marks -> assets/activity/
+npm run gen:ui       # ui glyphs -> assets/ui/ + the iOS tab rasters
+npm run check        # the mechanical brand-invariant gate
 ```
 
 All brandmark geometry lives in `scripts/lib/mark.mjs` (the K is frozen path
-data, so there's no font dependency at render time) and all activity geometry in
-`scripts/lib/activity.mjs`. Generators are deterministic; the release pipeline
-fails if committed output drifts.
+data, so there's no font dependency at render time), all activity geometry in
+`scripts/lib/activity.mjs`, and all ui glyph geometry in
+`scripts/lib/ui-glyphs.mjs`. Generators are deterministic; the release pipeline
+fails if committed output drifts, and CI runs `npm run check`.
 
 ## Release
 

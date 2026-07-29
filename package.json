@@ -5,7 +5,8 @@
   "type": "module",
   "files": [
     "assets",
-    "resources"
+    "resources",
+    "THIRD-PARTY-NOTICES.md"
   ],
   "scripts": {
     "gen": "node scripts/gen-brandmark.mjs",
@@ -13,6 +14,7 @@
     "gen:sprites": "node scripts/gen-sprites.mjs",
     "gen:og": "node scripts/gen-og.mjs",
     "gen:activity": "node scripts/gen-activity.mjs",
+    "gen:ui": "node scripts/gen-ui.mjs",
     "gen:review": "node scripts/gen-review.mjs",
     "check": "node scripts/check-invariants.mjs"
   },

@@ -16,6 +16,9 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { CREAM, PANEL, INK, INK_SOFT, RUST, knockout, f4kParts, f4kAlphaParts, f4kMonoSvg, f4kDuoSvg, cardKParts } from "./lib/mark.mjs";
 import { featureGraphicSvg } from "./lib/feature-graphic.mjs";
+// The ui set, so the Board tab icon is reviewed in the surface it ships to.
+// Filenames come from the lib rather than being retyped here.
+import { GLYPHS as UI_GLYPHS, TAB_SIZES as UI_TAB_SIZES, rasterFileFor as uiRasterFileFor } from "./lib/ui-glyphs.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "exploration", "review");
@@ -175,6 +178,25 @@ const imgRect = (data, x, y, w, h) =>
 // preserved), so this is a faithful stand-in for the real rendering.
 const tinted = async (name, color) => b64(await sharp(join(MOB, name)).tint(color).png().toBuffer());
 
+// A TEMPLATE image is tinted differently, and `tinted` above would lie about it.
+// sharp's tint preserves luminance (correct for the iOS tinted app icon, which
+// really is a luminance-to-hue map), but UIKit does not tint a tab icon - it
+// DISCARDS every color channel and paints the tint through the alpha channel.
+// Luminance-preserving tint on white artwork stays white, so a light tab bar
+// would mock as nearly invisible while the real thing renders solid. Rebuild it
+// the way UIKit does: solid color, the shipped file's alpha as the mask.
+const templateTinted = async (name, color) => {
+  const src = join(MOB, name);
+  const { width, height } = await sharp(src).metadata();
+  const alpha = await sharp(src).ensureAlpha().extractChannel("alpha").png().toBuffer();
+  return b64(
+    await sharp({ create: { width, height, channels: 3, background: color } })
+      .joinChannel(alpha)
+      .png()
+      .toBuffer(),
+  );
+};
+
 const m = newSheet();
 const iosLight = await shipped("ios-appstore-1024.png");
 const iosDark = await shipped("ios-appstore-1024-dark.png");
@@ -263,6 +285,45 @@ m.band("android notification icon - 24px in the status bar (OS keeps ALPHA ONLY 
   <text x="${W - 232}" y="14" font-family="monospace" font-size="12" fill="${INK_SOFT}">24px x8</text>
   <rect x="${W - 232}" y="22" width="192" height="192" fill="${TERMINAL}"/>
   ${imgRect(notifZoom, W - 232, 22, 192, 192)}
+`);
+
+// 3b. The Board tab icon in a real iOS tab bar, at its true 25pt, plus pixel
+//     truth. Same template-image contract as the notification icon above: iOS
+//     discards color and renders the ALPHA channel in the bar's tint, so mocking
+//     it as shipped (white) would be a lie on a light bar. The band exists to
+//     settle one thing a size strip cannot: at 25px, beside the F4k brandmark
+//     that is ITSELF a board glyph, does this still read as its own mark?
+const tabGlyph = UI_GLYPHS[0];
+const tab1x = uiRasterFileFor(tabGlyph, UI_TAB_SIZES[0]);
+const tabSrc = join(MOB, tab1x);
+const tabZoom = b64(await sharp(tabSrc).resize(25 * 8, 25 * 8, { kernel: "nearest" }).png().toBuffer());
+const tabActive = await templateTinted(tab1x, RUST);
+const tabIdle = await templateTinted(tab1x, "#8a8378");
+const tabOnDark = await templateTinted(tab1x, "#e8a33d");
+const tabIdleDark = await templateTinted(tab1x, "#7d766c");
+const brandAt25 = b64(await png(knockout(25, F4K.holes, F4K.filled)));
+m.band(`ios Board tab icon - ${tab1x} at true 25px, tinted active/inactive, light bar and dark bar`, 250, () => `
+  <rect width="${W}" height="250" fill="#e8e6e1"/>
+  <rect x="${PAD}" y="8" width="420" height="64" fill="#f7f5f2"/>
+  ${imgRect(tabActive, PAD + 60, 16, 25, 25)}
+  <text x="${PAD + 72}" y="56" text-anchor="middle" font-family="sans-serif" font-size="10" fill="${RUST}">Board</text>
+  ${imgRect(tabIdle, PAD + 200, 16, 25, 25)}
+  <text x="${PAD + 212}" y="56" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#8a8378">Board</text>
+  <text x="${PAD + 300}" y="44" font-family="monospace" font-size="11" fill="${INK_SOFT}">light bar</text>
+  <rect x="${PAD}" y="84" width="420" height="64" fill="${TERMINAL}"/>
+  ${imgRect(tabOnDark, PAD + 60, 92, 25, 25)}
+  <text x="${PAD + 72}" y="132" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#e8a33d">Board</text>
+  ${imgRect(tabIdleDark, PAD + 200, 92, 25, 25)}
+  <text x="${PAD + 212}" y="132" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#7d766c">Board</text>
+  <text x="${PAD + 300}" y="120" font-family="monospace" font-size="11" fill="${TERM_SOFT}">dark bar</text>
+  <text x="${PAD}" y="176" font-family="monospace" font-size="12" fill="${INK_SOFT}">adjacency at 25: the tab glyph beside the F4k brandmark it must not be mistaken for</text>
+  <rect x="${PAD}" y="188" width="41" height="41" rx="9" fill="#f7f5f2"/>
+  ${imgRect(tabActive, PAD + 8, 196, 25, 25)}
+  ${imgRect(brandAt25, PAD + 70, 196, 25, 25)}
+  <text x="${PAD + 110}" y="212" font-family="monospace" font-size="11" fill="${INK_SOFT}">kanban tab / F4k brandmark</text>
+  <text x="${W - 232}" y="14" font-family="monospace" font-size="12" fill="${INK_SOFT}">25px x8</text>
+  <rect x="${W - 232}" y="22" width="200" height="200" fill="${TERMINAL}"/>
+  ${imgRect(tabZoom, W - 232, 22, 200, 200)}
 `);
 
 // 4. The Android 13+ themed layer under the two masks launchers actually use.
