@@ -56,13 +56,18 @@ export const LEGIBILITY_FLOOR_PX = 12;
 export const R_ENVELOPE = 2;
 export const R_CHIP = 3;
 
-// The envelope flap, as fractions of the ink box so the V scales with it. The
-// flap is the envelope's whole identity at 14px and the only thing separating it
-// from the terminal chip once both are 18x18, so its depth is the one number
-// worth iterating on rather than asserting. Depth drives the vertex angle: at
-// full bleed the half-width is always 9, so angle = 2*atan(9/depth). Deeper
-// reads more like mail and more like a downward arrow; shallower reads calmer
-// and, past a point, like a lid rather than a flap.
+// The envelope flap, as fractions of the envelope's OWN box so the V scales with
+// it. The flap is the envelope's whole identity at 14px and the only thing
+// separating it from the terminal chip once both are 18 wide, so its depth is
+// the one number worth iterating on rather than asserting.
+//
+// Depth drives the vertex angle, and the half-width is the BOX's, not a
+// constant: angle = 2*atan((w/2)/depth). That distinction is load-bearing and
+// was got wrong once. Ratios are preserved under a change of box; ANGLES ARE
+// NOT, unless both dimensions scale together. See ENVELOPE_CANDIDATES below.
+//
+// Deeper reads more like mail and more like a downward arrow; shallower reads
+// calmer and, past a point, like a lid rather than a flap.
 export const FLAP_VARIANTS = [
   { id: "deep", top: 0.222, vertex: 0.611, note: "first draft, rejected as too pointy" },
   { id: "standard", top: 0.1875, vertex: 0.5456, note: "selected 2026-07-28" },
@@ -71,20 +76,154 @@ export const FLAP_VARIANTS = [
   { id: "shallow", top: 0.139, vertex: 0.375, note: "" },
   { id: "lid", top: 0.111, vertex: 0.306, note: "" },
 ];
-// Selected from the contact sheet 2026-07-28 against a target depth of 6 to
-// 6.5. The number was arrived at by drafting six angles and looking at them; a
-// reference glyph was measured along the way, which is drafting provenance and
-// not a dependency. This envelope is the set's own mark - its ink box, corner
-// radius, stroke and flap are all declared here and match nothing off the shelf.
+// Selected from the contact sheet 2026-07-28 against a target depth of 6 to 6.5,
+// arrived at by drafting six angles and looking at them.
+//
+// CORRECTED 2026-07-29. That round recorded "the angle is lucide's and the ink
+// box is ours". It is not, and the formula above says why: the ratios were
+// transplanted onto a box that was both narrower and taller, so the angle came
+// out 11.6 degrees pointier than the glyph they were taken from. Measured off
+// the live production DOM rather than recall:
+//
+//   reference mail   box 20 x 16, half-width 10, depth 5.727 -> 120.4 degrees
+//   standard on 18   box 18 x 18, half-width  9, depth 6.446 -> 108.8 degrees
+//
+// 108.8 sits 4.6 degrees from `deep`, the draft that same round rejected as too
+// pointy. The 6-to-6.5 depth target was set on an 18-TALL box and does not
+// transfer: on a shorter box the same angle wants a shallower depth. Depth is
+// the wrong thing to hold constant across boxes; the angle is the thing the eye
+// reads. Both are printed per candidate on the review sheet now.
 export const FLAP_DEFAULT = "standard";
 
-const flapGeom = (id) => {
-  const v = FLAP_VARIANTS.find((f) => f.id === id) ?? FLAP_VARIANTS.find((f) => f.id === FLAP_DEFAULT);
-  const top = n(INK_MIN + v.top * INK_BOX);
-  const vertex = n(INK_MIN + v.vertex * INK_BOX);
-  return { ...v, top, vertex, depth: n(vertex - top), angle: n((2 * Math.atan(INK_BOX / 2 / (vertex - top)) * 180) / Math.PI) };
+// ---------------------------------------------------------------------------
+// The envelope's own box. UNDER RE-REVIEW 2026-07-29.
+//
+// The rest of the set fills the 18x18 ink box. The envelope is the one mark
+// where that is in question, because an envelope's ASPECT is its identity: the
+// square box shipped in 2.5.0 and, on a real task card with no neighbouring
+// mark to align to, stops reading as an envelope and reads as a photo or image
+// placeholder.
+//
+// The 18-unit ink WIDTH is what aligns the tabular counter column (ring
+// diameter 18, chip 18), and that is preserved by every candidate at w=18.
+// Height never contributed to that alignment. So the two properties the last
+// round treated as one are separable, and these candidates separate them.
+//
+// A candidate is a {box, flap} PAIR, not a box, because the two defects above
+// are coupled: change the box and the angle moves with it. Promotion is
+// flipping ENVELOPE_DEFAULT, the way FLAP_DEFAULT works. Rejected candidates
+// stay declared with their reasons.
+export const ENVELOPE_CANDIDATES = [
+  {
+    id: "square",
+    w: 18,
+    h: 18,
+    flap: "standard",
+    retired:
+      "2026-07-29: shipped in 2.5.0 and withdrawn. On a task card with no neighbouring mark it reads as a photo or image placeholder rather than an envelope. Squaring the box did two things at once: it took the aspect to 1.00, and it sharpened the flap to 108.8 degrees, 4.6 off the `deep` draft already rejected as a downward arrow. It also left the envelope sharing the terminal chip's exact rect, separated only by one unit of corner radius",
+    note: "the incumbent this re-review withdrew",
+  },
+  {
+    id: "between",
+    w: 18,
+    h: 16,
+    // Declares a target ANGLE rather than a flap variant. Holding the reference
+    // ratios here would give 115.0 degrees, which is not the reference angle or
+    // any other considered number - it is the same ratio-transplant artifact
+    // that produced the 108.8 bug, just milder. Pinning the angle instead means
+    // this differs from `mail` in box height ALONE.
+    angle: "reference",
+    note: "aspect 1.125; the hedge if the full 1.25 reads squat beside the ring",
+  },
+  {
+    id: "mail",
+    w: 18,
+    h: 14.4,
+    flap: "standard",
+    // SELECTED 2026-07-29 from the isolation sheet, on three counts. It is the
+    // only candidate that fixes both defects with one change: a uniform 0.9
+    // scale of the reference glyph, so aspect 1.25 and the 120.4 degree angle
+    // come back together and no separate flap decision is needed. It keeps the
+    // 18 ink width, so the tabular counter column the set exists for is
+    // untouched. And it separates the envelope from the terminal chip by
+    // SILHOUETTE rather than by one unit of corner radius, which is the
+    // adjacency the 2026-07-28 round named as make-or-break and then priced as
+    // "a small cost". It was not small.
+    selected: "2026-07-29",
+    note: "aspect 1.25 at the set's 18 width; a uniform 0.9 scale of the reference glyph, so it restores the 120.4 degree angle for free",
+  },
+  {
+    id: "stock",
+    w: 20,
+    h: 16,
+    flap: "standard",
+    note: "the reference box, drawn on this set's construction; the ONLY candidate that costs column alignment, so it is the one cell that tests whether that alignment is worth anything",
+  },
+  {
+    id: "square-soft",
+    w: 18,
+    h: 18,
+    flap: "soft",
+    note: "the aspect-versus-angle diagnostic: full square alignment, flap angle corrected to 122.0 degrees. If this still reads as a placeholder, aspect is the culprit and the angle is a side issue",
+  },
+];
+export const ENVELOPE_DEFAULT = "mail";
+
+/** A candidate's box resolved onto the grid. Every box is centred on VIEW. */
+export const envelopeBox = (id = ENVELOPE_DEFAULT) => {
+  const c =
+    ENVELOPE_CANDIDATES.find((e) => e.id === id) ??
+    ENVELOPE_CANDIDATES.find((e) => e.id === ENVELOPE_DEFAULT);
+  const x0 = n((VIEW - c.w) / 2);
+  const y0 = n((VIEW - c.h) / 2);
+  return { ...c, x0, y0, x1: n(x0 + c.w), y1: n(y0 + c.h), aspect: n(c.w / c.h) };
 };
-export const flapVariant = (id) => flapGeom(id);
+
+const flapGeom = (id, boxId = ENVELOPE_DEFAULT) => {
+  const v = FLAP_VARIANTS.find((f) => f.id === id) ?? FLAP_VARIANTS.find((f) => f.id === FLAP_DEFAULT);
+  const b = envelopeBox(boxId);
+  const top = n(b.y0 + v.top * b.h);
+  const vertex = n(b.y0 + v.vertex * b.h);
+  const depth = n(vertex - top);
+  // Half-width is the BOX's. This is the line that was previously hardcoded to
+  // INK_BOX / 2, which is what made a 20-wide reference read as 9 wide.
+  return { ...v, top, vertex, depth, angle: n((2 * Math.atan(b.w / 2 / depth) * 180) / Math.PI) };
+};
+export const flapVariant = (id, boxId) => flapGeom(id, boxId);
+
+/**
+ * The reference glyph's vertex angle, DERIVED rather than typed: the shipped
+ * flap ratios on the reference box. No magic number, and it moves if either
+ * input ever does.
+ */
+export const referenceAngle = () => flapGeom(FLAP_DEFAULT, "stock").angle;
+
+/**
+ * The flap a candidate actually uses.
+ *
+ * A candidate declares EITHER a flap variant (ratios, the original model) or a
+ * target `angle`. The angle model is the one this re-review added, and it is the
+ * better of the two: ratios do not survive a change of box, angles are what the
+ * eye reads. Depth follows from the angle and the box's own half-width, so any
+ * two candidates pinned to the same angle carry the identical V whatever their
+ * height.
+ */
+export const candidateFlap = (id = ENVELOPE_DEFAULT) => {
+  const b = envelopeBox(id);
+  if (b.angle == null) return flapGeom(b.flap, b.id);
+  const target = b.angle === "reference" ? referenceAngle() : b.angle;
+  const topRatio = FLAP_VARIANTS.find((f) => f.id === FLAP_DEFAULT).top;
+  const depth = n(b.w / 2 / Math.tan((target * Math.PI) / 360));
+  const top = n(b.y0 + topRatio * b.h);
+  return {
+    id: `${n(target)}deg`,
+    top,
+    vertex: n(top + depth),
+    depth,
+    angle: n(target),
+    note: "pinned to a target angle, not to flap ratios",
+  };
+};
 
 // The ring. Diameter 18 = the ink box exactly.
 export const RING_R = INK_BOX / 2;
@@ -154,6 +293,21 @@ export const ARC_D = "M21 12a9 9 0 1 1-6.219-8.56";
 export const CONTROL_RING_R = 10;
 export const CONTROL_DASH_ABS = "47 16";
 export const CONTROL_RENDER_PX = 20;
+// The two KEYLINES this set uses, and the roles they belong to. Declared here so
+// the gate can assert extent per role instead of holding every mark to one span.
+//
+// An indicator is a 14px LABEL in a counter row; a control is a 20px TARGET in a
+// header. Different roles, different keylines, and collapsing them onto one is
+// what shrank the controls by 10 percent in 2.5.0. Within a keyline each form is
+// still sized optically - the envelope is 18 wide and 14.4 tall on the indicator
+// keyline, because an envelope's aspect is its identity.
+export const KEYLINES = {
+  indicator: { span: [INK_MIN, INK_MAX], note: "14px label in a counter row" },
+  control: { span: [(VIEW - 2 * 10) / 2, VIEW - (VIEW - 2 * 10) / 2], note: "20px target in a header" },
+};
+/** The keyline a mark belongs to. Role, not size: the id prefix is the role. */
+export const keylineFor = (mark) => (mark.id.startsWith("control-") ? KEYLINES.control : KEYLINES.indicator);
+
 // The controls have a HIGHER floor than the indicators: the centred glyph sits
 // inside the ring, so it gets a fraction of an already small box. At 12px the
 // pause bars merge into a single dot. They render at 20 everywhere today, which
@@ -254,14 +408,78 @@ const flap = (top, vertex, x0 = INK_MIN, x1 = INK_MAX) =>
 // them is what lets one motion primitive serve every silhouette.
 // ---------------------------------------------------------------------------
 
-export const envelope = (variant = FLAP_DEFAULT) => {
-  const f = flapVariant(variant);
+/**
+ * The envelope, on a named candidate's box and flap.
+ *
+ * The parameter DEFAULTS rather than being required: d1, the retired d2a and
+ * BASELINE all call this bare, and d2a is still constructed at module load even
+ * though it is retired. A required parameter would hand it an undefined box and
+ * throw on import, which would break check-invariants.mjs, whose contract is
+ * that importing a lib has no side effects.
+ */
+export const envelopeWith = (boxId, flapId) => {
+  const b = envelopeBox(boxId);
+  const f = flapGeom(flapId, b.id);
   return {
-    outline: inkBox(R_ENVELOPE),
-    interior: flap(f.top, f.vertex),
-    perimeter: rrectPerimeter(INK_BOX, INK_BOX, R_ENVELOPE),
+    outline: rect(b.x0, b.y0, b.w, b.h, R_ENVELOPE),
+    // The box's own width, not INK_BOX: a 20-wide candidate has to bleed to its
+    // own edges or the flap floats inside the rect.
+    interior: flap(f.top, f.vertex, b.x0, b.x1),
+    // (w, h), not (INK_BOX, INK_BOX). Nothing reads this today - agent-idle
+    // carries no dash, so dashInUserUnits returns null and the manifest never
+    // sees it - but held square it is silently wrong for every non-square box
+    // and any future dashed envelope would inherit the bug.
+    perimeter: rrectPerimeter(b.w, b.h, R_ENVELOPE),
   };
 };
+
+export const envelope = (candidate = ENVELOPE_DEFAULT) => {
+  const b = envelopeBox(candidate);
+  const f = candidateFlap(candidate);
+  return {
+    outline: rect(b.x0, b.y0, b.w, b.h, R_ENVELOPE),
+    interior: flap(f.top, f.vertex, b.x0, b.x1),
+    perimeter: rrectPerimeter(b.w, b.h, R_ENVELOPE),
+  };
+};
+
+/**
+ * Total stroked path length of a mark, in grid units.
+ *
+ * For a STROKED glyph optical weight is ink length x stroke width, not enclosed
+ * area. The distinction matters here: by area an 18x14.4 envelope looks 20%
+ * lighter than the 18x18 ring box, which reads as a problem; by ink it lands
+ * within 2% of the terminal chip, and the SQUARE envelope is the outlier. The
+ * sheet prints this rather than asserting either.
+ */
+const polylineLength = (d) => {
+  let x = 0;
+  let y = 0;
+  let len = 0;
+  for (const tok of d.match(/[MLHV][^MLHVZ]*/gi) ?? []) {
+    const cmd = tok[0].toUpperCase();
+    const nums = (tok.slice(1).match(/-?\d*\.?\d+/g) ?? []).map(Number);
+    if (cmd === "M") {
+      [x, y] = nums;
+      continue;
+    }
+    const nx = cmd === "H" ? nums[0] : cmd === "V" ? x : nums[0];
+    const ny = cmd === "V" ? nums[0] : cmd === "H" ? y : nums[1];
+    len += Math.hypot(nx - x, ny - y);
+    x = nx;
+    y = ny;
+  }
+  return len;
+};
+
+export const envelopeInk = (candidate = ENVELOPE_DEFAULT) => {
+  const b = envelopeBox(candidate);
+  const f = candidateFlap(candidate);
+  return n(rrectPerimeter(b.w, b.h, R_ENVELOPE) + 2 * Math.hypot(b.w / 2, f.depth));
+};
+export const chipInk = () =>
+  n(rrectPerimeter(INK_BOX, INK_BOX, R_CHIP) + polylineLength(PROMPT_D) + polylineLength(PROMPT_BAR_D));
+export const ringInk = () => circlePerimeter(RING_R);
 
 export const ring = () => ({
   outline: circle(VIEW / 2, VIEW / 2, RING_R),
@@ -467,14 +685,31 @@ export const DIRECTIONS = [
       // than left for a consumer to compose out of a tone and an animation
       // class. Composition is where three surfaces drift apart.
       ...statePair("terminal", "terminal", chip(), { dash: DASH_CHIP, rest: REST_DROP }),
-      // The two shipped controls, brought onto the set's grid. They were never
-      // candidates - they are the rest of the family, and they belong here for
-      // the same reason the indicators do: the 47/16 dash they carry today is a
-      // hand-computed pair duplicated across two desktop files that breaks
-      // silently if the radius changes. Marching rather than rotating, which on
-      // a circle is visually identical to what they already do.
-      ...statePair("control-pause", "pause button", controlRing("pause", { onGrid: true }), { dash: DASH_SPINNER, rest: REST_KEEP }),
-      ...statePair("control-stop", "stop button", controlRing("stop", { onGrid: true }), { dash: DASH_SPINNER, rest: REST_KEEP }),
+      // The two shipped controls. They were never candidates - they are the rest
+      // of the family, and they belong here for one reason: the 47/16 dash they
+      // carry is a hand-computed pair duplicated across two desktop files that
+      // breaks silently if the radius changes. Marching rather than rotating,
+      // which on a circle is visually identical to what they already do.
+      //
+      // AT THEIR SHIPPED r=10, corrected 2026-07-29. These were briefly moved to
+      // the indicator's r=9 on the reasoning that "once every mark fills an 18
+      // ink box, r=9 IS the set's ring". That premise is the same one that
+      // squared the envelope, and it was wrong here too: it overrode a human
+      // judgment recorded in the app's own source, that r=9 "rendered ~10%
+      // smaller" beside these buttons.
+      //
+      // Indicators and controls are different roles and take different keylines.
+      // An indicator is a 14px LABEL in a counter row and sits on the 18 slot; a
+      // control is a 20px TARGET in a header and sits on 20. The set's own note
+      // already said as much - "a header button is a target and a row indicator
+      // is a label" - it just did not follow through to the geometry.
+      //
+      // The cleanup survives intact, which is the point: pathLength 75/25 on a
+      // 62.83 circumference resolves to 47.12/15.71 user units, so the packaged
+      // mark reproduces the app's hand-computed 47/16 almost exactly. The dash
+      // stops being hand-maintained without the radius quietly changing.
+      ...statePair("control-pause", "pause button", controlRing("pause"), { dash: DASH_SPINNER, rest: REST_KEEP }),
+      ...statePair("control-stop", "stop button", controlRing("stop"), { dash: DASH_SPINNER, rest: REST_KEEP }),
       // Stateless: the "new terminal" button is an action, not a status, so it
       // has no idle/working pair. It ships because it is the same chip with a +
       // instead of the prompt, and leaving it out would keep one hand-maintained

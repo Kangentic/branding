@@ -27,6 +27,7 @@ import { f4kParts, f4kAlphaParts } from "./lib/mark.mjs";
 import {
   VIEW as A_VIEW,
   STROKE as A_STROKE,
+  keylineFor as aKeylineFor,
   fileFor as aFileFor,
   manifest as aManifest,
   markSvg as aMarkSvg,
@@ -349,6 +350,22 @@ checks.ANIMATION = () => {
   return findings;
 };
 
+// The horizontal extent of a mark's outline element, in grid units. Every
+// outline in the set is one rect, one circle or one polygon, so this is exact
+// rather than an approximation of a rendered bbox.
+const outlineXSpan = (el) => {
+  let m = el.match(/<rect[^>]*\sx="([-\d.]+)"[^>]*\swidth="([-\d.]+)"/);
+  if (m) return [Number(m[1]), Number(m[1]) + Number(m[2])];
+  m = el.match(/<circle[^>]*\scx="([-\d.]+)"[^>]*\sr="([-\d.]+)"/);
+  if (m) return [Number(m[1]) - Number(m[2]), Number(m[1]) + Number(m[2])];
+  m = el.match(/<polygon[^>]*\spoints="([^"]+)"/);
+  if (m) {
+    const xs = m[1].trim().split(/\s+/).map((p) => Number(p.split(",")[0]));
+    return [Math.min(...xs), Math.max(...xs)];
+  }
+  return null;
+};
+
 // 8. The activity icon set (activity-icon-geometry). Five things a grep can
 //    decide, and one it cannot: the strongest assertion here is BEHAVIOURAL,
 //    following how TIERING imports the mark builders - the shipped SVG bytes
@@ -397,6 +414,26 @@ checks.ACTIVITY = () => {
     if (!expected.has(f)) findings.push(`assets/activity/${f}: not declared by lib/activity.mjs (stale file)`);
   }
 
+  // Keyline parity, asserted PER ROLE. This replaces the older "every mark fills
+  // the 18x18 ink box" expectation, which conflated properties that turned out
+  // to be separable and, held to one span, forced two different roles onto one
+  // extent - which is what shrank the controls by 10 percent in 2.5.0.
+  //
+  // Marks within a role share an x extent so they read as one family; height is
+  // left to the form, because an envelope's aspect is its identity. Roles differ
+  // because an indicator is a 14px label and a control is a 20px target.
+  for (const m of set.marks) {
+    const k = aKeylineFor(m);
+    const span = outlineXSpan(m.outline);
+    if (!span) {
+      findings.push(`${m.id}: outline shape not recognised, keyline unverifiable`);
+    } else if (span[0] !== k.span[0] || span[1] !== k.span[1]) {
+      findings.push(
+        `${m.id}: outline spans x ${span[0]}..${span[1]}, off its keyline ${k.span[0]}..${k.span[1]} (${k.note})`,
+      );
+    }
+  }
+
   // The manifest and the CSS are one contract; check them against each other.
   let manifest;
   try {
@@ -433,7 +470,7 @@ checks.ACTIVITY = () => {
   if (!/prefers-reduced-motion/.test(css)) findings.push(`${cssPath}: no prefers-reduced-motion block`);
 
   // Single-source geometry, the FROZEN-K rule applied to this set.
-  const GEO = ["INK_BOX", "R_ENVELOPE", "R_CHIP", "RING_R", "FLAP_VARIANTS", "PROMPT_D", "CONTROL_RING_R", "DASH_SPINNER", "DASH_CHIP"];
+  const GEO = ["INK_BOX", "R_ENVELOPE", "R_CHIP", "RING_R", "FLAP_VARIANTS", "PROMPT_D", "CONTROL_RING_R", "DASH_SPINNER", "DASH_CHIP", "ENVELOPE_CANDIDATES", "ENVELOPE_DEFAULT"];
   const owners = scriptFiles().filter(
     (f) => rel(f) !== "scripts/lib/activity.mjs" && rel(f) !== "scripts/check-invariants.mjs",
   );

@@ -34,12 +34,23 @@ import {
   LEGIBILITY_FLOOR_PX,
   MARCH_MS,
   REST_KEEP,
+  REST_STATIC,
   SPIN_MS,
   STROKE,
   VIEW,
   dashInUserUnits,
   markSvg,
   motionCss,
+  ENVELOPE_CANDIDATES,
+  ENVELOPE_DEFAULT,
+  FLAP_VARIANTS,
+  candidateFlap,
+  envelope,
+  envelopeWith,
+  envelopeBox,
+  envelopeInk,
+  chipInk,
+  ringInk,
 } from "./lib/activity.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -92,6 +103,69 @@ const LADDER = [12, 14, 16, 18, 20, 24];
 const ROW_SIZE = 14; // the real project-sidebar row size
 const ADJACENCY_SIZES = [12, 14, 16];
 
+// The isolation ladder. 12 is not optional: absolute flap depth drops from 6.45
+// to 5.16 on the shortest candidate box, so that is where the V could merge into
+// the top edge. 16 is there because the desktop sidebar was bumped 14 -> 16
+// during adoption while the task card stayed at 14.
+const ISO_SIZES = [12, 14, 16, 20, 24];
+const CARD_SIZE = 14; // TaskCard.tsx
+const TOOLTIP_SIZE = 12; // ActivityReasonTooltip.tsx
+
+// The real TaskCard chrome, read off the running desktop app rather than
+// guessed: `border rounded-md p-2.5 bg-surface-raised border-edge`, 272 wide,
+// title `text-sm text-fg font-medium` at 14px/500, mono ID badge at 12px. The
+// mark is the FIRST child of the title's `flex items-center gap-1.5` row. Mock
+// fidelity is load-bearing here - see the acceptance test on the page.
+// Geometry is fixed; the colours come from whichever ground is being drawn, so
+// the light web ground does not get the desktop's dark card painted onto it.
+// GROUNDS[0].panel IS #2a2320, so the desktop sheet reproduces the real card
+// exactly and the other two get their own surface.
+const CARD = { w: 272, radius: 6, pad: 10 };
+const cardSkin = (g) => ({ bg: g.panel, border: g.soft, borderOpacity: 0.4, title: g.fg, desc: g.soft });
+
+/**
+ * The envelope candidates as renderable agent-idle marks, plus the real
+ * production glyph as the control.
+ *
+ * Every one of these is `agent-idle`: same id, same role, same tone. Only the
+ * box and the flap change, which is the whole question.
+ */
+const envMark = (c) => ({
+  id: "agent-idle",
+  role: "needs you",
+  silhouette: "envelope",
+  state: "idle",
+  tone: "attention",
+  ...envelope(c.id),
+  motion: null,
+  rest: REST_STATIC,
+});
+const ENV_ROWS = ENVELOPE_CANDIDATES.map((c) => {
+  const b = envelopeBox(c.id);
+  const f = candidateFlap(c.id);
+  return {
+    id: c.id,
+    box: b,
+    flap: f,
+    ink: envelopeInk(c.id),
+    note: c.note,
+    shipped: c.id === ENVELOPE_DEFAULT,
+    mark: envMark(c),
+  };
+});
+// The control is the REAL production glyph, arc'd vertex and all, not a redraw
+// of its box. `stock` is the redraw; this is what actually renders today.
+const PROD_ROW = {
+  id: "production",
+  box: { w: 20, h: 16, aspect: 1.25 },
+  flap: { depth: 5.727, angle: 120.4 },
+  ink: 91.9,
+  note: "what ships in the desktop app today; the glyph the set has to beat",
+  control: true,
+  mark: BASELINE.marks.find((m) => m.id === "agent-idle"),
+};
+const ISO_ROWS = [PROD_ROW, ...ENV_ROWS];
+
 const ALL = [BASELINE, ...LIVE];
 const RETIRED = DIRECTIONS.filter((d) => d.retired);
 const SET_MARKS = shippedSet().marks;
@@ -136,6 +210,11 @@ const pickTerminal = (dir, state) => pick(dir, `terminal-${state}`) ?? pick(dir,
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+// Angles are computed to 4dp for determinism upstream; one decimal is what a
+// reader can act on, and the differences that matter here are whole degrees.
+const deg = (v) => v.toFixed(1);
+const angleOf = (flapId, boxId) => deg(flapVariant(flapId, boxId).angle);
+
 /** One mark, coloured for a ground, at a size. */
 const spec = (g, mark, size, opts = {}) =>
   `<span class="glyph" style="color:${toneOf(g, mark)}">${markSvg(mark, { size, ...opts })}</span>`;
@@ -159,6 +238,171 @@ const tile = (g, body, extraClass = "") =>
 // ---------------------------------------------------------------------------
 // Sections
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// ONE MARK, ALONE. The view this page did not have, and the reason a broken
+// mark shipped.
+//
+// Every other cell on this page is comparative BY CONSTRUCTION: stacked rows,
+// adjacency pairs, counters in fixed cells against a hairline datum. That is the
+// right instrument for an ink-box question and the wrong one for a recognition
+// question, because a mark that only fails with nothing beside it has no cell
+// here that can see it. The board renders ONE mark on a card. That is where the
+// square envelope stopped reading as an envelope.
+//
+// The previous round asserted this view would be uninformative - "a redrawn
+// envelope looks almost identical to the stock one on its own, because what
+// changed is the ink box, and an ink box is only visible next to another one" -
+// and used that assertion to justify not building it. That was the load-bearing
+// mistake, and it is what these two functions undo.
+// ---------------------------------------------------------------------------
+
+/**
+ * The real TaskCard, carrying exactly ONE mark and no sibling glyph.
+ *
+ * Chrome read off the running desktop app, not guessed: the mark is the first
+ * child of the title's `flex items-center gap-1.5` row, ahead of a 14px/500
+ * title and a mono ID badge, on `bg-surface-raised` inside a 1px `border-edge`
+ * at radius 6. Fidelity is the whole point - if this mock renders the incumbent
+ * and the incumbent looks fine, the mock is wrong, not the criterion.
+ */
+function taskCardMock(mark, size = CARD_SIZE) {
+  const g = GROUNDS[0];
+  return `<div class="iso-card">
+    <div class="iso-hd">
+      <span class="glyph" style="color:${g.attention}">${markSvg(mark, { size })}</span>
+      <span class="iso-title">Re-review the activity icon set</span>
+      <span class="iso-badge">#12</span>
+    </div>
+    <p class="iso-desc">Adopting the set in the desktop app surfaced a display problem the selection process did not catch.</p>
+  </div>`;
+}
+
+/** ActivityReasonTooltip, at its real 12px, beside its real copy. */
+function tooltipMock(mark) {
+  const g = GROUNDS[0];
+  return `<div class="iso-tip"><span class="glyph" style="color:${g.attention}">${markSvg(mark, {
+    size: TOOLTIP_SIZE,
+  })}</span><span>Idle for 4m</span></div>`;
+}
+
+function isolationSection() {
+  const tag = (r) =>
+    r.control ? `<span class="iso-tag iso-tag--prod">production</span>`
+    : r.shipped ? `<span class="iso-tag iso-tag--ship">shipped 2.5.0</span>`
+    : "";
+  const cell = (r) => `<figure class="iso${r.control ? " iso--control" : ""}${r.shipped ? " iso--shipped" : ""}">
+      ${taskCardMock(r.mark)}
+      ${tooltipMock(r.mark)}
+      <figcaption>
+        <span class="iso-name"><b>${r.id}</b>${tag(r)}</span>
+        <span>${r.box.w} x ${r.box.h}, aspect ${r.box.aspect}</span>
+        <span>flap ${deg(r.flap.angle)} deg, ink ${deg(r.ink)}</span>
+      </figcaption>
+    </figure>`;
+  return `<div class="iso-grid">${ISO_ROWS.map(cell).join("")}</div>`;
+}
+
+/**
+ * The recognition ladder. Adjacency IS wanted here - you cannot judge "does this
+ * read as mail" without something to read it against - but there is no alignment
+ * datum and no sibling mark from the set in any cell. Each cell is one glyph,
+ * alone, at a real render size.
+ */
+function recognitionLadder() {
+  const g = GROUNDS[0];
+  const where = { 12: "tooltip", 14: "task card", 16: "sidebar today", 20: "controls", 24: "natural" };
+  const head =
+    `<div class="grid-cell grid-cell--rowhead"></div>` +
+    ISO_SIZES.map((s) => `<div class="grid-cell"><b>${s}px</b><span>${where[s] ?? ""}</span></div>`).join("");
+  const rows = ISO_ROWS.map(
+    (r) => `<div class="grid-row${r.control ? " grid-row--base" : ""}">
+      <div class="grid-cell grid-cell--rowhead"><b>${r.id}</b><span>${r.box.w} x ${r.box.h}</span></div>
+      ${ISO_SIZES.map(
+        (s) =>
+          `<div class="grid-cell"><span class="recog" style="color:${g.attention}">${markSvg(r.mark, { size: s })}</span></div>`,
+      ).join("")}
+    </div>`,
+  ).join("");
+  return grid(`150px repeat(${ISO_SIZES.length}, minmax(64px, 1fr))`, head, rows);
+}
+
+// ---------------------------------------------------------------------------
+// THE BOX STUDY. The candidates at size, with every number that decides them
+// printed rather than asserted, and the alignment cost on the same screen as
+// the recognition win.
+// ---------------------------------------------------------------------------
+
+function boxSpecimens() {
+  const g = GROUNDS[0];
+  return `<div class="dir-big">${ISO_ROWS.map(
+    (r) => `<figure class="big">
+      <span class="glyph" style="color:${g.attention}">${markSvg(r.mark, { size: 96 })}</span>
+      <figcaption>${r.id}
+        <span>${r.box.w} x ${r.box.h}, aspect ${r.box.aspect}</span>
+        <span>flap ${deg(r.flap.angle)} deg, depth ${r.flap.depth}</span>
+        <span>ink ${deg(r.ink)}</span>
+      </figcaption>
+    </figure>`,
+  ).join("")}</div>`;
+}
+
+/**
+ * The alignment cost, in the instrument that measures it: counters in fixed
+ * cells against a hairline datum. Only `stock` should move the column, because
+ * only `stock` is not 18 wide. This is the cell that answers "is the alignment
+ * win worth anything" - without it, that question has no evidence either way.
+ */
+function boxAlignmentBand() {
+  const g = GROUNDS[0];
+  const working = d1.marks.find((m) => m.id === "agent-working");
+  const term = pickTerminal(d1, "idle");
+  const cell = (mark, count) => `<span class="align-cell">${counterHtml(g, mark, count)}</span>`;
+  return `<div class="align" style="background:${g.bg}">${ISO_ROWS.map(
+    (r) => `<div class="align-group${r.control ? " align-group--base" : ""}">
+      <span class="align-id">${r.id}<em>${r.box.w} x ${r.box.h}</em></span>
+      <div class="align-lines">
+        <div class="align-line">
+          <span class="align-name">kangentic</span>
+          <span class="align-counts">${cell(r.mark, 2)}${cell(working, 1)}${cell(term, 1)}</span>
+        </div>
+      </div>
+    </div>`,
+  ).join("")}</div>`;
+}
+
+/**
+ * The coupling the last round missed, rendered.
+ *
+ * Flap ratios are fractions of the box, so transplanting them onto a box of a
+ * different aspect does NOT carry the angle across: the half-width changes with
+ * the width and the depth changes with the height. Read a row across and the
+ * same named flap yields a different V on every box.
+ */
+function flapCouplingTable() {
+  const g = GROUNDS[0];
+  // One column per distinct BOX, so the same named flap can be read across.
+  const boxes = ENVELOPE_CANDIDATES.filter(
+    (c, i, a) => a.findIndex((o) => o.w === c.w && o.h === c.h) === i,
+  ).map((c) => envelopeBox(c.id));
+  const head =
+    `<div class="grid-cell grid-cell--rowhead"><b>flap</b><span>ratios of box height</span></div>` +
+    boxes.map((b) => `<div class="grid-cell"><b>${b.w} x ${b.h}</b><span>half-width ${b.w / 2}</span></div>`).join("");
+  const rows = FLAP_VARIANTS.map((v) => {
+    const cells = boxes
+      .map((b) => {
+        const f = flapVariant(v.id, b.id);
+        const svg = markSvg({ ...envMark(b), ...envelopeWith(b.id, v.id) }, { size: 34 });
+        return `<div class="grid-cell grid-cell--flap"><span class="recog" style="color:${g.attention}">${svg}</span><span class="deg">${deg(f.angle)} deg</span></div>`;
+      })
+      .join("");
+    return `<div class="grid-row${v.id === FLAP_DEFAULT ? " grid-row--base" : ""}">
+      <div class="grid-cell grid-cell--rowhead"><b>${v.id}</b><span>${v.top} / ${v.vertex}</span></div>
+      ${cells}
+    </div>`;
+  }).join("");
+  return grid(`150px repeat(${boxes.length}, minmax(110px, 1fr))`, head, rows);
+}
 
 /** The project sidebar row, rebuilt from the live DOM this set has to fit. */
 function sidebarRow(g, dir, { terminal = true } = {}) {
@@ -634,6 +878,30 @@ table { border-collapse:collapse; font-family:var(--mono); font-size:0.8rem; fon
 .tone { flex:1; display:flex; flex-direction:column; align-items:center; gap:9px; }
 .tone figcaption { font-family:var(--mono); font-size:0.62rem; color:#8a8177; }
 
+/* One mark, alone. The card mock is the real TaskCard chrome, read off the
+   running desktop app: bg-surface-raised #2a2320, border-edge #463e38, radius 6,
+   p-2.5, a 14px/500 title and a 12px mono ID badge. */
+.iso-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+.iso { display:flex; flex-direction:column; gap:14px; background:#211c19; border:1px solid var(--rule); border-radius:2px; padding:20px 18px; }
+.iso--control { border-color:#8a8177; }
+.iso--shipped { border-color:#e3b341; }
+.iso-card { width:100%; max-width:272px; background:#2a2320; border:1px solid #463e38; border-radius:6px; padding:10px; display:flex; flex-direction:column; gap:4px; }
+.iso-hd { display:flex; align-items:center; gap:6px; }
+.iso-title { font-family:ui-sans-serif,system-ui,sans-serif; font-size:14px; font-weight:500; color:#e6e2de; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+.iso-badge { flex-shrink:0; font-family:var(--mono); font-size:12px; color:#8a8177; }
+.iso-desc { font-family:ui-sans-serif,system-ui,sans-serif; font-size:12px; color:#7d746a; line-height:1.45; margin:0; max-width:none; }
+.iso-tip { display:inline-flex; align-items:center; gap:6px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:12px; color:#7d746a; }
+.iso figcaption { font-family:var(--mono); font-size:0.68rem; color:#d6d1c9; display:flex; flex-direction:column; gap:3px; margin-top:auto; }
+.iso figcaption span { color:#8a8177; font-size:0.62rem; }
+.iso-name { display:flex; align-items:center; gap:8px; }
+.iso-name b { color:#d6d1c9; font-size:0.68rem; font-weight:600; }
+.iso-tag { padding:1px 6px; border-radius:2px; font-size:0.56rem; letter-spacing:0.06em; text-transform:uppercase; }
+.iso-tag--prod { background:rgba(138,129,119,0.22); color:#c9c2b8; }
+.iso-tag--ship { background:rgba(227,179,65,0.18); color:#e3b341; }
+.recog { display:inline-flex; }
+.grid-cell--flap { align-items:center; gap:7px; }
+.deg { font-family:var(--mono); font-size:0.6rem; color:#8a8177; }
+
 .motion-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; }
 .motion-cell { background:#211c19; border-radius:2px; padding:22px; display:flex; flex-direction:column; align-items:center; gap:14px; }
 .motion-cell figcaption { font-family:var(--mono); font-size:0.68rem; color:#d6d1c9; text-align:center; display:flex; flex-direction:column; gap:3px; }
@@ -680,7 +948,8 @@ ${CSS}
         <tr><td>Command Terminal chip</td><td>18 x 18</td><td>10.50 x 10.50</td></tr>
       </tbody>
     </table></div>
-    <p class="note">Bounding boxes match and areas are within 1 percent. The aspect ratios do not, so scaling cannot reconcile them. Every candidate below is redrawn on one ${INK_BOX} x ${INK_BOX} ink box inside a ${VIEW} viewBox, stroke ${STROKE}, currentColor only.</p>
+    <p class="note">The aspect ratios do not match, so scaling cannot reconcile them. Every mark in the set is redrawn on a ${VIEW} viewBox at stroke ${STROKE}, currentColor only, filling an ${INK_BOX} x ${INK_BOX} ink box. <b>The envelope is the one mark where that last clause is under review</b>, and the section below is why.</p>
+    <p class="note">On area, corrected. This page used to argue from enclosed area, which for a <b>stroked</b> glyph is the wrong measure: optical weight is ink length times stroke width. Measured rather than asserted, in grid units: the shipped square envelope carries <b>${deg(envelopeInk("square"))}</b> of ink, the 1.25-aspect candidate <b>${deg(envelopeInk("mail"))}</b>, the terminal chip <b>${deg(chipInk())}</b>, the ring <b>${deg(ringInk())}</b>. By area the shorter envelope looks 20 percent light; by ink it lands within 5 percent of the chip, and the <b>square one is the outlier</b>, ${Math.round(((envelopeInk("square") - chipInk()) / chipInk()) * 100)} percent heavier than its own neighbour.</p>
     <div class="bar">
       <button id="freeze" aria-pressed="false">Freeze motion</button>
       <button id="rest" aria-pressed="false">Preview reduced motion</button>
@@ -690,11 +959,47 @@ ${CSS}
 
   <section>
     <div class="sec-hd">
+      <h2>One mark, alone</h2>
+      <p>Read this section first, and read it before anything else on this page. Every other cell here is comparative <b>by construction</b>: stacked rows, adjacency pairs, counters in fixed cells against a hairline datum. That is the right instrument for an ink-box question and the wrong one for a recognition question, because a mark that only fails with nothing beside it has no cell that can see it.</p>
+      <p>The board renders <b>one</b> mark on a card. Below is that card, with the real chrome read off the running desktop app, carrying one envelope and no sibling glyph, at the ${CARD_SIZE}px the task card actually uses. Beneath each is the activity tooltip at ${TOOLTIP_SIZE}px.</p>
+      <p class="note">The previous round asserted this view would be uninformative, and used that assertion to justify not building it: <b>"a redrawn envelope looks almost identical to the stock one on its own, because what changed is the ink box, and an ink box is only visible next to another one."</b> That claim is what shipped a mark nobody had looked at alone.</p>
+      <p class="note"><b>Acceptance test for this section.</b> It has to make the <b>shipped</b> envelope look wrong. If <span class="mono">square</span> renders here and reads fine, then the mock is not faithful and the fix is the mock, not the criterion. The failure is real and there is a live screenshot of it, so a clean <span class="mono">square</span> cell is evidence of a bad mock, never evidence that the re-review was unnecessary.</p>
+    </div>
+    ${isolationSection()}
+    <p class="note">The same six glyphs, each alone, down the sizes each one actually renders at. Adjacency is wanted here, because you cannot judge whether something reads as mail without something to read it against, but there is <b>no alignment datum and no sibling mark from the set</b> in any cell. ${LEGIBILITY_FLOOR_PX}px is not optional: absolute flap depth drops from ${flapVariant("standard", "square").depth} to ${flapVariant("standard", "mail").depth} on the shortest box, so that is where the V could merge into the top edge.</p>
+    ${recognitionLadder()}
+    <p class="note">Note on the failing size: the screenshot that started this arrived after the desktop sidebar had been bumped ${ROW_SIZE} to 16 while the task card stayed at ${CARD_SIZE}, and nothing in that record pins which surface the image showed. The ladder covers every case; the ${CARD_SIZE}px card mock above should not be read as <em>the</em> reproduction.</p>
+  </section>
+
+  <section>
+    <div class="sec-hd">
+      <h2>The envelope's box, and the flap angle that rides with it</h2>
+      <p>The set exists because the stock marks disagreed: the loader and the terminal filled ${INK_BOX} x ${INK_BOX}, the mail filled 20 x 16. The fix was to redraw on one box. What that round did not separate is that the mail was two things at once, <b>wider and shorter</b>, and only the width was ever costing anything. Ink <b>width</b> is what aligns the tabular counter column, because the ring's diameter is ${INK_BOX} and the chip is ${INK_BOX} wide. Height contributes nothing to that column.</p>
+      <p>So the candidates below hold width at ${INK_BOX} and vary height, except <span class="mono">stock</span>, which is the reference box drawn on this set's construction and the <b>only</b> candidate that moves the column at all. Without it there is no evidence either way about whether the alignment win is worth its cost.</p>
+    </div>
+    ${boxSpecimens()}
+    <p class="note">Every number that decides this is printed rather than asserted. Aspect, flap angle, flap depth, and ink length in grid units.</p>
+    ${boxAlignmentBand()}
+    <p class="note">The alignment instrument, applied to the candidates: counters in fixed cells with a hairline datum. Only <span class="mono">stock</span> should move the column, because only <span class="mono">stock</span> is not ${INK_BOX} wide. Every ${INK_BOX}-wide candidate keeps the column the set was built to fix, whatever its height.</p>
+  </section>
+
+  <section>
+    <div class="sec-hd">
+      <h2>Why the box and the flap are one decision</h2>
+      <p>Flap ratios are fractions of the box, so transplanting them onto a box of a different aspect does <b>not</b> carry the angle across: the half-width moves with the width and the depth moves with the height. The angle is <span class="mono">2*atan((w/2)/depth)</span>, and it is what the eye actually reads.</p>
+      <p class="note">This is the coupling the last round missed. It recorded that the selected flap "takes the reference glyph's flap ratios and puts them on this set's ${INK_BOX} x ${INK_BOX} box, so the angle is the reference's and the ink box is ours." The ratios carried; the angle did not. The reference glyph's V is <b>${angleOf(FLAP_DEFAULT, "stock")} degrees</b>; the same ratios on the square box give <b>${angleOf(FLAP_DEFAULT, "square")} degrees</b>, which is ${(flapVariant(FLAP_DEFAULT, "stock").angle - flapVariant(FLAP_DEFAULT, "square").angle).toFixed(1)} degrees pointier and sits only ${(flapVariant(FLAP_DEFAULT, "square").angle - flapVariant("deep", "square").angle).toFixed(1)} degrees off <span class="mono">deep</span>, the draft that same round rejected as too pointy. Read a row across the table below and watch one named flap become three different Vs.</p>
+    </div>
+    ${flapCouplingTable()}
+    <p class="note">Two things fall out. A uniform scale preserves angles, so the ${INK_BOX} x ${envelopeBox("mail").h} candidate is the reference glyph at 0.9 and lands back on <b>${angleOf(FLAP_DEFAULT, "mail")} degrees</b> for free. And the 2026-07-28 target of "depth 6 to 6.5" was set on an ${INK_BOX}-tall box and does not transfer: on a shorter box the same angle wants a shallower depth, so holding depth constant across boxes is holding the wrong number.</p>
+  </section>
+
+  <section>
+    <div class="sec-hd">
       <h2>Every direction as the project panel would render it</h2>
       <p>Two project rows per direction, at ${ROW_SIZE}px, with the counts that are always beside these marks in the real sidebar. Two rows because the Command Terminal aggregates to <b>one tone per project</b>: the first project's terminal is amber and still, the second's is green and marching, so both terminal states are on screen at once the way the real sidebar shows them. The top pair is what ships today. Each counter sits in a fixed cell with a hairline datum, so a glyph that is wider or shorter than its neighbours has nowhere to hide.</p>
     </div>
     ${alignmentBand()}
-    <p class="note">Read this one first and the rest of the page as evidence for it. A redrawn envelope looks almost identical to the stock one on its own, because what changed is the <b>ink box</b>, and an ink box is only visible next to another one.</p>
+    <p class="note">This band measures one thing well: whether the counters line up. It cannot see a recognition failure, because every glyph in it has a neighbour and a datum. That is not a flaw in the band, it is its scope. <b>The claim that used to sit here</b> - that an ink box is only visible next to another one, so a mark alone is uninformative - generalised this band's scope into a reason not to look at a mark alone. It is wrong, and the section at the top of this page is what replaces it.</p>
   </section>
 
   <section>
@@ -756,7 +1061,7 @@ ${CSS}
       <h2>Notes</h2>
     </div>
     <p class="note">Marks ship as <b>currentColor</b> only, so each surface applies its own tokens. Desktop is #e3b341 and #34d399, mobile is #d9b83f and #3ddc84, the website is #d98324 and #218a4c. The geometry never sees a hex.</p>
-    <p class="note">Envelope flap: <b>${FLAP_DEFAULT}</b>, depth ${flapVariant(FLAP_DEFAULT).depth}, vertex ${flapVariant(FLAP_DEFAULT).angle} degrees, settled 2026-07-28 from a six-variant study. It takes lucide Mail's flap ratios and puts them on this set's ${INK_BOX} x ${INK_BOX} box, so the angle is lucide's and the ink box is ours. The rejected variants stay declared in <span class="mono">lib/activity.mjs</span>; the first draft at depth ${flapVariant("deep").depth} read as a downward arrow rather than a flap.</p>
+    <p class="note">Envelope flap: <b>${FLAP_DEFAULT}</b>, on the shipped box depth ${flapVariant(FLAP_DEFAULT, "square").depth}, vertex <b>${angleOf(FLAP_DEFAULT, "square")} degrees</b>, settled 2026-07-28 from a six-variant study. <b>Corrected 2026-07-29:</b> that round recorded this as taking the reference glyph's flap ratios onto this set's ${INK_BOX} x ${INK_BOX} box "so the angle is the reference's and the ink box is ours". The ratios carried; the angle did not, because the box changed in both dimensions. The reference V is ${angleOf(FLAP_DEFAULT, "stock")} degrees and the shipped one is ${angleOf(FLAP_DEFAULT, "square")}, which is only ${(flapVariant(FLAP_DEFAULT, "square").angle - flapVariant("deep", "square").angle).toFixed(1)} degrees off <span class="mono">deep</span> - the draft that same round rejected as a downward arrow rather than a flap. The rejected variants stay declared in <span class="mono">lib/activity.mjs</span>.</p>
     <p class="note">The set is <b>five marks</b>: two agent indicators, the terminal indicator, and the two controls. The controls were never candidates. They are the rest of the family, and they come in for the same reason the indicators do: the <span class="mono">47 16</span> dash they carry today is hand-computed and duplicated across two desktop files, so it breaks silently the moment the radius changes. On this set's grid that becomes the same pathLength 75/25 every other mark uses.</p>
     <p class="note">Two floors, not one. Indicators bottom out at <b>${LEGIBILITY_FLOOR_PX}px</b>; the <b>controls bottom out at ${CONTROL_FLOOR_PX}px</b>, because their centred glyph gets a fraction of an already small box and the pause bars merge into a single dot below that. Both render comfortably above their floor today, at ${ROW_SIZE} and ${CONTROL_RENDER_PX}.</p>
     <p class="note">The legibility floor for indicators is <b>${LEGIBILITY_FLOOR_PX}px</b>. Below it the ${STROKE}px stroke falls under one device pixel and the glyph smears, so a consumer rendering smaller uses a dot. The desktop terminal panel already renders at 8px and stays a dot.</p>
@@ -841,3 +1146,112 @@ for (const g of GROUNDS) {
   await sharp(Buffer.from(doc)).png().toFile(join(OUT, `_sheet-${g.id}.png`));
 }
 console.log(`Wrote ${GROUNDS.length} size strips -> exploration/activity/_sheet-*.png`);
+
+// ---------------------------------------------------------------------------
+// The isolation sheet. The same instrument as the section at the top of
+// compare.html, rendered to PNG so /brand-review reads a real artifact rather
+// than a re-derivation - the discipline the mobile review sheet already follows.
+//
+// One mark, on the real task card, with no sibling glyph and no alignment datum,
+// then the same mark alone down the sizes it renders at. This is the view whose
+// absence let a square envelope ship.
+// ---------------------------------------------------------------------------
+
+const isoSheet = async (g) => {
+  const PAD = 22;
+  const LABEL = 132;
+  const CARD_W = CARD.w;
+  const CARD_H = 58;
+  const CELL = 48;
+  const ROW = CARD_H + 20;
+  const ladderX = PAD + LABEL + CARD_W + 26;
+  const W = ladderX + ISO_SIZES.length * CELL + PAD;
+  const H = PAD + 20 + ISO_ROWS.length * ROW + PAD;
+
+  const glyph = (m, size, x, y, color) =>
+    `<g transform="translate(${x},${y}) scale(${size / VIEW})" fill="none" stroke="${color}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${stripInner(
+      markSvg(m, { size, resting: true }),
+    )}</g>`;
+
+  const parts = [
+    `<text x="${PAD}" y="${PAD + 8}" font-family="monospace" font-size="10" fill="${g.soft}">one mark, alone</text>`,
+    ...ISO_SIZES.map(
+      (s, i) =>
+        `<text x="${ladderX + i * CELL + CELL / 2}" y="${PAD + 8}" text-anchor="middle" font-family="monospace" font-size="10" fill="${g.soft}">${s}</text>`,
+    ),
+  ];
+
+  ISO_ROWS.forEach((r, i) => {
+    const y = PAD + 20 + i * ROW;
+    const tone = g.attention;
+    // The label column.
+    parts.push(
+      `<text x="${PAD}" y="${y + 20}" font-family="monospace" font-size="11" fill="${g.fg}">${r.id}</text>`,
+      `<text x="${PAD}" y="${y + 34}" font-family="monospace" font-size="9" fill="${g.soft}">${r.box.w} x ${r.box.h}  a${r.box.aspect}</text>`,
+      `<text x="${PAD}" y="${y + 46}" font-family="monospace" font-size="9" fill="${g.soft}">${r.flap.angle.toFixed(1)} deg</text>`,
+    );
+    // The task card, carrying exactly one mark.
+    const cx = PAD + LABEL;
+    const sk = cardSkin(g);
+    parts.push(
+      `<rect x="${cx}" y="${y}" width="${CARD_W}" height="${CARD_H}" rx="${CARD.radius}" fill="${sk.bg}" stroke="${sk.border}" stroke-opacity="${sk.borderOpacity}"/>`,
+      glyph(r.mark, CARD_SIZE, cx + 10, y + 11, tone),
+      `<text x="${cx + 10 + CARD_SIZE + 6}" y="${y + 22}" font-family="sans-serif" font-size="14" font-weight="500" fill="${sk.title}">Re-review the envelope</text>`,
+      `<text x="${cx + CARD_W - 10}" y="${y + 22}" text-anchor="end" font-family="monospace" font-size="12" fill="${sk.desc}">#12</text>`,
+      `<text x="${cx + 10}" y="${y + 43}" font-family="sans-serif" font-size="12" fill="${sk.desc}">Adopting the set surfaced a display problem.</text>`,
+    );
+    // The same mark alone, down the ladder.
+    ISO_SIZES.forEach((s, j) => {
+      parts.push(glyph(r.mark, s, ladderX + j * CELL + (CELL - s) / 2, y + (CARD_H - s) / 2, tone));
+    });
+  });
+
+  const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${g.bg}"/>${parts.join("")}</svg>`;
+  await sharp(Buffer.from(doc)).png().toFile(join(OUT, `_isolation-${g.id}.png`));
+};
+
+for (const g of GROUNDS) await isoSheet(g);
+console.log(`Wrote ${GROUNDS.length} isolation sheets -> exploration/activity/_isolation-*.png`);
+
+// Pixel truth, per the icon-drafting review discipline: render at the target
+// size and nearest-upscale, so what is being judged is the pixels the surface
+// actually paints rather than a smooth vector at review size. Judged at the
+// task card's 14px, which is where the failure was reported.
+const ZOOM = 8;
+const zoomSheet = async (g) => {
+  const S = CARD_SIZE;
+  const TILE = S * ZOOM;
+  const GAP = 16;
+  const PAD = 22;
+  const TOP = 52;
+  const W = PAD * 2 + ISO_ROWS.length * TILE + (ISO_ROWS.length - 1) * GAP;
+  const H = TOP + TILE + 46;
+
+  const labels = ISO_ROWS.map((r, i) => {
+    const x = PAD + i * (TILE + GAP);
+    return (
+      `<text x="${x}" y="${TOP - 14}" font-family="monospace" font-size="12" fill="${g.fg}">${r.id}</text>` +
+      `<text x="${x}" y="${TOP + TILE + 18}" font-family="monospace" font-size="10" fill="${g.soft}">${r.box.w} x ${r.box.h}, a${r.box.aspect}</text>` +
+      `<text x="${x}" y="${TOP + TILE + 32}" font-family="monospace" font-size="10" fill="${g.soft}">flap ${r.flap.angle.toFixed(1)} deg</text>`
+    );
+  }).join("");
+
+  const base = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${g.bg}"/><text x="${PAD}" y="${16}" font-family="monospace" font-size="10" fill="${g.soft}">pixel truth: each mark rendered at ${S}px on the task card ground, nearest-upscaled x${ZOOM}</text>${labels}</svg>`;
+
+  const composites = [];
+  for (const [i, r] of ISO_ROWS.entries()) {
+    const one = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${VIEW} ${VIEW}"><rect width="${VIEW}" height="${VIEW}" fill="${cardSkin(g).bg}"/><g fill="none" stroke="${g.attention}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${stripInner(
+      markSvg(r.mark, { size: S, resting: true }),
+    )}</g></svg>`;
+    const tile = await sharp(Buffer.from(one))
+      .png()
+      .resize(TILE, TILE, { kernel: "nearest" })
+      .toBuffer();
+    composites.push({ input: tile, left: PAD + i * (TILE + GAP), top: TOP });
+  }
+
+  await sharp(Buffer.from(base)).composite(composites).png().toFile(join(OUT, `_isolation-zoom-${g.id}.png`));
+};
+
+for (const g of GROUNDS) await zoomSheet(g);
+console.log(`Wrote ${GROUNDS.length} pixel-truth zooms -> exploration/activity/_isolation-zoom-*.png`);
