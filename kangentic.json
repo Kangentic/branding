@@ -26,18 +26,6 @@
       "modelOverride": "claude-opus-5"
     },
     {
-      "id": "e517ee41-ce43-4d6c-8b7e-3e326dcb4618",
-      "name": "Brand Review",
-      "icon": "palette",
-      "color": "#f59e0b",
-      "autoSpawn": true,
-      "autoCommand": "/brand-review",
-      "modelOverride": "claude-opus-5",
-      "effortOverride": "high",
-      "sessionTarget": "isolated",
-      "sessionSpawnStrategy": "always_spawn_new"
-    },
-    {
       "id": "6cf089e1-23f9-4241-b16d-5dfbf5640970",
       "name": "Testing",
       "icon": "flask-conical",
