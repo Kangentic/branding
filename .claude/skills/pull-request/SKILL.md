@@ -60,6 +60,7 @@ the local proof of correctness.
    - `npm run gen:icons`
    - `npm run gen:sprites`
    - `npm run gen:og`
+   - `npm run gen:activity`
    If any generator errors, report it and stop.
 3. Run `git status --porcelain -- assets/ resources/`. It MUST be empty. If anything changed, a
    generator was changed without committing its regenerated output, or an asset was hand-edited

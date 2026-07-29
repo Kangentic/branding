@@ -21,6 +21,18 @@ import { fileURLToPath } from "node:url";
 // lib/mark.mjs is pure declarations and pure functions - importing it has no
 // side effects and pulls in no third-party dependency.
 import { f4kParts, f4kAlphaParts } from "./lib/mark.mjs";
+// Same contract: pure declarations and pure functions, no side effects. The
+// promoted-direction guard is a FUNCTION in that lib rather than a module-scope
+// throw, precisely so importing it here cannot crash the gate.
+import {
+  VIEW as A_VIEW,
+  STROKE as A_STROKE,
+  fileFor as aFileFor,
+  manifest as aManifest,
+  markSvg as aMarkSvg,
+  motionCss as aMotionCss,
+  shippedSet as aShippedSet,
+} from "./lib/activity.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
@@ -40,6 +52,15 @@ const spriteSvgs = () => {
   return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/mascot/${f}`);
 };
 
+// Globbed for the same reason the mascot list is: an enumerated list goes stale
+// the moment a mark is added, and the new file is then invisible to PALETTE and
+// BANNED without anything failing.
+const activitySvgs = () => {
+  const dir = join(ROOT, "assets", "activity");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/activity/${f}`);
+};
+
 // Shipped vector assets consumers embed. resources/web/brandmark*.svg are
 // byte copies of the assets/ ones (gen-icons copyFile), scanned for defense.
 // The mascot list is globbed, not enumerated: pose frames used to be invisible
@@ -52,6 +73,7 @@ const SHIPPED_SVG = [
   "assets/brandmark-mono.svg",
   "assets/brandmark-mono-amber.svg",
   ...spriteSvgs(),
+  ...activitySvgs(),
   "resources/web/brandmark.svg",
   "resources/web/brandmark-small.svg",
 ].filter(has);
@@ -318,12 +340,117 @@ checks.ANIMATION = () => {
   if (pkg.exports && !pkg.exports["./assets/*"]) {
     findings.push('package.json: "exports" map without "./assets/*" (breaks consumer deep imports of assets/)');
   }
+  // resources/ is deep-imported too - electron-builder.yml and the website's
+  // sync script both reach into it - and it was not covered here.
+  if (pkg.exports && !pkg.exports["./resources/*"]) {
+    findings.push('package.json: "exports" map without "./resources/*" (breaks consumer deep imports of resources/)');
+  }
+
+  return findings;
+};
+
+// 8. The activity icon set (activity-icon-geometry). Five things a grep can
+//    decide, and one it cannot: the strongest assertion here is BEHAVIOURAL,
+//    following how TIERING imports the mark builders - the shipped SVG bytes
+//    must equal what lib/activity.mjs produces, so a hand-edit or a stale
+//    commit fails here rather than at the next regeneration.
+checks.ACTIVITY = () => {
+  const jsonPath = "assets/activity/activity.json";
+  const cssPath = "assets/activity/activity.css";
+  const svgs = activitySvgs();
+  if (!svgs.length) return []; // set not promoted yet: nothing to enforce
+  if (!has(jsonPath) || !has(cssPath)) return [`${jsonPath} / ${cssPath} missing (run npm run gen:activity)`];
+
+  const findings = [];
+  let set;
+  try {
+    set = aShippedSet();
+  } catch (e) {
+    return [`lib/activity.mjs: ${e.message}`];
+  }
+
+  // Grid contract: one viewBox, one stroke weight, currentColor only. A hex in
+  // an activity SVG would defeat the whole point - these tint per surface, and
+  // the three consumers do NOT share status token values.
+  for (const p of svgs) {
+    const src = load(p);
+    if (!src.includes(`viewBox="0 0 ${A_VIEW} ${A_VIEW}"`)) findings.push(`${p}: not on the ${A_VIEW} grid`);
+    if (!src.includes(`stroke-width="${A_STROKE}"`)) findings.push(`${p}: stroke-width is not ${A_STROKE}`);
+    if (hexes(src).length) findings.push(`${p}: carries a hex color (activity marks are currentColor only)`);
+    if (!/stroke="currentColor"/.test(src)) findings.push(`${p}: no currentColor stroke`);
+  }
+
+  // Behavioural: bytes must equal the builder output, mark for mark.
+  const expected = new Set();
+  for (const m of set.marks) {
+    const p = `assets/activity/${aFileFor(m)}`;
+    expected.add(aFileFor(m));
+    if (!has(p)) {
+      findings.push(`${p}: missing (declared by lib/activity.mjs)`);
+      continue;
+    }
+    if (load(p) !== aMarkSvg(m, { size: A_VIEW }) + "\n") {
+      findings.push(`${p}: drifts from lib/activity.mjs output (regenerate, never hand-edit)`);
+    }
+  }
+  for (const f of svgs.map((p) => basename(p))) {
+    if (!expected.has(f)) findings.push(`assets/activity/${f}: not declared by lib/activity.mjs (stale file)`);
+  }
+
+  // The manifest and the CSS are one contract; check them against each other.
+  let manifest;
+  try {
+    manifest = JSON.parse(load(jsonPath));
+  } catch (e) {
+    return [...findings, `${jsonPath}: not valid JSON (${e.message})`];
+  }
+  if (load(jsonPath) !== JSON.stringify(aManifest(), null, 2) + "\n") {
+    findings.push(`${jsonPath}: drifts from lib/activity.mjs output`);
+  }
+  if (load(cssPath) !== aMotionCss() + "\n") findings.push(`${cssPath}: drifts from lib/activity.mjs output`);
+
+  const css = load(cssPath);
+  for (const [id, m] of Object.entries(manifest.marks ?? {})) {
+    if (!has(`assets/activity/${m.file}`)) findings.push(`${jsonPath}: mark "${id}" names a missing file ${m.file}`);
+    // A mark that declares motion needs a keyframe track, or it ships still.
+    if (m.motion && !css.includes(`@keyframes ${manifest.motion?.[m.motion]?.keyframes}`)) {
+      findings.push(`${id}: motion "${m.motion}" has no keyframes in ${cssPath}`);
+    }
+    // A dash in ratio units is useless to a runtime without pathLength, which
+    // is the majority of what this package ships to. Both must be present.
+    if (m.dash && !m.dashUserUnits) findings.push(`${id}: dash without dashUserUnits (breaks react-native-svg and librsvg)`);
+    // The declared rest rendering has to actually exist in the CSS, not just be
+    // asserted in the manifest.
+    if (m.reducedMotion === "drop-dash" && !/prefers-reduced-motion[\s\S]*drop-dash[\s\S]*stroke-dasharray:\s*none/.test(css)) {
+      findings.push(`${id}: declares drop-dash but ${cssPath} never clears the dash under reduced motion`);
+    }
+  }
+
+  // Same two compositing rules the mascot motion carries, for the same reasons.
+  if (/fill-mode|animation:[^;]*\b(?:forwards|backwards|both)\b/.test(css)) {
+    findings.push(`${cssPath}: uses an animation fill mode (breaks a zeroed animation-duration)`);
+  }
+  if (!/prefers-reduced-motion/.test(css)) findings.push(`${cssPath}: no prefers-reduced-motion block`);
+
+  // Single-source geometry, the FROZEN-K rule applied to this set.
+  const GEO = ["INK_BOX", "R_ENVELOPE", "R_CHIP", "RING_R", "FLAP_VARIANTS", "PROMPT_D", "CONTROL_RING_R", "DASH_SPINNER", "DASH_CHIP"];
+  const owners = scriptFiles().filter(
+    (f) => rel(f) !== "scripts/lib/activity.mjs" && rel(f) !== "scripts/check-invariants.mjs",
+  );
+  for (const f of owners) {
+    const src = read(f);
+    for (const name of GEO) {
+      if (new RegExp(`(?:^|\\s)(?:export\\s+)?(?:const|let|var)\\s+${name}\\s*=`).test(src)) {
+        findings.push(`${rel(f)}: re-declares activity constant ${name} (declare only in lib/activity.mjs)`);
+      }
+    }
+  }
 
   return findings;
 };
 
 // ---------------------------------------------------------------------------
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {

@@ -37,6 +37,7 @@ jobs:
           npm run gen:icons
           npm run gen:sprites
           npm run gen:og
+          npm run gen:activity
           if [ -n "$(git status --porcelain -- assets/ resources/)" ]; then
             echo "::error::Committed assets/ or resources/ drift from generator output. Regenerate and commit."
             git status --porcelain -- assets/ resources/
