@@ -126,8 +126,9 @@ Rules worth knowing before you build your own player:
 ## Activity icons
 
 `assets/activity/` holds the agent, Command Terminal and pause/stop status
-marks the desktop app, the mobile app and the website all render in-app. Nine
-marks, four silhouettes, on one 24 grid with an 18x18 ink box and a 2px stroke.
+marks this package owns for the desktop app, the mobile app and the website to
+render in-app. Nine marks, four silhouettes, on one 24 grid with an 18x18 ink
+box and a 2px stroke.
 
 ```
 agent-idle              envelope        needs you, static
@@ -144,6 +145,24 @@ control-stop-working    ring + square   working, marching
 Every mark is `currentColor`, so **you apply your own tokens**. Do not hardcode
 a hex: the three consumers deliberately differ (desktop `#34d399`/`#e3b341`,
 mobile `#3ddc84`/`#d9b83f`, web `#218a4c`/`#d98324`).
+
+**Why they differ, since "deliberately" invites the question (measured
+2026-07-30): ground luminance forces it.** Desktop and mobile paint on near-black
+(`#211c19`, `#0f0d0a`); the website paints on cream (`#fdfbf7`). All four
+dark-theme values land at **1.73 to 1.88:1 on cream**, far under the 3:1 floor
+for non-text, so the website could not adopt them at any price. The website's
+darker pair does clear 3:1 on both dark grounds, but at roughly half the contrast
+the native values reach (3.86 to 6.67 against 8.67 to 10.87), and these are 2px
+strokes with a 12px legibility floor. Each surface then anchors its values to its
+own system: desktop to its Tailwind ramp, mobile to its terminal ANSI palette so
+status agrees with terminal output, the website to the `design-language` lamps.
+
+The website itself demonstrates the mechanism: for its own warm-black terminal
+ground it carries a separate lifted pair (`--term-green`/`--term-red`) rather than
+reusing its cream lamps there, for exactly this reason.
+And one hex can mean two different things across surfaces, which is the sharpest
+argument for never baking one in: `#d9b83f` is mobile's *attention* amber and the
+desktop's *caution* band.
 
 ```html
 <link rel="stylesheet" href="…/assets/activity/activity.css">

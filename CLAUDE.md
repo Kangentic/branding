@@ -51,8 +51,11 @@ scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
                           exploration/review/ (npm run gen:review); the
                           aesthetic sign-off artifacts, reviewed while the
                           change is being made
-scripts/check-invariants.mjs  Mechanical brand-invariant gate: palette, sprite,
-                          tiering, frozen-K, banned colors (npm run check)
+scripts/check-invariants.mjs  Mechanical brand-invariant gate (npm run check).
+                          Checks, in run order: PALETTE, SPRITE, TIERING,
+                          FROZEN-K, BANNED, MONO, ANIMATION, ACTIVITY, UI,
+                          RECORD. RECORD asserts this list matches the checks
+                          that actually run, so it cannot silently fall behind.
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
 assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
                           -mono-amber}.svg (icon; -mono/-mono-amber =
@@ -116,7 +119,7 @@ npm run gen:og       # social image -> resources/social/og-image.png
 npm run gen:activity # activity marks -> assets/activity/ + review sheet
 npm run gen:ui       # ui glyphs -> assets/ui/ + iOS tab rasters + review sheets
 npm run gen:review   # in-situ header mocks -> exploration/review/ (light + dark)
-npm run check        # mechanical brand-invariant gate (palette, sprite, tiering)
+npm run check        # mechanical brand-invariant gate (roster in the file header)
 ```
 
 ## Skills

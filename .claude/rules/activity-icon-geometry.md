@@ -6,8 +6,8 @@ paths:
 
 # Rule: activity icon geometry lives only in scripts/lib/activity.mjs
 
-The activity set is the agent, Command Terminal and pause/stop marks that the
-desktop app, the mobile app and the website all render. It exists because those
+The activity set is the agent, Command Terminal and pause/stop marks this repo
+OWNS for the desktop app, the mobile app and the website. It exists because those
 marks were stock library defaults whose ink boxes disagreed: the loader and the
 terminal filled 18x18 but the mail filled 20x16, about 11% wider and 11%
 shorter, so a project sidebar row sat unevenly. Aspect differs, so scaling could
@@ -79,6 +79,22 @@ is owned here to prevent.
   token values (desktop `#34d399`/`#e3b341`, mobile `#3ddc84`/`#d9b83f`, web
   `#218a4c`/`#d98324`), and a hex in a mark would pick one surface's palette for
   all of them. Tone is the consumer's to apply.
+  - **The divergence is deliberate and forced, verified 2026-07-30 rather than
+    assumed.** It looks like drift because the web pair matches
+    `design-language`'s lamps character for character, which invites the reading
+    that two consumers wandered off. The opposite is true: that skill is kept in
+    sync with kangentic.com's copy, so the lamp table IS the cream-surface
+    palette, and the match is structural. Ground luminance then forces the rest.
+    All four dark-theme values measure 1.73-1.88:1 on cream, under the 3:1
+    non-text floor, so the website cannot adopt them; the web pair clears 3:1 on
+    both dark grounds but at about half the native contrast, on a 2px stroke with
+    a 12px floor. Each surface anchors to its own system (a Tailwind ramp, a
+    terminal ANSI palette, these lamps).
+  - The clinching argument for keeping a hex out of the geometry is that one hex
+    already means two things: `#d9b83f` is mobile's ATTENTION amber and the
+    desktop's CAUTION band, the latter deliberately chosen so a caution band
+    would not borrow a session-state hue. A mark carrying that value would be
+    correct on one surface and wrong on the other.
 - **States are named marks, never composed.** `agent-idle` and `agent-working`
   are two files; a consumer picks one. It must never assemble a state out of a
   base glyph plus a tone plus an animation class, because that assembly step is
