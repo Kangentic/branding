@@ -5,14 +5,21 @@
 // PASS/FAIL findings report and exits nonzero on any FAIL. The aesthetic call
 // ("reads as craft, not AI clip-art") is NOT here - it stays a human decision.
 //
-// Checks: palette membership, sprite constraints, mark tiering (no card-K on a
-// downscaled master), frozen-K / single-source geometry, banned colors, and the
-// shared animation contract (motion budget, compositing safety, packaging).
+// Checks, in run order: PALETTE, SPRITE, TIERING, FROZEN-K, BANNED, MONO,
+// ANIMATION, ACTIVITY, UI, RECORD. Respectively: palette membership, sprite
+// constraints, mark tiering (no card-K on a downscaled master), frozen-K /
+// single-source geometry, banned colors, the theme-safe mono pair, the shared
+// animation contract (motion budget, compositing safety, packaging), the
+// activity status set, the ui navigation set, and this gate's own record.
+// RECORD is what makes the roster above trustworthy: it fails when an
+// enumerating record drifts from the registered set, which is exactly how MONO,
+// ACTIVITY and UI each came to be missing from this very comment.
 // archive/ is frozen and never scanned. Usage: npm run check
 //
 // Sources of truth cross-referenced here (change them, not this file):
-//   scripts/lib/mark.mjs, scripts/lib/sprite.mjs, the .claude/rules/*.md,
-//   the design-language skill's palette tokens + banned list.
+//   scripts/lib/mark.mjs, scripts/lib/sprite.mjs, scripts/lib/activity.mjs,
+//   scripts/lib/ui-glyphs.mjs, the .claude/rules/*.md, the design-language
+//   skill's palette tokens + banned list.
 
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve, relative, extname, basename } from "node:path";
@@ -601,8 +608,44 @@ checks.UI = () => {
   return findings;
 };
 
+// 10. This gate's own record (brand-record-fidelity). Three records ENUMERATE
+//     the checks that run, and all three had drifted: the header above named six
+//     of nine, CLAUDE.md named five in one place and three in another, ci.yml
+//     named a different five. MONO, ACTIVITY and UI were each added without any
+//     of them. Restating a roster in four places is what drifted; deriving the
+//     assertion from `order` is what cannot.
+//
+//     This is the byte-equality idiom ACTIVITY and UI already use, pointed at
+//     prose instead of SVG. Comment leaders are stripped BEFORE whitespace is
+//     collapsed, so a roster may wrap across `//` or `#` lines and no site has
+//     to hold it on one long line to satisfy the check.
+const RECORD_SITES = [
+  ["scripts/check-invariants.mjs", "the header comment"],
+  ["CLAUDE.md", "the Project Structure map"],
+  [".github/workflows/ci.yml", "the Brand invariants step comment"],
+];
+const flat = (s) => s.replace(/^[ \t]*(?:\/\/|#)[ \t]?/gm, "").replace(/\s+/g, " ");
+checks.RECORD = () => {
+  const findings = [];
+  // Derived, never written out: adding a check changes this string, and every
+  // site fails until its record catches up. A pinned literal here would just be
+  // one more record to forget.
+  const roster = order.join(", ");
+  for (const [site, where] of RECORD_SITES) {
+    if (!has(site)) {
+      findings.push(`${site}: missing (declared as a record site)`);
+      continue;
+    }
+    if (!flat(load(site)).includes(roster)) {
+      findings.push(`${site}: ${where} does not enumerate the ${order.length} registered checks (expected "${roster}")`);
+    }
+  }
+  return findings;
+};
+
 // ---------------------------------------------------------------------------
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI"];
+// `order` is the single source for the roster every record above must quote.
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "RECORD"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {

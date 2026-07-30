@@ -153,7 +153,22 @@ Publishing runs in CI, not on this machine. The tag push in Step 5 triggers
 - The CI publish run URL (from Step 7) and confirmation the new version shows
   a provenance badge on npm.
 - Links: `https://github.com/Kangentic/branding/releases` and `https://www.npmjs.com/package/@kangentic/branding`
-- Remind: consumers pick this up via `npm update @kangentic/branding` (or a submodule bump where used) - list any consumer repos that should update now.
+- Remind: consumers pick this up via `npm update @kangentic/branding` (or a submodule bump where used).
+- **Do NOT list "consumer repos that should update now" from memory.** This
+  instruction used to end that way, and it was unanswerable: nothing in this repo
+  records which version any consumer is on, so the list could only ever be
+  guessed, and 2.7.0's adoption tasks were filed speculatively because of it.
+  Either resolve it or say it is unresolved:
+  - To resolve it, read each consumer's own declared range and lockfile entry for
+    `@kangentic/branding` (its `package.json` plus `package-lock.json`). That is
+    the only authoritative answer, and it lives in the consumer, not here.
+  - Otherwise state plainly that adoption is not tracked in this repo, and scope
+    the reminder to what a release can honestly claim: the version is published
+    and consumers upgrade on their own schedule.
+- A consumer-version table in THIS repo was considered and declined 2026-07-30: it
+  would be a hand-maintained record of other repos' internals with no gate able to
+  check it, which is precisely the rot `brand-record-fidelity.md` exists to
+  prevent. Read the consumers instead of mirroring them.
 
 ## Allowed Tools
 

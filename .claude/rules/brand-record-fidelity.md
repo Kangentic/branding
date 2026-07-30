@@ -98,6 +98,34 @@ every case the bytes were exactly what the generator produced.
   frame. Verified to bite: stripping `rest` from `running-loop` reports
   `running-loop: mountFrames is [step-a,step-b], must be
   [step-a,step-b,rest]`.
+- **Gate (blocking): `RECORD` holds the gate's own roster to its records.**
+  Added 2026-07-30, after three records that ENUMERATE the checks had each
+  drifted: the checker header named six of nine, `CLAUDE.md` named five in one
+  place and three in another, and `ci.yml` named a different five. `MONO`,
+  `ACTIVITY` and `UI` were each added without updating any of them, which is the
+  "a comment stating a status must be re-read when the status changes" bullet
+  above, three times over. The roster is DERIVED from the `order` array rather
+  than written out, so it cannot be the thing that goes stale; comment leaders
+  are stripped before whitespace is collapsed, so a record may wrap the roster
+  across `//` or `#` lines. This is the byte-equality idiom `ACTIVITY` and `UI`
+  use, pointed at prose instead of SVG. It runs in CI.
+  - Verified to bite in BOTH directions, because they exercise different paths.
+    Removing the roster from a record reports (once per affected site):
+
+    ```
+    RECORD    FAIL
+        - CLAUDE.md: the Project Structure map does not enumerate the 10 registered checks (expected "PALETTE, SPRITE, TIERING, FROZEN-K, BANNED, MONO, ANIMATION, ACTIVITY, UI, RECORD")
+    ```
+
+    And adding a check without touching any record fails all three at once,
+    which is the recurrence this exists to stop. That second direction is the
+    one that proves the roster is genuinely derived from `order` rather than
+    pinned to a literal someone must remember to update.
+  - Scope it honestly: this catches an enumeration that goes STALE. It cannot
+    catch a brand-new partial enumeration written somewhere it does not know
+    about, and `CLAUDE.md`'s Development block deliberately points at the header
+    rather than repeating the list, because one enumeration per document is the
+    only count that stays true. The review arm above covers the rest.
 - **History:** this rule replaces the code-review half of the retired
   `/brand-review` skill. Seven runs of that skill produced findings of exactly
   this class and no others that another gate did not already cover; the column

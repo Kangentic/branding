@@ -47,8 +47,10 @@ jobs:
           fi
 
       # Drift only proves the committed bytes match the generators. The
-      # invariants (palette, tiering, the frozen K, the activity and ui set
-      # contracts) are a separate question, and every rule that calls them a
+      # invariants are a separate question, and every rule that calls them a
       # "blocking gate" is relying on this step.
+      # Checks, in run order: PALETTE, SPRITE, TIERING, FROZEN-K, BANNED, MONO,
+      # ANIMATION, ACTIVITY, UI, RECORD. RECORD fails if this list drifts from
+      # the checks that actually run.
       - name: Brand invariants
         run: npm run check

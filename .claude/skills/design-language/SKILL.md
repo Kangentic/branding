@@ -49,13 +49,37 @@ Core:
 | `--term-text` | `#F3EDE3` | Terminal foreground. |
 
 Status lamps (micro-detail only: card status dots, activity indicators - never brand,
-never decoration):
+never decoration). **These are the CREAM-SURFACE values, and they are not portable:**
 
 | Token | Hex | Meaning |
 |-------|-----|---------|
 | `--run` | `#218A4C` | Agent running. |
 | `--attn` | `#D98324` | Agent needs you. |
-| `--blocked` | `#BE4034` | Blocked or error. |
+| `--blocked` | `#BE4034` | Blocked or error. Web-only in practice; see below. |
+
+- **A dark ground re-tunes them, it does not reuse them.** These three are tuned
+  for `--cream`. Measured 2026-07-30, the dark-theme surfaces' own status values sit
+  at 1.73-1.88:1 on cream (unusable), and these values sit at roughly half their
+  native contrast on near-black. So the desktop app and the mobile app carry their
+  own status tokens by design, anchored to their own systems (a Tailwind ramp and a
+  terminal ANSI palette respectively) rather than to this table. That divergence is
+  intended; `README.md` records it and the reason. The website applies the same
+  principle to itself: its `tokens.css` carries `--term-green` and `--term-red`,
+  the run and blocked meanings lifted for legibility on the warm-black terminal
+  ground, rather than reusing these two there.
+- **Scope, stated plainly:** this table governs the website and any future cream
+  surface. It is not a three-consumer mandate, and it never was - the branding
+  package ships no status color token at all, only `currentColor` geometry, so
+  there is no canonical value for a consumer to diverge FROM.
+- **`--blocked` has one consumer.** The website ships it. The desktop app and the
+  mobile app have no blocked/error status lamp at all, and `assets/activity/` has
+  no `blocked` tone, so nothing in the shared mark set consumes it. Presenting
+  three co-equal lamps overstates it; the third is web-only until some surface
+  grows the state.
+- **`--attn` `#D98324` measures 2.81:1 on `--cream`**, under the 3:1 non-text
+  minimum (noted 2026-07-30, not changed here). It is the weakest performer on the
+  surface it was authored for. Worth knowing before it is used for anything larger
+  than a lamp, and worth revisiting on its own rather than inside a records pass.
 
 Rules:
 - Rust is the one brand accent. Amber supports inside dark panels and small highlights;
