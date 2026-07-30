@@ -2,6 +2,46 @@
 
 <!-- releases -->
 
+## [v2.7.0] - 2026-07-29
+
+### Fixes
+- Ship the frame mount set consumers need for reduced motion (bd9b884).
+  `animations.json` now carries `mountFrames` per sequence: the played clip
+  PLUS the frame the sequence rests on. It previously told a consumer which
+  frames a sequence PLAYS but not which it must MOUNT, and `running-loop` and
+  `waiting-loop` both rest on `rest` without ever naming it in their clip, so a
+  consumer following the README mounted only the played poses and rendered
+  NOTHING AT ALL under `prefers-reduced-motion`. That shipped in 2.5.0 and
+  2.6.0. **Adopt `mountFrames` when mounting frame divs**; `clip` remains what
+  to play. Additive and backward compatible, so upgrading breaks nothing, but
+  a consumer that does not adopt it keeps the reduced-motion bug. The
+  `ANIMATION` check now asserts the set, and CI runs `npm run check` on every
+  push. Verified to bite: stripping `rest` from `running-loop` reports
+  `mountFrames is [step-a,step-b], must be [step-a,step-b,rest]`. The mount
+  contract was wrong in four places (README, the `animations.css` header,
+  MOTION.md and `sprite-drafting`) and is corrected in all of them.
+- Render the tints the review sheet promises, correct the keyline claims
+  (0c96c51). Record-fidelity only: no shipped asset changes. sharp's `.tint()`
+  maps chroma in LAB with luminance preserved, so it cannot move a white pixel,
+  and three bands of the mobile review sheet were built on it while every
+  artwork they tint is white or near-white by design. The notification mock drew
+  white on a white card and was invisible; the two Android themed tiles came out
+  byte-identical under captions promising two different wallpaper tints; the
+  tinted band's candidate A rendered three identical cells. The alpha-only
+  surfaces now reuse the existing `templateTinted`, the genuinely grayscale iOS
+  master takes a luminance ramp, and `assertRecolored` throws if a recolor
+  leaves an opaque pixel pure white. Separately,
+  `activity-icon-geometry.md` asserted twice that every mark spans x 3 to 21,
+  false for the four `control-*` marks since the per-role split, and quoted a
+  gate message the checker can no longer emit; both now describe the two
+  keylines the code declares, and `controlRing`'s docstring stops arguing a
+  premise a dated note 100 lines below records as reverted.
+
+### Other
+- Remove the Brand Review column (ee4364c). Its code-review half became
+  `.claude/rules/brand-record-fidelity.md`, enforced by `/code-review` on the
+  PR; `npm run check` already gates in CI.
+
 ## [v2.6.0] - 2026-07-29
 
 ### Features
