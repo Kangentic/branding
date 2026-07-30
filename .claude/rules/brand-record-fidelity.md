@@ -93,7 +93,9 @@ every case the bytes were exactly what the generator produced.
   review, not a gate: none of the checks above is mechanically decidable in
   general, which is exactly why they need a reader.
 - **Gate (blocking, where a claim was made mechanical):** `npm run check` runs
-  in `.github/workflows/ci.yml` and `publish.yml` on every push. `ANIMATION`
+  in `.github/workflows/ci.yml` on every pull request and every push to `main`,
+  and again in `publish.yml` on the version tag. The `ci.yml` run is the
+  required status check on `main`, so it blocks the MERGE. `ANIMATION`
   asserts each sequence's `mountFrames` equals its played frames plus the rest
   frame. Verified to bite: stripping `rest` from `running-loop` reports
   `running-loop: mountFrames is [step-a,step-b], must be

@@ -254,8 +254,10 @@ npm run check        # the mechanical brand-invariant gate
 All brandmark geometry lives in `scripts/lib/mark.mjs` (the K is frozen path
 data, so there's no font dependency at render time), all activity geometry in
 `scripts/lib/activity.mjs`, and all ui glyph geometry in
-`scripts/lib/ui-glyphs.mjs`. Generators are deterministic; the release pipeline
-fails if committed output drifts, and CI runs `npm run check`.
+`scripts/lib/ui-glyphs.mjs`. Generators are deterministic; CI reruns them on
+every pull request and every push to `main`, and fails if committed output
+drifts or if `npm run check` does. The release pipeline reruns both again on
+the version tag, before anything is published.
 
 ## Release
 

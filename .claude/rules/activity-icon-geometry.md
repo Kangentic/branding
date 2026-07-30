@@ -152,8 +152,9 @@ is owned here to prevent.
   `CONTROL_RING_R = 9` and the keyline derived from it, the four findings quoted
   above disappear and `ACTIVITY` reports PASS on the exact regression it exists
   to catch. This is the one place in the lib where an inline number is correct.
-- **Release gate (blocking):** `npm run gen:activity` runs in the determinism
-  gate alongside the other generators.
+- **CI gate (blocking):** `npm run gen:activity` runs in the determinism gate
+  alongside the other generators, on every pull request and every push to
+  `main`, and again on the version tag in `publish.yml`.
 
 ## Scope
 

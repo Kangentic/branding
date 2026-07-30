@@ -40,8 +40,9 @@ where it becomes an illegible mini-K).
 
 - **Review:** changes under `scripts/` are checked for re-declared
   geometry constants and for any downscaled-master surface fed card-K.
-  The `/release` determinism gate is the mechanical backstop:
-  regenerating must not change committed `assets/` or `resources/`.
+  The CI determinism gate is the mechanical backstop: regenerating must not
+  change committed `assets/` or `resources/`, and it runs on every pull
+  request and every push to `main`.
 
 ## Scope
 

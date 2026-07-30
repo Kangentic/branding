@@ -1,5 +1,7 @@
-// check-invariants.mjs - the mechanical brand gate, run by CI on every push and
-// by /pull-request, /merge-pull-request, /merge-back and /release. Read-only,
+// check-invariants.mjs - the mechanical brand gate. ci.yml runs it on every pull
+// request and every push to main, publish.yml runs it again on the version tag,
+// and /pull-request, /merge-pull-request, /merge-back and /release run it
+// locally before they push. The CI run is the one that blocks. Read-only,
 // deterministic, no deps: it verifies the invariants the .claude/rules and the
 // design-language skill declare, and that a grep can decide, then prints a
 // PASS/FAIL findings report and exits nonzero on any FAIL. The aesthetic call
