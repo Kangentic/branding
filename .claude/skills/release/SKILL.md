@@ -62,6 +62,10 @@ requested or suggested:
 3. **Fetch latest:** Run `git fetch origin main`
 4. **Verify up-to-date:** Run `git diff HEAD origin/main --stat`. Must be empty. If not, stop: "Local main is behind origin/main. Run `git pull` first."
 5. **Install dependencies:** Run `npm ci`.
+6. **Know before you commit anything: this skill pushes DIRECTLY to a protected `main`.**
+   Step 5 does `git push origin main` with no pull request, no review, and no status check. It
+   lands only because the maintainer has admin push access to `main` and admin enforcement is
+   off. See Step 5 for what happens if that ever changes.
 
 Report the current version, the bump type, and the new version before proceeding.
 
@@ -121,6 +125,19 @@ Read the new version from `package.json` to confirm.
 3. `git push origin vX.Y.Z`
 
 **If either push fails**, report the error and stop. Do not force-push.
+
+**Step 2 is a direct push to a protected branch, and that is a dependency worth naming.**
+`main` requires a pull request with an approving review and a green status check. This push
+satisfies none of them; it succeeds because the maintainer has admin push access and admin
+enforcement is off. `/merge-back` records the same dependency for itself, and this is the
+same bypass.
+
+If admin enforcement is ever turned on, this step starts failing, and it fails at the worst
+moment: the bump is already committed and the tag already created locally. Recovery, should
+that happen: nothing has been pushed, so do NOT force-push and do not delete the local tag
+in a panic. Land the bump commit through the board (`/pull-request`, then
+`/merge-pull-request`), then move the tag onto the merged commit and push the tag alone. The
+lasting fix is to route the release bump through a PR rather than to re-open the bypass.
 
 Pushing the `vX.Y.Z` tag (step 3) is what triggers the CI publish workflow
 (`.github/workflows/publish.yml`). Watch it in Step 7.

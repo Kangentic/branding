@@ -226,12 +226,7 @@ rather than a manual poll loop (no `sleep` - the single-command rule forbids it)
    Expect a non-zero exit while checks are unfinished. `gh pr checks` returns exit code `8` when not
    all checks have passed yet (still pending OR a genuine failure), which the Bash tool surfaces as a
    "Bash error exit code 8". That is STATUS, not a tooling failure - read the printed rows to decide.
-3. **No-checks case (branding today).** CI (GitHub Actions + npm OIDC) is a separate task and may not
-   be wired yet. If `gh pr checks <branch>` reports `no checks reported on the '<branch>' branch`,
-   there is nothing to gate: skip straight to Step 8 (success) and note explicitly in the report that
-   no CI checks are configured yet, so the PR is created and pushed but not CI-verified. Do NOT
-   invent checks and do NOT block. When CI lands, this same step gains teeth automatically.
-4. Otherwise interpret the result:
+3. Interpret the result:
    - **All checks passed** (every row `pass`; the watch exited 0): go to Step 8 (success).
    - **A check failed** (a `fail`/`failure` row, or `--fail-fast` returned on a failure): go to
      Step 7 (auto-fix).
@@ -239,6 +234,11 @@ rather than a manual poll loop (no `sleep` - the single-command rule forbids it)
      slow): RE-RUN the same `--watch` command - it resumes from the current state. Repeat as needed.
      Only when the checks have made NO forward progress across two consecutive full 10-minute watches
      (genuinely stuck, not merely slow) go to Step 8b (escalate, stuck checks).
+   - **`no checks reported on the '<branch>' branch`** means the run has not been QUEUED yet, not
+     that the branch is unchecked. `ci.yml` triggers on every pull request, so this is the race
+     between the push and Actions starting. Treat it as pending: re-run the watch. Never read it as
+     permission to skip ahead - a PR with no reported check cannot merge, because `main` requires
+     one. If it persists across two consecutive full watches, go to Step 8b.
 
 ## Step 7 - Auto-fix loop (max 3 rounds, fully automatic)
 
@@ -262,12 +262,15 @@ For each round:
 
 ## Step 8 - Report (success)
 
-The PR is green (or has no CI checks yet). Report:
+The PR is green. Report:
 - PR URL (with link) and branch name.
-- Number of commits and the determinism-gate result (all four generators re-run, `assets/` and
+- Number of commits and the determinism-gate result (every generator re-run, `assets/` and
   `resources/` clean).
-- Check status: "all checks green" or "no CI checks configured yet (arrives with the CI task)".
+- Check status: all checks green.
 - Next step: the user moves the task Testing -> Merge, where `/merge-pull-request` merges it.
+  `main` also requires an approving review, which a maintainer's own PR will not have, so expect
+  `mergeStateStatus` to read `BLOCKED`. That is the expected path and `/merge-pull-request`
+  handles it; it is not a failure of this step.
 
 **Do NOT merge.** Merging is `/merge-pull-request`'s job.
 

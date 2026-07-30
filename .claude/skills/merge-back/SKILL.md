@@ -10,9 +10,9 @@ Safely commit, rebase, and push changes straight to the source branch. Works fro
 the main repo.
 
 This is the **direct quick-push escape hatch**: it bypasses the pull-request gate, so it relies on
-admin push access to `main`. It is not wired to a board column. Once the PR flow is wired, the normal
-path goes through the board: the **Testing** column runs `/pull-request` (create a PR and drive its
-checks green) and the **Merge** column runs `/merge-pull-request` (merge the green PR and pull back).
+admin push access to `main`. It is not wired to a board column. The normal path goes through the
+board: the **Testing** column runs `/pull-request` (create a PR and drive its checks green) and the
+**Merge** column runs `/merge-pull-request` (merge the green PR and pull back).
 Reach for `/merge-back` only for a small change you want to land without a PR (e.g. a one-file config
 or skill edit, a docs fix, or when CI is unavailable).
 
