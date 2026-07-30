@@ -9,11 +9,15 @@ Merge a green pull request and pull the result back into the local `main` checko
 **Merge column** skill for `@kangentic/branding`. It assumes the **Testing column**
 (`/pull-request`) already created the PR and drove its CI checks to green.
 
-It verifies the required CI checks are green, then merges with `--admin` to waive the review
-requirement: once branch protection on `main` requires an approving review, a maintainer's own PRs
-get no second reviewer, so that bypass is the normal Merge path. It NEVER bypasses the CI checks -
-those are confirmed green first; the `--admin` only waives the missing review. (Until branch
-protection is configured, there is nothing to waive and `--admin` is a harmless no-op.)
+It verifies the required CI checks are green, then merges with `--admin`: branch protection on
+`main` requires an approving review, and a maintainer's own PR gets no second reviewer, so that
+bypass is the normal Merge path.
+
+**`--admin` is not a no-op, and it does not stop at the review.** It clears every protection at
+once: the required approving review, the required status check, and the requirement that the
+branch be up to date with `main`. So the promise that this skill never bypasses the CI checks is
+made true by Step 1 alone, which confirms them green by hand before the merge command runs. Step 1
+is the gate. `--admin` enforces nothing.
 
 **This skill does NOT publish.** Landing a PR onto `main` and publishing a new `@kangentic/branding`
 version are separate concerns. Publishing (regenerate + determinism gate, version bump, changelog,
@@ -74,29 +78,34 @@ is for local git only.
 3. Re-read the PR state: `gh pr view <pr> --json mergeable,mergeStateStatus,statusCheckRollup`.
    **Require every required status check in `statusCheckRollup` to be green (SUCCESS).** That is the
    real gate - do not rely on the merge command to enforce it.
-   - **No required checks yet (branding today):** if `statusCheckRollup` is empty because CI has not
-     landed, the check gate is vacuously satisfied - proceed. When CI lands, this same gate has teeth
-     automatically.
-   - `mergeStateStatus` may read `BLOCKED` rather than `CLEAN` once branch protection requires a
-     review the maintainer's own PR does not have; that block is EXPECTED and is waived by the
-     `--admin` merge in Step 2. But if a required CHECK is failing or still pending (not merely the
-     review), stop (or wait - step 4); never `--admin` past a red or pending check.
-4. If the rebase (step 2) re-triggered checks and they are pending, wait for them with
+   - **An empty or pending rollup is NOT satisfaction.** `main` requires a status check, so an
+     empty `statusCheckRollup` means the required check has not REPORTED yet, never that there is
+     nothing to check. Treat empty exactly like pending: keep waiting (step 4). Proceed only when
+     the rollup is non-empty and every entry is SUCCESS. Absence is never a reason to merge.
+   - `mergeStateStatus` normally reads `BLOCKED` rather than `CLEAN`, because `main` requires an
+     approving review the maintainer's own PR does not have. That block is EXPECTED and is the
+     one thing Step 2's `--admin` is there to clear. But if a required CHECK is failing, pending,
+     or absent (not merely the review), stop or wait (step 4); never `--admin` past it.
+4. If the checks are pending or the rollup is still empty - whether because the rebase in step 2
+   re-triggered them or because the run has not been queued yet - wait with
    `gh pr checks <pr> --watch --fail-fast --interval 30` (Bash `timeout` = `600000` ms, re-run while
    still pending). If they go red, stop and report - this should be rare because Testing already
-   drove them green; the user can move the task back to Testing to re-run `/pull-request`.
+   drove them green; the user can move the task back to Testing to re-run `/pull-request`. If two
+   consecutive full watches make no forward progress, stop and report rather than merging blind.
 
 ## Step 2 - Merge the PR
 
-Only after Step 1 confirmed every required CHECK is green (or there are none yet), merge with the
-maintainer bypass that waives the missing review:
+Only after Step 1 confirmed every required CHECK is green, merge with the maintainer bypass that
+clears the missing review:
 
 Run: `gh pr merge <pr> --admin --rebase --delete-branch`
 
-- `--admin`: waives the required approving review (the maintainer's own PR gets no second reviewer).
-  It does NOT relax the CI gate - Step 1 already verified the checks; this only clears the review
-  block. Until branch protection is configured there is no review to waive, so it is a no-op. NEVER
-  run it without the green-check verification (it would also bypass any checks that exist).
+- `--admin`: bypasses the branch-protection requirements the maintainer's own PR cannot satisfy -
+  the required approving review (no second reviewer), and with it the required status check and the
+  up-to-date-with-`main` requirement. It verifies nothing. Step 1 is what proves the checks are
+  green, and Step 1's rebase is what keeps the branch current. NEVER run it without that
+  verification: it bypasses a red or unreported check exactly as readily as it clears the review
+  block.
 - `--rebase`: lands the individual commits on the source branch (no merge commit).
 - `--delete-branch`: deletes the remote PR head branch (`<prHead>`). The local `<branch>` has a
   different name (the slug-hex), so gh's local-branch delete is a no-op and the worktree branch stays
