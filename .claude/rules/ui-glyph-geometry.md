@@ -112,8 +112,9 @@ was created to end, starting over in a new place.
   alpha-only white on transparency before writing it, and throws otherwise. It
   lives there rather than in the checker because it needs sharp, and the checker
   is deliberately sync and dependency-free.
-- **Release gate (blocking):** `npm run gen:ui` runs in the determinism gate
-  alongside the other generators, and CI runs `npm run check`.
+- **CI gate (blocking):** `npm run gen:ui` runs in the determinism gate
+  alongside the other generators, and CI runs `npm run check`, both on every
+  pull request and every push to `main`.
 
 ## Scope
 

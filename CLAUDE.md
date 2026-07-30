@@ -98,9 +98,11 @@ CHANGELOG.md              Release log (managed by /release)
   for refinements within the line. A major bump REQUIRES archiving the
   outgoing line first - `/release` enforces this. Brand history is never
   lost.
-- **Determinism gate**: generated output is committed; `/release` reruns
-  both generators and fails if `assets/` or `resources/` change. Date/
-  random calls are banned in generators.
+- **Determinism gate**: generated output is committed; CI reruns the
+  generators on every pull request and every push to `main` and fails if
+  `assets/` or `resources/` change. `publish.yml` reruns it on the version
+  tag before npm sees the package, and `/release` runs it locally first.
+  Date/random calls are banned in generators.
 - **The frozen K**: the glyph is baked path data (Microsoft Tai Le Bold,
   extracted once via WPF). Never render brandmark text with `<text>`.
 - Read the `icon-drafting` skill before ANY mark work; read
@@ -151,13 +153,17 @@ matching file enters context. Each rule names its enforcement.
 - `ui-glyph-geometry.md` - the ui navigation set's geometry lives only in `scripts/lib/ui-glyphs.mjs`; it imports the activity grid rather than restating it, carries no state or motion, and its iOS tab rasters must be alpha-only template images (`scripts/**`, `assets/ui/**`).
 - `pixel-art-conventions.md` - sprites are ASCII maps -> `lib/sprite.mjs` rect grids: crispEdges, <=4 palette colors, integer scale only, one canonical map (`scripts/**`).
 - `brand-record-fidelity.md` - the record must match what the code does: status comments are re-read when the status changes, a stated rationale must survive measurement, a generated manifest must serve its documented consumption pattern, and a review artifact must render what its caption claims. Enforced by `/code-review` on the PR (`scripts/**`, `assets/**`, `.claude/skills/**`).
-- `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the `/release` gate enforces it (`assets/**`, `resources/**`, generators).
+- `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the CI determinism gate enforces it (`assets/**`, `resources/**`, generators).
 
 **Authoring a rule:** one concern per file, descriptive kebab-case name.
 Keep always-on rules few (reserve them for universal, file-independent
 conventions); everything subsystem-specific gets `paths:` frontmatter.
 Structure: one-paragraph context, `## The rule`, `## Enforcement
-(self-maintaining)`, `## Scope`. Name the strongest available enforcement
-(the bash-guard hook blocks 100%; the `/release` determinism gate runs on
-every release; review is the fallback). Add a one-line pointer to the index
+(self-maintaining)`, `## Scope`. Name the strongest available enforcement,
+in this order: the bash-guard hook blocks 100%; CI (`npm run check` plus the
+determinism gate) runs on every pull request and every push to `main`; a
+generator assertion fires whenever that generator is rerun; `/release` and
+`publish.yml` are the last checks before a version ships; review is the
+fallback. Prefer the highest rung a claim can reach, and say which rung it
+got, since only CI blocks a merge. Add a one-line pointer to the index
 above. Machine-specific overrides go in a gitignored `CLAUDE.local.md`.

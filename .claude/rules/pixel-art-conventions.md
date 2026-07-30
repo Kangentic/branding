@@ -36,7 +36,7 @@ scaling, or a fifth color turn it into generic clip-art.
   (so a pixel-vacating pose cannot let the rest frame bleed through), that
   every sequence declares `mountFrames` equal to its played frames plus
   the rest frame, and that no `animation-fill-mode` is emitted. CI runs it
-  on every push.
+  on every pull request and every push to `main`.
   - The `mountFrames` assertion was added 2026-07-29, after the manifest
     shipped in 2.5.0 telling consumers which frames a sequence PLAYS but
     not which it must MOUNT. `running-loop` and `waiting-loop` rest on
@@ -46,9 +46,10 @@ scaling, or a fifth color turn it into generic clip-art.
     [step-a,step-b], must be [step-a,step-b,rest]`.
 - **Review:** changes under `scripts/` that touch sprite maps or the
   engine are checked for off-palette colors, non-integer scale, freehand
-  paths, and re-declared maps. The `/release` determinism gate is the
-  mechanical backstop: regenerating must not change committed
-  `assets/mascot/` or `resources/social/`.
+  paths, and re-declared maps. The CI determinism gate is the mechanical
+  backstop: regenerating must not change committed `assets/mascot/` or
+  `resources/social/`, and it runs on every pull request and every push to
+  `main`.
 
 ## Scope
 
