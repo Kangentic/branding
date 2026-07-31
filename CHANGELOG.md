@@ -2,10 +2,10 @@
 
 <!-- releases -->
 
-## [Unreleased]
+## [v2.7.1] - 2026-07-31
 
 ### Fixes
-- Pixel-hint the needs-you envelope so the indicator band renders crisp.
+- Pixel-hint the needs-you envelope so the indicator band renders crisp (257ac40).
   **`agent-idle` changes shape: the box goes from 18 x 14.4 to 18 x 16**, so its
   y edges move from 4.8 / 19.2 onto 4 / 20. Everything else is byte-identical.
   Adopting consumers should re-run their branding sync and update any pinned
@@ -42,16 +42,41 @@
   not merely tautological but inverted, catching the one mark that does not
   derive from `INK_BOX` and missing all four that do.
 
+- Hold the gate's own roster to its records, and correct the claims measurement
+  falsified (a2d196e). Adds the `RECORD` check, which derives the registered
+  check list from the checker's `order` array and fails any record that
+  enumerates it staler. It was added after three such records had each drifted:
+  the checker header named six of nine, `CLAUDE.md` named five in one place and
+  three in another, and `ci.yml` named a different five. Verified to bite in
+  both directions.
+
 ### Records
 - The review sheets now cover the whole 14/15/16 indicator band rather than one
   size, print the softness matrix across four display scalings, and carry the
-  16-unit second master as a rendered comparison. Five drifted records fixed in
-  the same pass: the task card was documented at 14px and renders at 16; the
-  surface map named the wrong sizes; **15px appeared nowhere in this repo** while
-  three desktop surfaces render indicators at it, which is why that band had
-  never been reviewed; the mark table said "five marks", listed eight, and the
-  set is nine; and the README described an 18x18 ink box the envelope has not
-  filled since 2.6.0.
+  16-unit second master as a rendered comparison (257ac40). Five drifted records
+  fixed in the same pass: the task card was documented at 14px and renders at
+  16; the surface map named the wrong sizes; **15px appeared nowhere in this
+  repo** while three desktop surfaces render indicators at it, which is why that
+  band had never been reviewed; the mark table said "five marks", listed eight,
+  and the set is nine; and the README described an 18x18 ink box the envelope
+  has not filled since 2.6.0.
+- Name the CI gate the records understate (2e87767). The rules described `npm
+  run check` and the determinism gate as review or local pre-flight steps when
+  both actually run in CI on every pull request and every push to `main`, and
+  are required to merge. Each rule now names the strongest rung its enforcement
+  actually reaches.
+- Retire the pre-CI branches in the workflow skills, and record `/release`'s
+  admin-push dependency (2809144). The release pipeline pushes directly to a
+  protected `main`, which succeeds only because admin enforcement is off; that
+  dependency is now written down along with the recovery path if it is ever
+  turned on.
+
+**Consumer note.** `agent-idle.svg` is the only shipped asset that changes in
+this release. Both the desktop app and kangentic-mobile declare `^2.7.0`, so
+they pick this up on their next install without a deliberate bump. Desktop pins
+the envelope's height in `tests/unit/activity-mark.test.ts` and that test will
+fail until it is updated; mobile needs `npm run sync:branding` re-run and the
+regenerated output committed, or its lint job fails on drift.
 
 ## [v2.7.0] - 2026-07-29
 
