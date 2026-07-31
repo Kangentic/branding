@@ -25,8 +25,10 @@ scripts/lib/activity.mjs  THE activity icon geometry: one 18-unit layout slot on
                           a 24 grid with each form sized optically inside it,
                           stroke 2, currentColor; the nine shipped marks, the
                           retired candidates and envelope boxes with their dated
-                          reasons, and the march/spin motion contract. No glyph
-                          comes from an icon library.
+                          reasons, the march/spin motion contract, and
+                          strokeCoverage(), the pixel-hinting scorer every
+                          lattice claim is measured with. No glyph comes from an
+                          icon library.
 scripts/lib/ui-glyphs.mjs THE ui glyph geometry: the NAVIGATION marks (the
                           kanban board glyph today). Imports the activity set's
                           24 grid / 18-unit slot / stroke 2 rather than
@@ -149,7 +151,7 @@ matching file enters context. Each rule names its enforcement.
 
 **Path-scoped rules (load with their subsystem):**
 - `mark-geometry-single-source.md` - all mark geometry lives only in `scripts/lib/mark.mjs`; tier by displayed context (card-K in size-specific container entries >=128, F4k in every OS-downscaled master) (`scripts/**`).
-- `activity-icon-geometry.md` - the activity set's geometry lives only in `scripts/lib/activity.mjs`; one 18-unit layout SLOT on a 24 grid with each form sized optically inside it (geometric parity is not optical parity), stroke 2, currentColor only, motion ships as data plus CSS, and every candidate is reviewed alone as well as in adjacency (`scripts/**`, `assets/activity/**`).
+- `activity-icon-geometry.md` - the activity set's geometry lives only in `scripts/lib/activity.mjs`; one 18-unit layout SLOT on a 24 grid with each form sized optically inside it (geometric parity is not optical parity), stroke 2, currentColor only, every outline extremum on the integer pixel lattice, motion ships as data plus CSS, and every candidate is reviewed alone as well as in adjacency (`scripts/**`, `assets/activity/**`).
 - `ui-glyph-geometry.md` - the ui navigation set's geometry lives only in `scripts/lib/ui-glyphs.mjs`; it imports the activity grid rather than restating it, carries no state or motion, and its iOS tab rasters must be alpha-only template images (`scripts/**`, `assets/ui/**`).
 - `pixel-art-conventions.md` - sprites are ASCII maps -> `lib/sprite.mjs` rect grids: crispEdges, <=4 palette colors, integer scale only, one canonical map (`scripts/**`).
 - `brand-record-fidelity.md` - the record must match what the code does: status comments are re-read when the status changes, a stated rationale must survive measurement, a generated manifest must serve its documented consumption pattern, and a review artifact must render what its caption claims. Enforced by `/code-review` on the PR (`scripts/**`, `assets/**`, `.claude/skills/**`).

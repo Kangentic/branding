@@ -41,9 +41,12 @@ is owned here to prevent.
     box) and carries 39% less ink. Forcing one silhouette onto every mark
     produces disparity that nobody chose; sizing each form to look right within
     the slot is what actually delivers parity.
-  - So height is per-form. The envelope is **18 x 14.4**: an envelope's aspect
+  - So height is per-form. The envelope is **18 x 16**: an envelope's aspect
     is its identity, and it also needs a silhouette that is not the terminal
     chip's exact rect. Boxes are declared in `ENVELOPE_CANDIDATES`.
+  - Corrected 2026-07-31. This read **18 x 14.4** from 2026-07-29 until the
+    pixel-hinting round replaced that box; see the hinting bullet below for
+    what moved it and what the move cost.
   - Corrected 2026-07-29. This bullet used to read "one ink box... a mark that
     does not fill the ink box reintroduces the exact misalignment this set
     removes." That asserted an invariant the stock glyphs never had (their own
@@ -69,6 +72,49 @@ is owned here to prevent.
   preserved. Only a uniform scale preserves an angle. A candidate may therefore
   declare a target `angle` instead of a flap variant (`candidateFlap()`), which
   pins the V across any box; prefer that over ratios whenever a box moves.
+- **Every outline extremum sits on the integer lattice.** Stroke 2 on a 24 grid
+  renders `2 * px / 24` device pixels, which is fractional at every size in the
+  14-16 indicator band, so no coordinate can put both stroke edges on a pixel
+  boundary. What a coordinate DOES control is how far off it lands, and an
+  integer is the best available. Added 2026-07-31, after the envelope shipped on
+  y 4.8 / 19.2 while every other outline in the set sat on integers.
+  - **Measure it, never assert it.** `strokeCoverage()` in the lib returns a
+    `softness` score: the mean greyness of the two stroke edges, 0 when both sit
+    exactly on boundaries. Two earlier metrics were wrong in ways worth keeping
+    on record. Ranking by the largest covered pixel row SATURATES - past about a
+    2px device stroke every candidate scores 1.0, so it reports "no difference"
+    on exactly the displays where there still is one. Ranking by the fraction of
+    ink in fully covered rows is worse: a step function whose output swings from
+    0 to 0.8 on a 0.083 change in coverage, so it ranks by whether a value
+    happened to land on an exact integer. Both picked a different winner.
+  - **Display scaling is part of the question.** The lattice is in DEVICE
+    pixels; a consumer sizes in CSS pixels, and the two are equal only at
+    `devicePixelRatio` 1. It changes the answer, not just the magnitude: at
+    1.5x a 16px render is scale 1.0 with a 2.0px stroke, so every integer
+    coordinate is perfectly hard, while at 2x the withdrawn box scores
+    identically to the promoted one in every cell. Any hinting claim names the
+    scaling it was measured at, and the review sheet prints the whole matrix
+    rather than one column.
+  - **This governs OUTLINES, not interiors, and that is a real limit.** A
+    diagonal (the envelope flap) and a curve away from its extrema anti-alias
+    wherever their coordinates sit, so hinting them buys nothing. The control
+    interiors are genuinely fractional and deliberately so: they are hinted for
+    their own 20px render via `CTRL = VIEW / CONTROL_RENDER_PX`, which lands
+    every one of them exactly on a device pixel there.
+  - The 2026-07-31 promotion, recorded because it OVERTURNED a settled
+    direction on new information rather than on taste: `mail` (18 x 14.4) to
+    `between` (18 x 16). What decided it is that the 20 x 16 glyph this set
+    replaced sat at y 4 / 20, already on the lattice, and the uniform 0.9 scale
+    that correctly restored the 120.4 degree flap moved it off. `between` is 18
+    x 16, so y 4 / 20 as well: identical edges to the replaced glyph, on this
+    set's own 18 keyline. Measured at dpr 1 the ring and the chip both score
+    1.92, exactly what any icon-library glyph on an 18 box scores, so they were
+    already at parity and the envelope was the single outlier at 1.95.
+    **What it cost, accepted rather than argued away:** aspect drops from 1.25
+    to 1.125, and the 2026-07-29 judgement that this reads squat beside the ring
+    is NOT overturned, only outweighed. Enclosed area goes from +0.5% to +11.8%
+    against the ring, and the task card swaps idle for working in place, so that
+    was checked on a rendered swap strip before being accepted.
 - **An activity candidate is reviewed ALONE, not only in adjacency.** Stacked
   rows, adjacency pairs and counters against a hairline datum measure alignment;
   they cannot see a recognition failure, because every glyph in them has a
@@ -144,6 +190,35 @@ is owned here to prevent.
   ```
 
   (one such line per control mark, four in total).
+- **Gate (blocking): the pixel lattice.** The same check reads every shipped
+  mark's outline extrema and fails any that is not an integer. It catches a
+  class the byte-equality assertion structurally cannot: a hand-edit fails
+  there, but a geometry change that is REGENERATED is byte-correct by
+  construction and sails through. Verified to bite 2026-07-31 by pointing
+  `ENVELOPE_DEFAULT` back at `mail`, regenerating so byte equality passed, then
+  running the gate:
+
+  ```
+  ACTIVITY  FAIL
+      - agent-idle: outline extrema x 3..21 y 4.8..19.2 are off the integer pixel lattice (4.8, 19.2)
+  ```
+
+  Scope it honestly: it reads `mark.outline` only, inheriting the blindness
+  `outlineXSpan` already has, so flaps, prompts and control interiors are
+  unchecked. See the hinting bullet for why that is correct for the first two
+  and deliberate for the third.
+- **BOTH keyline spans are written out, NOT derived.** The control span was
+  always a literal, for the reason below. The INDICATOR span was `[INK_MIN,
+  INK_MAX]` until 2026-07-31, which was the same trap one step from biting.
+  Verified that day by setting `INK_BOX` to 16 and running the gate both ways.
+  Derived, the four marks whose geometry comes from `INK_BOX` - the ring and all
+  three terminal marks - silently moved from x 3..21 to x 4..20 and the keyline
+  reported nothing, because it had moved with them; the single finding was
+  `agent-idle`, which caught it only by accident, because `ENVELOPE_CANDIDATES`
+  declares `w: 18` as a literal. Written out, the same change reports all four.
+  So the derived form was not merely tautological, it was INVERTED: it caught
+  the one mark that does not derive from the constant and missed every mark
+  that does.
 - **The control keyline's span is written out, NOT derived from
   `CONTROL_RING_R`.** It looks like a constant begging to be substituted, and
   substituting it silently disables the check above: the keyline is the

@@ -51,6 +51,16 @@ import {
   envelopeInk,
   chipInk,
   ringInk,
+  INDICATOR_SIZES,
+  DPRS,
+  strokeCoverage,
+  softnessAt,
+  SLOT_CANDIDATES,
+  SLOT_DEFAULT,
+  slotBox,
+  slotRing,
+  SMALL_MASTER,
+  smallMasterSvg,
 } from "./lib/activity.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -99,17 +109,37 @@ const GROUNDS = [
   },
 ];
 
-const LADDER = [12, 14, 16, 18, 20, 24];
-const ROW_SIZE = 14; // the real project-sidebar row size
-const ADJACENCY_SIZES = [12, 14, 16];
+const LADDER = [12, 14, 15, 16, 18, 20, 24];
+const ROW_SIZE = 14; // CommandTerminalIcon.tsx in the project sidebar
+const ADJACENCY_SIZES = [12, 14, 15, 16];
 
 // The isolation ladder. 12 is not optional: absolute flap depth drops from 6.45
 // to 5.16 on the shortest candidate box, so that is where the V could merge into
-// the top edge. 16 is there because the desktop sidebar was bumped 14 -> 16
-// during adoption while the task card stayed at 14.
-const ISO_SIZES = [12, 14, 16, 20, 24];
-const CARD_SIZE = 14; // TaskCard.tsx
+// the top edge. 14, 15 and 16 are the INDICATOR BAND (see INDICATOR_SIZES in the
+// lib) and all three are here because the desktop renders all three.
+const ISO_SIZES = [12, 14, 15, 16, 20, 24];
+const CARD_SIZE = 16; // TaskCard.tsx
 const TOOLTIP_SIZE = 12; // ActivityReasonTooltip.tsx
+
+// Where each render size actually comes from, read off the desktop app's call
+// sites rather than recalled.
+//
+// Corrected 2026-07-31, and the correction is the reason this round exists.
+// This map used to read `{ 14: "task card", 16: "sidebar today" }` and CARD_SIZE
+// used to be 14. Both were stale: TaskCard.tsx renders at 16 and has since the
+// sidebar bump, and 15 was missing from this repo ENTIRELY - no ladder, no size
+// strip, no isolation row - while three desktop surfaces render indicators at
+// it. A band nothing here rendered is a band nothing here could review, which is
+// exactly how an off-lattice mark reached three of them unexamined.
+const SIZE_SOURCE = {
+  12: "tooltip, sidebar group",
+  14: "terminal, sidebar",
+  15: "monitor card/table",
+  16: "task card, sidebar project",
+  18: "no consumer",
+  20: "controls, title bar",
+  24: "natural",
+};
 
 // The real TaskCard chrome, read off the running desktop app rather than
 // guessed: `border rounded-md p-2.5 bg-surface-raised border-edge`, 272 wide,
@@ -155,12 +185,21 @@ const ENV_ROWS = ENVELOPE_CANDIDATES.map((c) => {
 });
 // The control is the REAL production glyph, arc'd vertex and all, not a redraw
 // of its box. `stock` is the redraw; this is what actually renders today.
+//
+// Its y edges are recorded because of what they turn out to be. A 20 x 16 box
+// centred on 24 sits at y 4 and y 20 - the one pair that is crisp across the
+// whole 14/15/16 band. So the stock glyph this set replaced was ALREADY on the
+// pixel lattice, and the redraw to 18 x 14.4 is what took it off, to 4.8 and
+// 19.2. The set was built to fix an ink-box disagreement and, without anyone
+// looking, traded away a hinting property nobody had named. That is the whole
+// of the "softer than the glyphs beside them" report, and it is why this row is
+// the control for the lattice section as well as for the box study.
 const PROD_ROW = {
   id: "production",
-  box: { w: 20, h: 16, aspect: 1.25 },
+  box: { w: 20, h: 16, aspect: 1.25, x0: 2, y0: 4, x1: 22, y1: 20 },
   flap: { depth: 5.727, angle: 120.4 },
   ink: 91.9,
-  note: "what ships in the desktop app today; the glyph the set has to beat",
+  note: "what ships in the desktop app today; the glyph the set has to beat, and the only one already on the pixel lattice",
   control: true,
   mark: BASELINE.marks.find((m) => m.id === "agent-idle"),
 };
@@ -185,17 +224,25 @@ const ids = (list) => list.map((d) => d.id.toUpperCase()).join(", ");
 const toneOf = (g, mark) =>
   mark.tone === "active" ? g.active : mark.tone === "attention" ? g.attention : mark.tone === "rest" ? g.rest : g.fg;
 
-// The set's five marks and where each one lives, so the section reads as a set
+// The set's NINE marks and where each one lives, so the section reads as a set
 // rather than as three indicators with two buttons bolted on.
+//
+// Corrected 2026-07-31. The comment said "five marks", the table listed eight
+// keys, and the set is nine - `terminal-new` was absent. Five is the count of
+// SILHOUETTES (envelope, ring, chip, pause ring, stop ring), which is what the
+// prose meant and not what it said. The surfaces are now the desktop call sites
+// with the size each renders at, because "where it lives" without a size is
+// what let the 14-15-16 band go unreviewed.
 const MARK_ROLES = {
-  "agent-idle": "project sidebar, task card, tooltip",
-  "agent-working": "project sidebar, task card, tooltip",
-  "terminal-idle": "project sidebar, title bar",
-  "terminal-working": "project sidebar, title bar",
-  "control-pause-idle": "task detail header",
-  "control-pause-working": "task detail header",
-  "control-stop-idle": "Command Terminal header",
-  "control-stop-working": "Command Terminal header",
+  "agent-idle": "task card 16, sidebar 16/12, monitor 15, tooltip 12",
+  "agent-working": "task card 16, sidebar 16/12, monitor 15, tooltip 12",
+  "terminal-idle": "sidebar 14, title bar 20",
+  "terminal-working": "sidebar 14, title bar 20",
+  "terminal-new": "sidebar 14, title bar 20",
+  "control-pause-idle": "task detail header 20",
+  "control-pause-working": "task detail header 20",
+  "control-stop-idle": "Command Terminal header 20",
+  "control-stop-working": "Command Terminal header 20",
 };
 
 // Every mark now declares its own tone, so nothing needs re-toning for a
@@ -311,10 +358,12 @@ function isolationSection() {
  */
 function recognitionLadder() {
   const g = GROUNDS[0];
-  const where = { 12: "tooltip", 14: "task card", 16: "sidebar today", 20: "controls", 24: "natural" };
   const head =
     `<div class="grid-cell grid-cell--rowhead"></div>` +
-    ISO_SIZES.map((s) => `<div class="grid-cell"><b>${s}px</b><span>${where[s] ?? ""}</span></div>`).join("");
+    ISO_SIZES.map(
+      (s) =>
+        `<div class="grid-cell${INDICATOR_SIZES.includes(s) ? " grid-cell--band" : ""}"><b>${s}px</b><span>${SIZE_SOURCE[s] ?? ""}</span></div>`,
+    ).join("");
   const rows = ISO_ROWS.map(
     (r) => `<div class="grid-row${r.control ? " grid-row--base" : ""}">
       <div class="grid-cell grid-cell--rowhead"><b>${r.id}</b><span>${r.box.w} x ${r.box.h}</span></div>
@@ -325,6 +374,197 @@ function recognitionLadder() {
     </div>`,
   ).join("");
   return grid(`150px repeat(${ISO_SIZES.length}, minmax(64px, 1fr))`, head, rows);
+}
+
+// ---------------------------------------------------------------------------
+// THE PIXEL LATTICE. Where a stroke lands on the device grid at 14, 15 and 16.
+//
+// This is the section the hinting round added, and its instrument is different
+// from every other one on this page: the marks are rendered at TRUE SIZE, in the
+// DOM, by the browser you are reading this in. That is deliberate and it is the
+// only honest way to judge the question.
+//
+// Not a <canvas> band. Drawing an SVG into a canvas at 14px rasterizes it at its
+// intrinsic size and then RESAMPLES the bitmap, where the DOM scales the stroke
+// geometry and rasterizes once at 14. Those produce different edge coverage,
+// which is precisely the quantity under judgement, so a canvas band captioned
+// "the browser's own rendering" would be showing something else - the exact
+// review-artifact failure brand-record-fidelity.md is built around.
+//
+// The magnified view is the sharp/librsvg _isolation-zoom-*.png sheet, captioned
+// with its renderer, plus a screenshot of the band below when a pick needs
+// confirming in Chromium's own AA.
+// ---------------------------------------------------------------------------
+
+/**
+ * A candidate's hinting score: the mean edge softness of its top and bottom,
+ * across every display scaling and every size in the band.
+ *
+ * Both edges, averaged, because a box has two and a reader judges the glyph
+ * rather than one line of it. Lower is sharper; 0 means both edges land exactly
+ * on pixel boundaries.
+ */
+const softnessOf = (y0, y1, cssPx, dpr) => n2((softnessAt(y0, cssPx, dpr) + softnessAt(y1, cssPx, dpr)) / 2);
+const n2 = (v) => Math.round(v * 1000) / 1000;
+
+const scoreBox = (y0, y1) => {
+  const cells = DPRS.map((dpr) => ({
+    dpr,
+    sizes: INDICATOR_SIZES.map((cssPx) => ({ cssPx, softness: softnessOf(y0, y1, cssPx, dpr) })),
+  }));
+  return { cells, total: n2(cells.reduce((s, r) => s + r.sizes.reduce((a, c) => a + c.softness, 0), 0)) };
+};
+
+const LATTICE_ROWS = ISO_ROWS.filter((r) => r.box.y0 !== undefined).map((r) => ({
+  ...r,
+  ...scoreBox(r.box.y0, r.box.y1),
+}));
+// Rank so the sheet can mark the sharpest cell in every column rather than
+// leaving the reader to scan twelve columns of decimals for the minimum.
+const bestAt = (dpr, cssPx) =>
+  Math.min(...LATTICE_ROWS.map((r) => r.cells.find((c) => c.dpr === dpr).sizes.find((s) => s.cssPx === cssPx).softness));
+const bestTotal = Math.min(...LATTICE_ROWS.map((r) => r.total));
+
+/**
+ * The candidates at TRUE 14 / 15 / 16, alone, on all three consumer grounds.
+ *
+ * Repeated three times per cell rather than once. A single tiny glyph is hard to
+ * read a smear off; a short run of the same glyph makes an uneven edge obvious
+ * the way a line of type makes an uneven baseline obvious.
+ */
+function latticeSpecimens() {
+  const cell = (g, r, s) =>
+    `<div class="grid-cell"><span class="lat" style="color:${g.attention}">${markSvg(r.mark, { size: s, resting: true }).repeat(3)}</span></div>`;
+  const one = (g) => {
+    const head =
+      `<div class="grid-cell grid-cell--rowhead"><b>${g.label}</b><span>${g.note}</span></div>` +
+      INDICATOR_SIZES.map(
+        (s) => `<div class="grid-cell grid-cell--band"><b>${s}px</b><span>${SIZE_SOURCE[s]}</span></div>`,
+      ).join("");
+    const rows = LATTICE_ROWS.map(
+      (r) => `<div class="grid-row${r.control ? " grid-row--base" : ""}">
+        <div class="grid-cell grid-cell--rowhead"><b>${r.id}</b><span>y ${r.box.y0} / ${r.box.y1}</span></div>
+        ${INDICATOR_SIZES.map((s) => cell(g, r, s)).join("")}
+      </div>`,
+    ).join("");
+    return grid(`170px repeat(${INDICATOR_SIZES.length}, minmax(120px, 1fr))`, head, rows);
+  };
+  return GROUNDS.map(one).join("");
+}
+
+/**
+ * The candidates as numbers, across every display scaling.
+ *
+ * The scaling axis is not decoration. At dpr 1.5 a 16px render is scale 1.0
+ * with a 2.0px stroke, so every integer coordinate is PERFECTLY hard and the
+ * shipped box is the only soft one; at dpr 1 the whole band is soft and the
+ * spread is widest; at dpr 1.25 and 2 the shipped box wins some cells outright.
+ * A single-dpr table would have reported one of those three stories as the
+ * whole truth.
+ */
+function latticeTable() {
+  const head =
+    `<div class="grid-cell grid-cell--rowhead"></div>` +
+    DPRS.flatMap((dpr) =>
+      INDICATOR_SIZES.map(
+        (s) =>
+          `<div class="grid-cell${dpr === 1 ? " grid-cell--band" : ""}"><b>${s}</b><span>${dpr}x</span></div>`,
+      ),
+    ).join("") +
+    `<div class="grid-cell"><b>total</b><span>lower is sharper</span></div>`;
+  const rows = LATTICE_ROWS.map(
+    (r) => `<div class="grid-row${r.control ? " grid-row--base" : ""}">
+      <div class="grid-cell grid-cell--rowhead"><b>${r.id}</b><span>y ${r.box.y0} / ${r.box.y1}</span></div>
+      ${r.cells
+        .flatMap((c) =>
+          c.sizes.map(
+            (s) =>
+              `<div class="grid-cell"><span class="mono ${s.softness <= bestAt(c.dpr, s.cssPx) + 1e-9 ? "lat-ok" : "lat-soft"}">${s.softness.toFixed(3)}</span></div>`,
+          ),
+        )
+        .join("")}
+      <div class="grid-cell"><span class="mono ${r.total <= bestTotal + 1e-9 ? "lat-ok" : "lat-soft"}">${r.total.toFixed(2)}</span></div>
+    </div>`,
+  ).join("");
+  return grid(
+    `150px repeat(${DPRS.length * INDICATOR_SIZES.length}, minmax(58px, 1fr)) 90px`,
+    head,
+    rows,
+  );
+}
+
+/**
+ * The slot axis: the ring at its shipped r=9 against r=8.
+ *
+ * The ring alone, because the ring IS the slot - its extrema are the keyline, so
+ * it is the mark the slot decides. Rendered as INFORMATION, not as a promotable
+ * cell: moving the slot moves INK_BOX, which lib/ui-glyphs.mjs imports, so it
+ * regenerates the kanban glyph and the iOS tab rasters that the store
+ * screenshots were captured against.
+ */
+function slotBand() {
+  const g = GROUNDS[0];
+  const head =
+    `<div class="grid-cell grid-cell--rowhead"></div>` +
+    INDICATOR_SIZES.map((s) => `<div class="grid-cell grid-cell--band"><b>${s}px</b></div>`).join("") +
+    `<div class="grid-cell"><b>softness</b><span>all dpr x sizes</span></div>`;
+  const rows = SLOT_CANDIDATES.map((c) => {
+    const s = slotBox(c.id);
+    const mark = { id: "agent-working", tone: "active", ...slotRing(c.id), motion: null, rest: REST_STATIC };
+    const total = scoreBox(s.min, s.max).total;
+    return `<div class="grid-row${c.shipped ? " grid-row--base" : ""}">
+      <div class="grid-cell grid-cell--rowhead"><b>${c.id}</b><span>x ${s.min}..${s.max}, r=${s.ringR}</span></div>
+      ${INDICATOR_SIZES.map(
+        (px) =>
+          `<div class="grid-cell"><span class="lat" style="color:${g.active}">${markSvg(mark, { size: px }).repeat(3)}</span></div>`,
+      ).join("")}
+      <div class="grid-cell"><span class="mono ${c.shipped ? "lat-soft" : "lat-ok"}">${total.toFixed(2)}</span></div>
+    </div>`;
+  }).join("");
+  return grid(`170px repeat(${INDICATOR_SIZES.length}, minmax(120px, 1fr)) 130px`, head, rows);
+}
+
+/** The brief's prescribed second master, rendered so it is judged not argued. */
+function smallMasterBand() {
+  const g = GROUNDS[0];
+  const forms = ["ring", "envelope"];
+  const head =
+    `<div class="grid-cell grid-cell--rowhead"></div>` +
+    INDICATOR_SIZES.map((s) => `<div class="grid-cell grid-cell--band"><b>${s}px</b></div>`).join("") +
+    `<div class="grid-cell"><b>stroke</b><span>device px at 16</span></div>`;
+  const rows = [
+    ...SMALL_MASTER.strokes.map((stroke) =>
+      forms
+        .map(
+          (form) => `<div class="grid-row">
+        <div class="grid-cell grid-cell--rowhead"><b>${SMALL_MASTER.id} ${form}</b><span>stroke ${stroke} on a ${SMALL_MASTER.view} grid</span></div>
+        ${INDICATOR_SIZES.map(
+          (s) =>
+            `<div class="grid-cell"><span class="lat" style="color:${form === "ring" ? g.active : g.attention}">${smallMasterSvg(
+              form,
+              { size: s, stroke },
+            ).repeat(3)}</span></div>`,
+        ).join("")}
+        <div class="grid-cell"><span class="mono">${((stroke * 16) / SMALL_MASTER.view).toFixed(3)}px</span></div>
+      </div>`,
+        )
+        .join(""),
+    ),
+    // The 24-grid siblings on the same row pitch, so the WEIGHT difference is
+    // side by side rather than a paragraph away. This is the whole objection.
+    `<div class="grid-row grid-row--base">
+      <div class="grid-cell grid-cell--rowhead"><b>24 grid, shipped</b><span>stroke ${STROKE} on a ${VIEW} grid</span></div>
+      ${INDICATOR_SIZES.map(
+        (s) =>
+          `<div class="grid-cell"><span class="lat" style="color:${g.active}">${markSvg(
+            { id: "agent-working", tone: "active", ...slotRing(SLOT_DEFAULT), motion: null, rest: REST_STATIC },
+            { size: s },
+          ).repeat(3)}</span></div>`,
+      ).join("")}
+      <div class="grid-cell"><span class="mono">${((STROKE * 16) / VIEW).toFixed(3)}px</span></div>
+    </div>`,
+  ].join("");
+  return grid(`190px repeat(${INDICATOR_SIZES.length}, minmax(120px, 1fr)) 130px`, head, rows);
 }
 
 // ---------------------------------------------------------------------------
@@ -899,6 +1139,16 @@ table { border-collapse:collapse; font-family:var(--mono); font-size:0.8rem; fon
 .iso-tag--prod { background:rgba(138,129,119,0.22); color:#c9c2b8; }
 .iso-tag--ship { background:rgba(227,179,65,0.18); color:#e3b341; }
 .recog { display:inline-flex; }
+
+/* The lattice band. Glyphs at TRUE size, three in a row: a single 14px mark is
+   hard to read a smeared edge off, a short run of them is not. No transform, no
+   zoom, no canvas - whatever scaling were applied here would re-rasterize the
+   vector and show something other than what the consumer paints. */
+.lat { display:inline-flex; align-items:center; gap:6px; }
+.lat-ok { color:#34d399; }
+.lat-soft { color:#e3b341; }
+.grid-cell--band { background:rgba(52,211,153,0.07); }
+
 .grid-cell--flap { align-items:center; gap:7px; }
 .deg { font-family:var(--mono); font-size:0.6rem; color:#8a8177; }
 
@@ -968,7 +1218,39 @@ ${CSS}
     ${isolationSection()}
     <p class="note">The same six glyphs, each alone, down the sizes each one actually renders at. Adjacency is wanted here, because you cannot judge whether something reads as mail without something to read it against, but there is <b>no alignment datum and no sibling mark from the set</b> in any cell. ${LEGIBILITY_FLOOR_PX}px is not optional: absolute flap depth drops from ${flapVariant("standard", "square").depth} to ${flapVariant("standard", "mail").depth} on the shortest box, so that is where the V could merge into the top edge.</p>
     ${recognitionLadder()}
-    <p class="note">Note on the failing size: the screenshot that started this arrived after the desktop sidebar had been bumped ${ROW_SIZE} to 16 while the task card stayed at ${CARD_SIZE}, and nothing in that record pins which surface the image showed. The ladder covers every case; the ${CARD_SIZE}px card mock above should not be read as <em>the</em> reproduction.</p>
+    <p class="note">Note on the failing size, corrected 2026-07-31. This used to read that the sidebar had been bumped ${ROW_SIZE} to 16 "while the task card stayed at 14". The task card is at <b>16</b>, and was already, so the sentence described a split that had closed. What the record actually missed is <b>15</b>: three desktop surfaces render indicators at it and this repo had no ladder rung, no size strip and no isolation row for it until now. The ladder covers every case; no single cell above should be read as <em>the</em> reproduction.</p>
+  </section>
+
+  <section>
+    <div class="sec-hd">
+      <h2>The pixel lattice, at ${INDICATOR_SIZES.join(" / ")}</h2>
+      <p>Everything above judges <b>shape</b>. This section judges where that shape's edges land on the <b>device pixel grid</b>, which is a different question and the one behind the report that these marks read softer than the library glyphs beside them.</p>
+      <p>Stroke ${STROKE} on a ${VIEW} grid renders <span class="mono">${STROKE} * px / ${VIEW}</span> device pixels: <b>${INDICATOR_SIZES.map((s) => (STROKE * s / VIEW).toFixed(3)).join("</b>, <b>")}</b> at ${INDICATOR_SIZES.join(", ")}. None is an integer, so at no size in this band can a coordinate put <b>both</b> stroke edges on pixel boundaries. That is arithmetic, not a defect, and it is equally true of every other ${VIEW}-grid icon set in the row.</p>
+      <p>What a coordinate does control is where its two stroke EDGES land. An edge sitting exactly on a pixel boundary leaves no partial pixel at all, which is what "hard" looks like; one sitting dead centre between boundaries leaves the greyest possible. So the hint is a lattice, not a stroke weight.</p>
+      <p class="note"><b>Display scaling is part of the question, and leaving it out was this round's first wrong turn.</b> Everything above reasons in DEVICE pixels, but a consumer sizes an icon in CSS pixels, and the two are equal only at a <span class="mono">devicePixelRatio</span> of 1. Windows ships 125% and 150% as common defaults; every Mac panel is 2x. It changes the answer: at <b>1.5x</b> a 16px render is scale 1.0 with a stroke of exactly 2.0 device px, so every integer coordinate is <b>perfectly</b> hard and the shipped box is the only soft one - while at <b>1.25x</b> and <b>2x</b> the shipped box is the sharpest candidate in several cells. The table below is a matrix for that reason. <b>Check your own display before reading it</b>; a maintainer judging the specimens on a 1.5x panel is looking at a case where several candidates are provably identical.</p>
+      <p class="note"><b>How to read this section.</b> The glyphs below are real inline SVG at <b>true</b> 14, 15 and 16 in this page, rendered by the browser you are reading this in - the same engine Electron and the website paint with. Nothing here is scaled, zoomed or drawn through a canvas, because any of those would re-rasterize the vector and show you something other than what a consumer sees. Three copies per cell, because a smeared edge is easier to catch in a short run than in one lone glyph. For the magnified view, use <span class="mono">_isolation-zoom-*.png</span> and mind its caption: that sheet is librsvg at 1x, not Chromium.</p>
+    </div>
+    ${latticeSpecimens()}
+    <p class="note">The same candidates as numbers, across every display scaling. <span class="mono">softness</span> is the mean greyness of a box's two stroke edges: <b>0.000</b> means both land exactly on pixel boundaries, higher is softer. Measured by <span class="mono">strokeCoverage()</span> in the lib, never asserted here. Green marks the sharpest candidate in each column.</p>
+    <p class="note"><b>On the metric, because two earlier ones were wrong and the corrections are the useful part.</b> This first ranked by <span class="mono">core</span>, the largest single covered pixel row - which SATURATES: past about a 2px device stroke every candidate scores 1.000, so it reported "no difference" on exactly the high-scaling displays where there still was one. The replacement measured the fraction of ink in fully covered rows, which is worse: a step function whose output swings from 0 to 0.8 on a 0.083 change in coverage, so it ranked candidates by how often they landed on an exact integer. Both would have picked a different winner. <span class="mono">softness</span> is continuous, has no threshold, and means the same thing at every scaling.</p>
+    ${latticeTable()}
+    <p class="note">Read the <span class="mono">production</span> row first, because it is the one that reframes this. A 20 x 16 box centred on ${VIEW} sits at <b>y 4 and y 20</b>. <b>The stock glyph this set replaced was already on the lattice, and the redraw took it off.</b> The 0.9 scale that fixed the aspect and restored the ${angleOf(FLAP_DEFAULT, "mail")} degree flap landed the box on 4.8 and 19.2 - off the lattice at every scaling but one, since 4.8 x 1.25 = 6.0 is the sole exception. The set was built to fix an ink-box disagreement and traded away a hinting property nobody had named.</p>
+    <p class="note">Two honest caveats on the totals. First, a total is a summary: <span class="mono">between</span> wins it while still losing individual cells to the shipped box at 1.25x and 2x, so a maintainer on one of those displays should read the cells rather than the total. Second, every candidate here is an <b>indicator box</b>; the flap is two diagonals and the ring is a curve, and both anti-alias wherever their coordinates sit, so no amount of hinting touches them.</p>
+
+    <div class="sec-hd">
+      <h3>The slot, and why it is a separate decision</h3>
+      <p>Every indicator in this set spans <b>x ${slotBox(SLOT_DEFAULT).min} to ${slotBox(SLOT_DEFAULT).max}</b>, and its landmarks are 3, 9, 12 and 21 - all divisible by 3. Measured across every scaling and size, <b>the slot is the softest coordinate in the whole field</b>, behind even the envelope box this round opened on. So if the report is about the set rather than about the envelope alone, this is the bigger cause - and much the more expensive thing to move.</p>
+      <p class="note">This band is <b>information, not a promotable cell</b>. The slot is <span class="mono">INK_BOX</span>, which <span class="mono">lib/ui-glyphs.mjs</span> imports rather than restating, so moving it regenerates <span class="mono">assets/ui/kanban.svg</span> and the <span class="mono">resources/mobile/kanban-tab-*</span> rasters - and <span class="mono">ui-glyph-geometry.md</span> records that those are keyed to the iOS tab bar and that changing them invalidates the store screenshots captured against them. It also shrinks every indicator by 11%, which is a legibility judgement rather than a hinting one. A win on the envelope must not silently commit this.</p>
+    </div>
+    ${slotBand()}
+
+    <div class="sec-hd">
+      <h3>The ${SMALL_MASTER.view}-unit master the brief prescribed</h3>
+      <p>A second master authored on a ${SMALL_MASTER.view} grid, so a 16px render is scale 1 and lands exactly. Built as a lattice-snapped 2/3 scale of the shipped drawing, so this compares <b>masters</b> and not two different designs.</p>
+      <p>At stroke 2 it renders <b>2.000</b> device px at size 16: genuinely exact, and <b>50% heavier</b> than the ${(STROKE * 16 / VIEW).toFixed(3)}px library glyphs beside it, which stay on their own ${VIEW} grid. At stroke 1.5 the weight is close but 1.5 is an <b>odd half-width</b>, so its edges cannot both be integers at any centreline and exactness is off the table anyway. Neither helps 14 or 15.</p>
+      <p class="note">The last row is the shipped ${VIEW}-grid ring at the same three sizes, on the same pitch, so the weight difference is side by side rather than a paragraph away. That comparison is the whole objection to this direction, and it should be settled by looking rather than by the arithmetic above.</p>
+    </div>
+    ${smallMasterBand()}
   </section>
 
   <section>
@@ -1112,7 +1394,7 @@ console.log(`Wrote ${SET_MARKS.length} marks + activity.css + activity.json -> a
 // resolve each dash into user units first because librsvg ignores pathLength.
 // ---------------------------------------------------------------------------
 
-const STRIP_SIZES = [12, 14, 16, 20, 24];
+const STRIP_SIZES = [12, ...INDICATOR_SIZES, 20, 24];
 const faithful = (m, size) => {
   const svg = markSvg(m, { size, resting: true });
   const abs = dashInUserUnits(m);
@@ -1215,43 +1497,84 @@ console.log(`Wrote ${GROUNDS.length} isolation sheets -> exploration/activity/_i
 
 // Pixel truth, per the icon-drafting review discipline: render at the target
 // size and nearest-upscale, so what is being judged is the pixels the surface
-// actually paints rather than a smooth vector at review size. Judged at the
-// task card's 14px, which is where the failure was reported.
+// actually paints rather than a smooth vector at review size.
+//
+// Rebuilt 2026-07-31 to cover the WHOLE indicator band rather than one size. It
+// used to render only the task card's size, and a single-size zoom cannot show
+// a hinting difference at all: hinting is a statement about how a coordinate
+// behaves ACROSS scales, and every candidate looks defensible at whichever one
+// size you pick. The band is the instrument; one column of it is not.
+//
+// READ THE CAPTION ON THIS SHEET. It is rasterized by librsvg (via sharp), and
+// librsvg's anti-aliasing is NOT Chromium's. The desktop app is Electron and
+// the website is a browser, so the authoritative surface for these three sizes
+// is the true-size band in compare.html; this sheet is the forensic view of the
+// same geometry, and the two can disagree at the edges by a shade. Saying so
+// here rather than letting the sheet imply otherwise is the review-artifact
+// half of brand-record-fidelity.md.
 const ZOOM = 8;
 const zoomSheet = async (g) => {
-  const S = CARD_SIZE;
-  const TILE = S * ZOOM;
-  const GAP = 16;
+  const CELL = Math.max(...INDICATOR_SIZES) * ZOOM;
+  const GAP = 18;
   const PAD = 22;
-  const TOP = 52;
-  const W = PAD * 2 + ISO_ROWS.length * TILE + (ISO_ROWS.length - 1) * GAP;
-  const H = TOP + TILE + 46;
+  const LABEL = 150;
+  const TOP = 66;
+  const ROW = CELL + 34;
+  const W = PAD * 2 + LABEL + INDICATOR_SIZES.length * CELL + (INDICATOR_SIZES.length - 1) * GAP;
+  const H = TOP + ISO_ROWS.length * ROW + PAD;
+  const colX = (j) => PAD + LABEL + j * (CELL + GAP);
+
+  // The top and bottom of a row's ink box, which are the two edges the lattice
+  // decides. Printed per cell so the picture and the number sit together.
+  const edgesFor = (r) => (r.box.y0 === undefined ? null : [r.box.y0, r.box.y1]);
+
+  const head =
+    `<text x="${PAD}" y="18" font-family="monospace" font-size="11" fill="${g.fg}">pixel truth, the indicator band: ${INDICATOR_SIZES.join(" / ")}px, nearest-upscaled x${ZOOM}</text>` +
+    `<text x="${PAD}" y="34" font-family="monospace" font-size="9" fill="${g.soft}">rasterized by librsvg, which is NOT the Chromium AA the desktop and web actually paint.</text>` +
+    `<text x="${PAD}" y="46" font-family="monospace" font-size="9" fill="${g.soft}">judge from compare.html at true size; this is the forensic view of the same geometry.</text>` +
+    INDICATOR_SIZES.map(
+      (s, j) =>
+        `<text x="${colX(j) + CELL / 2}" y="${TOP - 10}" text-anchor="middle" font-family="monospace" font-size="11" fill="${g.fg}">${s}px</text>`,
+    ).join("");
 
   const labels = ISO_ROWS.map((r, i) => {
-    const x = PAD + i * (TILE + GAP);
+    const y = TOP + i * ROW;
+    const e = edgesFor(r);
+    // Softness at dpr 1, which is the scaling this sheet is rasterized at and
+    // the only one it can honestly report. The full dpr matrix is in
+    // compare.html; quoting a cross-dpr total beside a 1x raster would be a
+    // number the picture beside it does not show.
+    const cov = e
+      ? INDICATOR_SIZES.map((s) => strokeCoverage(e[0], s).softness.toFixed(2)).join(" / ")
+      : "not on the 24 grid";
     return (
-      `<text x="${x}" y="${TOP - 14}" font-family="monospace" font-size="12" fill="${g.fg}">${r.id}</text>` +
-      `<text x="${x}" y="${TOP + TILE + 18}" font-family="monospace" font-size="10" fill="${g.soft}">${r.box.w} x ${r.box.h}, a${r.box.aspect}</text>` +
-      `<text x="${x}" y="${TOP + TILE + 32}" font-family="monospace" font-size="10" fill="${g.soft}">flap ${r.flap.angle.toFixed(1)} deg</text>`
+      `<text x="${PAD}" y="${y + 16}" font-family="monospace" font-size="12" fill="${g.fg}">${r.id}</text>` +
+      `<text x="${PAD}" y="${y + 32}" font-family="monospace" font-size="9" fill="${g.soft}">${r.box.w} x ${r.box.h}, a${r.box.aspect}</text>` +
+      `<text x="${PAD}" y="${y + 45}" font-family="monospace" font-size="9" fill="${g.soft}">flap ${r.flap.angle.toFixed(1)} deg</text>` +
+      (e ? `<text x="${PAD}" y="${y + 61}" font-family="monospace" font-size="9" fill="${g.soft}">y ${e[0]} / ${e[1]}</text>` : "") +
+      `<text x="${PAD}" y="${y + 74}" font-family="monospace" font-size="9" fill="${g.soft}">soft@1x ${cov}</text>`
     );
   }).join("");
 
-  const base = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${g.bg}"/><text x="${PAD}" y="${16}" font-family="monospace" font-size="10" fill="${g.soft}">pixel truth: each mark rendered at ${S}px on the task card ground, nearest-upscaled x${ZOOM}</text>${labels}</svg>`;
+  const base = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${g.bg}"/>${head}${labels}</svg>`;
 
   const composites = [];
   for (const [i, r] of ISO_ROWS.entries()) {
-    const one = `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${VIEW} ${VIEW}"><rect width="${VIEW}" height="${VIEW}" fill="${cardSkin(g).bg}"/><g fill="none" stroke="${g.attention}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${stripInner(
-      markSvg(r.mark, { size: S, resting: true }),
-    )}</g></svg>`;
-    const tile = await sharp(Buffer.from(one))
-      .png()
-      .resize(TILE, TILE, { kernel: "nearest" })
-      .toBuffer();
-    composites.push({ input: tile, left: PAD + i * (TILE + GAP), top: TOP });
+    for (const [j, s] of INDICATOR_SIZES.entries()) {
+      const one = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${VIEW} ${VIEW}"><rect width="${VIEW}" height="${VIEW}" fill="${cardSkin(g).bg}"/><g fill="none" stroke="${g.attention}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${stripInner(
+        markSvg(r.mark, { size: s, resting: true }),
+      )}</g></svg>`;
+      const tile = await sharp(Buffer.from(one)).png().resize(s * ZOOM, s * ZOOM, { kernel: "nearest" }).toBuffer();
+      composites.push({
+        input: tile,
+        left: colX(j) + Math.round((CELL - s * ZOOM) / 2),
+        top: TOP + i * ROW + Math.round((CELL - s * ZOOM) / 2),
+      });
+    }
   }
 
   await sharp(Buffer.from(base)).composite(composites).png().toFile(join(OUT, `_isolation-zoom-${g.id}.png`));
 };
 
 for (const g of GROUNDS) await zoomSheet(g);
-console.log(`Wrote ${GROUNDS.length} pixel-truth zooms -> exploration/activity/_isolation-zoom-*.png`);
+console.log(`Wrote ${GROUNDS.length} pixel-truth zooms (${INDICATOR_SIZES.join("/")}px) -> exploration/activity/_isolation-zoom-*.png`);

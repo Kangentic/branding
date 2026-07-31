@@ -127,8 +127,9 @@ Rules worth knowing before you build your own player:
 
 `assets/activity/` holds the agent, Command Terminal and pause/stop status
 marks this package owns for the desktop app, the mobile app and the website to
-render in-app. Nine marks, four silhouettes, on one 24 grid with an 18x18 ink
-box and a 2px stroke.
+render in-app. Nine marks, four silhouettes, on one 24 grid with an 18-unit
+layout slot and a 2px stroke. The slot fixes WIDTH; each form takes the height
+it needs, so the ring and the chip fill 18x18 and the envelope is 18x16.
 
 ```
 agent-idle              envelope        needs you, static
@@ -178,6 +179,12 @@ Rules worth knowing:
 - **Two legibility floors: 12px for indicators, 16px for the controls**, whose
   centred glyph gets a fraction of an already small box. Below the floor, draw
   a dot instead of a mark.
+- **The marks are pixel-hinted for the 14-16 indicator band.** Every outline
+  extremum sits on an integer grid coordinate, which is the sharpest a 24-grid
+  stroke-2 set can land at those sizes. Render at a whole CSS pixel size; a
+  fractional one (`15.5`, or an icon sized by a flexible container) throws the
+  hinting away. The effect is largest at 100% display scaling and shrinks as
+  `devicePixelRatio` rises.
 - **Motion ships; do not re-author it.** `activity.css` is a drop-in. For a
   runtime with no CSS, read `activity.json`: it carries the same contract as
   data, including each mark's `reducedMotion` rendering.
