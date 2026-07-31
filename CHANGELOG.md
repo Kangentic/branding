@@ -2,6 +2,57 @@
 
 <!-- releases -->
 
+## [Unreleased]
+
+### Fixes
+- Pixel-hint the needs-you envelope so the indicator band renders crisp.
+  **`agent-idle` changes shape: the box goes from 18 x 14.4 to 18 x 16**, so its
+  y edges move from 4.8 / 19.2 onto 4 / 20. Everything else is byte-identical.
+  Adopting consumers should re-run their branding sync and update any pinned
+  height; the flap angle (120.4 degrees), the 18 ink width and the keyline are
+  unchanged.
+
+  The reported defect was that the marks render softer than the icon-library
+  glyphs beside them at 14, 15 and 16px. Measured, it localizes to one mark: at
+  a `devicePixelRatio` of 1 the ring and the chip both score 1.92 on the edge
+  softness scale, which is exactly what any library glyph on an 18 box scores,
+  so they were already at parity. The envelope was the single outlier at 1.95
+  against the 0.92 of the 20 x 16 Mail glyph it replaced. That glyph sat at
+  y 4 / 20, already on the pixel lattice, and the uniform 0.9 scale that
+  correctly restored its flap angle in 2.6.0 moved it off. 18 x 16 lands back on
+  y 4 / 20, so it reproduces the replaced glyph's edges on this set's own
+  18 keyline.
+
+  **What it costs, recorded rather than argued away:** the aspect drops from
+  1.25 to 1.125, and the 2026-07-29 finding that this reads squat beside the
+  ring is not overturned, only outweighed. Enclosed area goes from +0.5% to
+  +11.8% against the ring, and the task card swaps idle for working in place,
+  so the swap was reviewed rendered before this was accepted. A sweep of every
+  height from 12 to 18 established the trade is structural: sharpness at 1x and
+  the reference mail aspect pull in opposite directions on an 18-wide box.
+
+  Scope it honestly: the effect is largest at 100% display scaling and shrinks
+  as `devicePixelRatio` rises. At 2x the withdrawn box scores identically to the
+  promoted one in every cell.
+
+  `ACTIVITY` now asserts every outline extremum is an integer, which catches a
+  class byte-equality structurally cannot (a regenerated geometry change is
+  byte-correct by construction). Verified to bite. The indicator keyline span is
+  now a written-out literal like the control span already was; derived, it was
+  not merely tautological but inverted, catching the one mark that does not
+  derive from `INK_BOX` and missing all four that do.
+
+### Records
+- The review sheets now cover the whole 14/15/16 indicator band rather than one
+  size, print the softness matrix across four display scalings, and carry the
+  16-unit second master as a rendered comparison. Five drifted records fixed in
+  the same pass: the task card was documented at 14px and renders at 16; the
+  surface map named the wrong sizes; **15px appeared nowhere in this repo** while
+  three desktop surfaces render indicators at it, which is why that band had
+  never been reviewed; the mark table said "five marks", listed eight, and the
+  set is nine; and the README described an 18x18 ink box the envelope has not
+  filled since 2.6.0.
+
 ## [v2.7.0] - 2026-07-29
 
 ### Fixes

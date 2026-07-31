@@ -59,6 +59,126 @@ export const PATH_LENGTH = 100;
 // glyph smears. Consumers rendering smaller than this use a dot, not a mark.
 export const LEGIBILITY_FLOOR_PX = 12;
 
+// ---------------------------------------------------------------------------
+// Pixel hinting. Where a stroke lands on the device pixel grid, measured.
+//
+// The desktop renders indicators across a 14-15-16 band (task card and sidebar
+// project row at 16, monitor card/table/summary at 15, terminal sidebar at 14),
+// and the marks read softer there than the icon-library glyphs beside them.
+//
+// Stroke 2 on a 24 grid renders STROKE * px / VIEW device pixels: 1.1667 at 14,
+// 1.25 at 15, 1.3333 at 16. None is an integer, so at no size in the band can a
+// coordinate put BOTH stroke edges on pixel boundaries. That is not a defect to
+// be fixed; it is arithmetic, and it is true of every 24-grid icon set including
+// the libraries this one sits beside. Authoring a second master on a 16 grid
+// does not escape it either: stroke 2 there renders 2.0px at size 16, which is
+// exact, and 50% heavier than the 1.3333px glyphs next to it.
+//
+// What a coordinate DOES control is how the ink is split across pixel rows, and
+// that is worth a lot. At 16 (scale 2/3) a coordinate divisible by 3 lands
+// exactly on a boundary and halves into two rows at 0.667 each - the softest
+// possible result. One third off a boundary draws one SOLID row plus a 0.333
+// halo. At 15 (scale 5/8) the coordinates 4, 12 and 20 land on pixel CENTRES,
+// which is the crispest result available at that size.
+//
+// So the hint is a lattice, not a stroke width, and this function is how any
+// claim about it gets made. Measure, never assert.
+export const INDICATOR_SIZES = [14, 15, 16];
+
+// DISPLAY SCALING IS PART OF THE QUESTION, and leaving it out was the first
+// wrong turn this round took. Everything above reasons in DEVICE pixels, but a
+// consumer sizes an icon in CSS pixels, and the two are equal only at a
+// devicePixelRatio of 1. The desktop app ships on Windows, where 125% and 150%
+// are common defaults, and on macOS, where every panel is 2x.
+//
+// It matters enormously. At dpr 1.5 a 16px render is scale 1.0 with a stroke of
+// exactly 2.0 device px, so EVERY integer coordinate has both edges dead on a
+// pixel boundary and is perfectly hard - while the shipped 4.8 is still soft.
+// At dpr 1 the whole band is soft and the spread between candidates is widest.
+// A sheet that silently assumed dpr 1 would have overstated the fix on three of
+// the four scalings the consumers actually run at.
+export const DPRS = [1, 1.25, 1.5, 2];
+
+// Float slack. `4 * (16/24)` is 2.6666666666666665, so its lower stroke edge
+// computes as 1.9999999999999998 rather than 2. Bucketed naively that opens a
+// phantom row of 2e-16 coverage and reports a two-row split as three.
+const PX_EPS = 1e-9;
+
+/**
+ * How grey a single stroke edge's boundary pixel is.
+ *
+ * An edge landing exactly on a pixel boundary produces no partial pixel at all,
+ * which is what "hard" looks like. One landing dead centre produces the greyest
+ * possible. 0 = hard, 1 = softest.
+ */
+const edgeGrey = (pos) => {
+  const f = +(pos - Math.floor(pos)).toFixed(9);
+  return n(2 * Math.min(f, 1 - f));
+};
+
+/**
+ * How one axis-aligned stroke centreline lands on the device pixel grid.
+ *
+ * `px` is DEVICE pixels: multiply a CSS size by the devicePixelRatio before
+ * calling, or use softnessMatrix below, which does it for you.
+ *
+ * `softness` is the headline number and the only one anything ranks by: the
+ * mean greyness of the two stroke edges. 0 means both edges sit exactly on
+ * pixel boundaries; higher is softer. `rows` and `core` come back too because
+ * they are what a reader can picture, but they must NOT be used to rank.
+ *
+ * That is not a stylistic preference, it is a correction. This function first
+ * shipped ranking by `core`, the largest single covered row, which SATURATES:
+ * once the device stroke passes about 2px every candidate scores 1.0 and the
+ * metric reports "no difference" on exactly the high-dpr displays where there
+ * still is one. The replacement tried the fraction of ink in fully covered
+ * rows, which is worse - a step function whose output swings from 0 to 0.8 on a
+ * 0.083 change in coverage, so it ranks candidates by how often they land on an
+ * exact integer rather than by how sharp they look. `softness` is continuous,
+ * has no threshold, and means the same thing at every dpr.
+ *
+ * Axis-aligned only, and deliberately so. A diagonal (the envelope flap) and a
+ * curve (the ring, away from its four extrema) anti-alias whatever their
+ * coordinates are, so hinting them buys nothing and claiming otherwise would be
+ * the kind of unmeasured rationale brand-record-fidelity.md exists to stop.
+ */
+export const strokeCoverage = (coord, px, { view = VIEW, stroke = STROKE } = {}) => {
+  const scale = px / view;
+  const centre = coord * scale;
+  const half = (stroke * scale) / 2;
+  const lo = +(centre - half).toFixed(9);
+  const hi = +(centre + half).toFixed(9);
+  const rows = [];
+  for (let row = Math.floor(lo + PX_EPS); row < Math.ceil(hi - PX_EPS); row++) {
+    const covered = Math.min(hi, row + 1) - Math.max(lo, row);
+    if (covered > PX_EPS) rows.push(n(covered));
+  }
+  return {
+    centre: n(centre),
+    edges: [lo, hi],
+    rows,
+    core: n(Math.max(...rows)),
+    softness: n((edgeGrey(lo) + edgeGrey(hi)) / 2),
+  };
+};
+
+/** One coordinate's softness at a CSS size on a display of a given scaling. */
+export const softnessAt = (coord, cssPx, dpr, opts) => strokeCoverage(coord, cssPx * dpr, opts).softness;
+
+/**
+ * A coordinate scored across every scaling and every size in the band, plus the
+ * total. The total is the ranking number, and a candidate that wins it can
+ * still lose individual cells - which is why the sheet prints the matrix rather
+ * than the total alone.
+ */
+export const softnessMatrix = (coord, opts) => {
+  const cells = DPRS.map((dpr) => ({
+    dpr,
+    sizes: INDICATOR_SIZES.map((cssPx) => ({ cssPx, softness: softnessAt(coord, cssPx, dpr, opts) })),
+  }));
+  return { coord, cells, total: n(cells.reduce((sum, r) => sum + r.sizes.reduce((s, c) => s + c.softness, 0), 0)) };
+};
+
 // Corner radii. The envelope is paper (crisper), the chip is a screen bezel.
 export const R_ENVELOPE = 2;
 export const R_CHIP = 3;
@@ -140,7 +260,45 @@ export const ENVELOPE_CANDIDATES = [
     // that produced the 108.8 bug, just milder. Pinning the angle instead means
     // this differs from `mail` in box height ALONE.
     angle: "reference",
-    note: "aspect 1.125; the hedge if the full 1.25 reads squat beside the ring",
+    // RE-OPENED 2026-07-31 on new information, which is the bar CLAUDE.md sets
+    // for revisiting a settled direction. It lost the 2026-07-29 round on
+    // aspect alone, and nothing about that judgement has changed. What is new
+    // is that y 4 / y 20 is the SHARPEST box in the field: total edge softness
+    // 5.312 across the twelve dpr-by-size cells, against 5.687 for mail-hinted,
+    // 6.417 for the shipped box and 6.646 for the 18 slot's own y 3 / y 21.
+    //
+    // Stated honestly, because the matrix is not a clean sweep: it wins big at
+    // dpr 1 (0.333 / 0.250 / 0.333 against the shipped box's 0.600 / 0.750 /
+    // 0.600) and it LOSES to the shipped box in several dpr 1.25 and dpr 2
+    // cells. A total is a summary, and the sheet prints every cell for that
+    // reason.
+    //
+    // SELECTED 2026-07-31, from the in-place swap strip and the specimen bands
+    // rather than from the totals. What decided it:
+    //
+    // 1. It is the only box that restores the sharpness of the glyph this set
+    //    replaced. lucide Mail was 20 x 16, so y 4 / 20; this is 18 x 16, so
+    //    y 4 / 20 as well. Identical edges, identical score (0.92 at dpr 1
+    //    against the shipped box's 1.95), on this set's own 18 keyline.
+    // 2. The report localizes to this one mark. Measured at dpr 1, the ring and
+    //    the chip both score 1.92, which is exactly what ANY icon-library glyph
+    //    on an 18 box scores - they are already at parity with their neighbours
+    //    and nothing but moving the shared keyline could change that. The
+    //    envelope was the single outlier.
+    // 3. A sweep of every height from 12 to 18 in 0.2 steps established the
+    //    trade is structural: sharpness at dpr 1 and the reference mail aspect
+    //    pull in opposite directions on an 18-wide box, and no height gets
+    //    both. Inside the +/-5% area band the best total is mail-15's 1.54.
+    //
+    // WHAT IT COSTS, recorded because it is real and was accepted rather than
+    // argued away. Aspect drops to 1.125, and the 2026-07-29 round's judgement
+    // that this reads squat beside the ring HAS NOT BEEN OVERTURNED - only
+    // outweighed, by evidence that round did not have. And the box encloses
+    // 284.6 units against the ring's 254.5 (+11.8%), where the withdrawn box
+    // sat at +0.5%; the task card swaps idle for working IN PLACE, so this is
+    // a visible-growth risk that was checked on the swap strip and accepted.
+    selected: "2026-07-31",
+    note: "aspect 1.125; the sharpest box in the field and the only one that restores the replaced glyph's y 4 / 20 edges. Costs the aspect and +11.8% area against the ring",
   },
   {
     id: "mail",
@@ -156,8 +314,78 @@ export const ENVELOPE_CANDIDATES = [
     // SILHOUETTE rather than by one unit of corner radius, which is the
     // adjacency the 2026-07-28 round named as make-or-break and then priced as
     // "a small cost". It was not small.
-    selected: "2026-07-29",
-    note: "aspect 1.25 at the set's 18 width; a uniform 0.9 scale of the reference glyph, so it restores the 120.4 degree angle for free",
+    // WITHDRAWN 2026-07-31 in favour of `between`, and the reasoning that
+    // selected it on 2026-07-29 is left standing above because none of it was
+    // wrong. The uniform 0.9 scale IS the only transform that carries the flap
+    // angle across, it DID fix both 2.5.0 defects with one change, and it DOES
+    // hold the 18 ink width. It was selected on the evidence that round had.
+    //
+    // Added 2026-07-31, and it is the defect that opened this round: the 0.9
+    // scale that fixes the aspect and the angle lands the box on 4.8 and 19.2.
+    // Every other outline in the set is on integers, and 4.8 is off the lattice
+    // at every scaling but one (4.8 x 1.25 = 6.0 is the single exception).
+    //
+    // Total edge softness 6.417 across the twelve dpr-by-size cells, third of
+    // four. Where it hurts most is dpr 1, where it is beaten at all three sizes
+    // (0.600 / 0.750 / 0.600 against 0.333 / 0.250 / 0.333), and dpr 1.5 at
+    // 16px, where every integer candidate is PERFECTLY hard (0.000, because
+    // that combination is scale 1.0 with a 2.0px stroke) and this box is 0.400.
+    //
+    // And where it does not: at dpr 1.25 and dpr 2 it is the sharpest candidate
+    // in several cells. So this is not a mark that is soft everywhere, it is a
+    // mark whose sharpness depends on the viewer's display in a way none of its
+    // siblings' does. That is the honest version of the report, and it is
+    // narrower than "the marks are soft".
+    note: "aspect 1.25 at the set's 18 width; a uniform 0.9 scale of the reference glyph, so it restores the 120.4 degree angle for free. The one shipped outline that is off the pixel lattice",
+  },
+  {
+    id: "mail-hinted",
+    w: 18,
+    h: 14,
+    // The aspect-1.25 lineage's integer representative: `mail` rounded to the
+    // nearest whole box, so y lands on 5 and 19. Total edge softness 5.687,
+    // second of four - behind `between` overall, ahead of it at dpr 1.25 and
+    // dpr 2, and the only candidate that is sharpest in the dpr 2 / 14px cell.
+    //
+    // So it is the compromise cell of this matrix, and it is the one that keeps
+    // both properties the shipped box was chosen for: the mail aspect (1.286
+    // against 1.25) and the in-place area parity with the ring (-2.3%, where
+    // `between` is +11.8%).
+    //
+    // Pinned to the reference ANGLE, never to `flap: "standard"`. 18x14 is not
+    // a uniform scale of the 20x16 reference, so transplanting the ratios onto
+    // it would reproduce exactly the bug recorded at the top of this file: the
+    // half-width moves with the width and the depth with the height, so the
+    // angle comes out somewhere nobody chose. Only a uniform scale preserves an
+    // angle; everything else has to pin it.
+    angle: "reference",
+    draft: true,
+    note: "aspect 1.286; the hinted member of the mail lineage. Second sharpest overall and the only candidate that keeps BOTH the mail aspect and the in-place area parity with the ring",
+  },
+  {
+    id: "mail-15",
+    w: 18,
+    h: 15,
+    angle: "reference",
+    draft: true,
+    // The best box INSIDE the area-parity band, found 2026-07-31 by sweeping h
+    // from 12 to 18 and scoring every step at dpr 1. That sweep is the useful
+    // artifact of this round even though this candidate is a hedge: it shows
+    // the tension is structural. Sharpness at dpr 1 and the reference mail
+    // aspect pull in opposite directions on an 18-wide box, and no height gets
+    // both.
+    //
+    // Re-derived under the two-edge metric that shipped, rather than left as
+    // the single-coordinate figures the sweep was first run with: inside
+    // |area| <= 5% the best total is this one's 1.542, against the withdrawn
+    // box's 1.950, and every box scoring under 1.2 costs at least 9% of area
+    // (h 13.0 is 1.17 at -9.4%, h 15.6 is 1.02 at +9.0%).
+    //
+    // y 4.5 / 19.5 is a half-integer pair, which is why it wins 14px outright -
+    // 0.250, the best 14px cell in the whole field, ahead of the 0.333 that
+    // `between`, `stock` and the replaced glyph all share - and then gives it
+    // back at 16, where 4.5 x 2/3 = 3.0 lands on a boundary and straddles.
+    note: "aspect 1.2, area +4.8%. The sharpest box that stays inside the area-parity band, and the best 14px cell in the field; mediocre at 15 and 16",
   },
   {
     id: "stock",
@@ -174,7 +402,10 @@ export const ENVELOPE_CANDIDATES = [
     note: "the aspect-versus-angle diagnostic: full square alignment, flap angle corrected to 122.0 degrees. If this still reads as a placeholder, aspect is the culprit and the angle is a side issue",
   },
 ];
-export const ENVELOPE_DEFAULT = "mail";
+// Promoted 2026-07-31: `mail` -> `between`, on pixel-hinting evidence the
+// 2026-07-29 round did not have. See that candidate's block for what decided it
+// and what it cost. Both boxes stay declared, with their reasons intact.
+export const ENVELOPE_DEFAULT = "between";
 
 /** A candidate's box resolved onto the grid. Every box is centred on VIEW. */
 export const envelopeBox = (id = ENVELOPE_DEFAULT) => {
@@ -204,6 +435,16 @@ export const flapVariant = (id, boxId) => flapGeom(id, boxId);
  * input ever does.
  */
 export const referenceAngle = () => flapGeom(FLAP_DEFAULT, "stock").angle;
+// Verified 2026-07-31, when `between` was promoted on the claim that pinning
+// carries the angle across a box change. Every angle-pinned candidate reports
+// 120.378 with a delta of exactly 0 from the reference - but that alone is what
+// a silently broken computation would also look like. The discriminating
+// evidence is the DEPTH: `stock` (20 wide) needs 5.7296 to reach that angle
+// while every 18-wide box needs 5.1566. Different depths, one angle, which is
+// the whole point of pinning and is not something a stuck computation produces.
+// `mail` reaches it via the ratio path rather than the angle path, which is the
+// 2026-07-29 record's claim that a uniform 0.9 scale preserves an angle, still
+// holding.
 
 /**
  * The flap a candidate actually uses.
@@ -317,9 +558,83 @@ export const CONTROL_RENDER_PX = 20;
 // written as `(VIEW - 2 * CONTROL_RING_R) / 2` and CONTROL_RING_R set to 9, the
 // gate reports ACTIVITY PASS on the exact 2.5.0 regression it exists to catch;
 // with the literal, it reports four findings. Do not "clean this up".
+//
+// BOTH spans are written out as of 2026-07-31. The indicator span used to read
+// `[INK_MIN, INK_MAX]`, derived from INK_BOX, which is the same
+// compare-a-value-to-itself trap the paragraph above records for the control
+// span. It had never bitten because nothing had proposed moving the indicator
+// slot; the hinting round did (SLOT_CANDIDATES below).
+//
+// Verified 2026-07-31 the same way as the control span, by setting INK_BOX to
+// 16 and running the gate both ways. With the span DERIVED, the four marks
+// whose geometry comes from INK_BOX - the ring and all three terminal marks -
+// silently moved from x 3..21 to x 4..20 and the keyline reported nothing,
+// because the keyline had moved with them. The single finding was:
+//
+//   - agent-idle: outline spans x 3..21, off its keyline 4..20 (14-16px label in a counter row)
+//
+// and the envelope caught it only by accident, because ENVELOPE_CANDIDATES
+// declares `w: 18` as a literal rather than deriving it. With the span written
+// out, the same INK_BOX change reports all four:
+//
+//   - agent-working: outline spans x 4..20, off its keyline 3..21 (14-16px label in a counter row)
+//   - terminal-idle / terminal-working / terminal-new: the same
+//
+// So the derived form was not merely tautological, it was inverted: it caught
+// the one mark that does NOT derive from the constant and missed every mark
+// that does.
 export const KEYLINES = {
-  indicator: { span: [INK_MIN, INK_MAX], note: "14px label in a counter row" },
+  indicator: { span: [3, 21], note: "14-16px label in a counter row" },
   control: { span: [(VIEW - 2 * 10) / 2, VIEW - (VIEW - 2 * 10) / 2], note: "20px target in a header" },
+};
+
+// The indicator slot itself, as a candidate axis. UNDER REVIEW 2026-07-31.
+//
+// The shipped 18-unit slot puts every indicator extent on 3 and 21, and its
+// interior landmarks on 9 and 12. All four are divisible by 3, which at dpr 1
+// and a 16px render is exactly the boundary-straddling case, and so is every
+// other 24-grid icon set beside it.
+//
+// Measured, it is the SOFTEST coordinate in the whole field: total edge
+// softness 6.646 across the twelve dpr-by-size cells, behind even the envelope
+// box this round opened on (6.417). A 16-unit slot (x 4..20, ring r=8) scores
+// 5.312. So if the report is about the set as a whole rather than about the
+// envelope alone, the slot is the bigger cause - and also much the more
+// expensive thing to move, which is why it is information here and not a
+// promotable cell.
+//
+// This axis is DELIBERATELY not promotable in the same breath as an envelope
+// box, and the sheet says so. INK_BOX is imported by lib/ui-glyphs.mjs, so
+// moving the slot regenerates assets/ui/kanban.svg and the
+// resources/mobile/kanban-tab-* rasters, and ui-glyph-geometry.md records that
+// those rasters are keyed to the iOS tab bar and that changing them invalidates
+// the store screenshots captured against them. It also shrinks every indicator
+// by 11%, which is a legibility judgement, not a hinting one.
+//
+// So these render on the review sheet as INFORMATION. Promoting one is a
+// separate decision with its own consumer coordination.
+export const SLOT_CANDIDATES = [
+  {
+    id: "slot-18",
+    ink: INK_BOX,
+    ringR: RING_R,
+    shipped: true,
+    note: "what ships: x 3..21, ring r=9. Every extent divisible by 3. Softest coordinate in the field, total 6.646",
+  },
+  {
+    id: "slot-16",
+    ink: 16,
+    ringR: 8,
+    draft: true,
+    note: "x 4..20, ring r=8. Sharpest in the field at 5.312, and the most expensive: it costs 11% of every indicator's size, the shared ui grid, and desktop's width=18 and r=9 pins",
+  },
+];
+export const SLOT_DEFAULT = "slot-18";
+/** A slot candidate's geometry resolved onto the grid, for the sheet only. */
+export const slotBox = (id = SLOT_DEFAULT) => {
+  const c = SLOT_CANDIDATES.find((s) => s.id === id) ?? SLOT_CANDIDATES.find((s) => s.id === SLOT_DEFAULT);
+  const min = n((VIEW - c.ink) / 2);
+  return { ...c, min, max: n(VIEW - min), span: [min, n(VIEW - min)] };
 };
 /** The keyline a mark belongs to. Role, not size: the id prefix is the role. */
 export const keylineFor = (mark) => (mark.id.startsWith("control-") ? KEYLINES.control : KEYLINES.indicator);
@@ -336,6 +651,75 @@ export const CONTROL_FLOOR_PX = 16;
 const CTRL = VIEW / CONTROL_RENDER_PX;
 export const PAUSE_BAR = { w: n(2 * CTRL), h: n(8 * CTRL), gap: n(2 * CTRL) };
 export const STOP_SQUARE = { s: n(8 * CTRL), r: n(2 * CTRL) };
+
+// ---------------------------------------------------------------------------
+// The 16-unit small-size master. DRAFT, review-sheet only, 2026-07-31.
+//
+// The shape the hinting brief prescribed: a second master authored on a 16 grid
+// so a 16px render is scale 1 and lands exactly. It is declared here rather
+// than in the generator because it is geometry, and geometry lives in this file
+// even when it exists only to be rendered and rejected.
+//
+// A uniform 2/3 scale of the shipped 24-grid drawing, then snapped to the 16
+// lattice, so this band compares MASTERS rather than comparing two different
+// designs: ring r=9 -> 6 exactly, ink box 18 -> 12 exactly, envelope 18 x 14.4
+// -> 12 x 9.6, snapped to 12 x 10.
+//
+// Two stroke weights, because the weight is the whole argument:
+//   2.0  at a 16px render this is 2.0 device px, edges on integers, genuinely
+//        exact - and 50% heavier than the 1.3333px icon-library glyphs beside
+//        it, which are on their own 24 grid and stay there.
+//   1.5  1.5 device px, +12.5% weight, but an ODD half-width, so its edges
+//        cannot both be integers at any centreline. Best case is a solid core
+//        with 0.25 halos. Exactness is not on the table at this weight.
+//
+// Neither helps 14 or 15, which scale by 0.875 and 0.9375. Closer to 1 than the
+// 24 grid's 0.583 and 0.625, and still not exact. The band exists so that is
+// looked at rather than argued.
+export const SMALL_MASTER = {
+  id: "grid-16",
+  view: 16,
+  ink: 12,
+  ringR: 6,
+  env: { w: 12, h: 10, r: 1.5 },
+  strokes: [2, 1.5],
+  draft: true,
+  note: "the brief's prescribed second master: a lattice-snapped 2/3 scale of the shipped drawing on a 16 viewBox",
+};
+
+/**
+ * One small-master form ("ring" or "envelope") as a standalone SVG.
+ *
+ * A separate emitter from markSvg because that one hardcodes the 24 viewBox and
+ * the set's stroke, which is correct for everything that ships. Nothing here
+ * reaches assets/: the ACTIVITY gate asserts the 24 grid on every file in
+ * assets/activity, so a 16-viewBox master could not ship without that assertion
+ * being deliberately reopened.
+ */
+export function smallMasterSvg(form, { size = SMALL_MASTER.view, stroke = STROKE } = {}) {
+  const { view, ink, ringR, env } = SMALL_MASTER;
+  const c = view / 2;
+  let body;
+  if (form === "ring") {
+    body = `<circle cx="${c}" cy="${c}" r="${ringR}"/>`;
+  } else {
+    const x0 = n((view - env.w) / 2);
+    const y0 = n((view - env.h) / 2);
+    // Pinned to the reference vertex angle, never to the flap ratios. 12 x 10
+    // is not a uniform scale of the 20 x 16 reference, so ratios would drift
+    // the angle exactly as they did on the 24 grid. Same rule, smaller master.
+    const depth = n(env.w / 2 / Math.tan((referenceAngle() * Math.PI) / 360));
+    const top = n(y0 + FLAP_VARIANTS.find((f) => f.id === FLAP_DEFAULT).top * env.h);
+    body =
+      `<rect x="${x0}" y="${y0}" width="${env.w}" height="${env.h}" rx="${env.r}"/>` +
+      `<path d="M${x0} ${top} L${c} ${n(top + depth)} L${n(x0 + env.w)} ${top}"/>`;
+  }
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${view} ${view}" width="${size}" height="${size}"` +
+    ` fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"` +
+    ` aria-hidden="true">${body}</svg>`
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Motion. Two candidate primitives; the artifact decides between them.
@@ -511,6 +895,25 @@ export const chip = ({ plus = false } = {}) => ({
   interior: plus ? path(PLUS_V_D) + path(PLUS_H_D) : path(PROMPT_D) + path(PROMPT_BAR_D),
   perimeter: rrectPerimeter(INK_BOX, INK_BOX, R_CHIP),
 });
+
+/**
+ * A slot candidate's ring, for the review sheet only.
+ *
+ * The ring alone, not the whole set, because the ring IS the slot: its extrema
+ * are the keyline, so it is the mark whose hinting the slot decides. The chip's
+ * rect has the identical extrema by construction, and its prompt interior is
+ * authored for the 18 slot, so rescaling it would put a second decision inside
+ * a cell that exists to isolate one.
+ */
+export const slotRing = (id = SLOT_DEFAULT) => {
+  const s = slotBox(id);
+  return {
+    outline: circle(VIEW / 2, VIEW / 2, s.ringR),
+    interior: "",
+    perimeter: circlePerimeter(s.ringR),
+    slot: s,
+  };
+};
 
 // The aperture family: one shared frame, three interiors. Parity by
 // construction, at the cost of a third element inside the ink box.

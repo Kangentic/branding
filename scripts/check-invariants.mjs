@@ -417,6 +417,27 @@ const outlineXSpan = (el) => {
   return null;
 };
 
+/**
+ * The four extrema of a mark's outline, in grid units, or null if unparseable.
+ *
+ * The vertical siblings of outlineXSpan, which this reuses for x so the two
+ * cannot disagree about what a shape's edges are.
+ */
+const outlineBounds = (el) => {
+  const x = outlineXSpan(el);
+  if (!x) return null;
+  let m = el.match(/<rect[^>]*\sy="([-\d.]+)"[^>]*\sheight="([-\d.]+)"/);
+  if (m) return { x, y: [Number(m[1]), Number(m[1]) + Number(m[2])] };
+  m = el.match(/<circle[^>]*\scy="([-\d.]+)"[^>]*\sr="([-\d.]+)"/);
+  if (m) return { x, y: [Number(m[1]) - Number(m[2]), Number(m[1]) + Number(m[2])] };
+  m = el.match(/<polygon[^>]*\spoints="([^"]+)"/);
+  if (m) {
+    const ys = m[1].trim().split(/\s+/).map((p) => Number(p.split(",")[1]));
+    return { x, y: [Math.min(...ys), Math.max(...ys)] };
+  }
+  return null;
+};
+
 // 8. The activity icon set (activity-icon-geometry). Five things a grep can
 //    decide, and one it cannot: the strongest assertion here is BEHAVIOURAL,
 //    following how TIERING imports the mark builders - the shipped SVG bytes
@@ -481,6 +502,41 @@ checks.ACTIVITY = () => {
     } else if (span[0] !== k.span[0] || span[1] !== k.span[1]) {
       findings.push(
         `${m.id}: outline spans x ${span[0]}..${span[1]}, off its keyline ${k.span[0]}..${k.span[1]} (${k.note})`,
+      );
+    }
+  }
+
+  // PIXEL HINTING. Every outline extremum sits on the integer lattice.
+  //
+  // Added 2026-07-31. Stroke 2 on a 24 grid renders a fractional number of
+  // device pixels at every size in the 14-16 indicator band, so no coordinate
+  // can put both stroke edges on a pixel boundary. What a coordinate DOES
+  // control is how far off it lands, and an integer is the best available.
+  //
+  // The defect this exists to stop already shipped once: the envelope's box was
+  // a uniform 0.9 scale of the glyph it replaced, which is the only transform
+  // that carries the flap angle across and is why it was chosen - and it landed
+  // the box on y 4.8 / 19.2, off the lattice at every display scaling but one,
+  // while every other outline in the set sat on integers. Nothing caught it,
+  // because a 0.9 scale is exactly the kind of change that looks principled.
+  //
+  // Scope it honestly. This reads `mark.outline` ONLY, inheriting the same
+  // blindness outlineXSpan already has: the envelope flap, the terminal prompt
+  // and the control interiors are unchecked. That is not laziness in the flap's
+  // case - it is two diagonals, and a diagonal anti-aliases wherever its
+  // endpoints sit - but the control interiors are genuinely fractional (they
+  // are hinted for their own 20px render, via CTRL = VIEW / CONTROL_RENDER_PX)
+  // and would fail this if it reached them.
+  for (const m of set.marks) {
+    const b = outlineBounds(m.outline);
+    if (!b) {
+      findings.push(`${m.id}: outline shape not recognised, pixel lattice unverifiable`);
+      continue;
+    }
+    const off = [...b.x, ...b.y].filter((v) => !Number.isInteger(v));
+    if (off.length) {
+      findings.push(
+        `${m.id}: outline extrema x ${b.x.join("..")} y ${b.y.join("..")} are off the integer pixel lattice (${off.join(", ")})`,
       );
     }
   }
