@@ -12,7 +12,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { OVERSEER, rects as spriteRects, PALETTE } from "./lib/sprite.mjs";
-import { word } from "./lib/pixelfont.mjs";
+import { PROOF_LINE, word } from "./lib/pixelfont.mjs";
 import { CREAM, INK, INK_SOFT, RUST } from "./lib/mark.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -25,7 +25,7 @@ const wordScale = 11; // 7px glyphs -> 77px tall
 const wordX = 96;
 const wordY = 232;
 const ruleY = wordY + mark.h * wordScale + 34;
-const tag = word("11 AGENT CLIS / 100% LOCAL / $0 FOREVER", INK_SOFT);
+const tag = word(PROOF_LINE, INK_SOFT);
 const tagScale = 3; // 7px glyphs -> 21px tall proof-line caption
 const roo = spriteRects(OVERSEER, { unit: 1, palette: PALETTE });
 const rooScale = 23; // 18x12 grid -> 414x276

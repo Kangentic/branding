@@ -17,7 +17,7 @@
 
 import { PANEL, RUST, INK, INK_SOFT } from "./mark.mjs";
 import { OVERSEER, rects as spriteRects, PALETTE } from "./sprite.mjs";
-import { word } from "./pixelfont.mjs";
+import { PROOF_LINE, word } from "./pixelfont.mjs";
 
 export const FEATURE_W = 1024;
 export const FEATURE_H = 500;
@@ -41,7 +41,7 @@ const ROO_RIGHT = 104;
 
 export function featureGraphicSvg(ground = PANEL) {
   const mark = word("KANGENTIC", INK);
-  const tag = word("11 AGENT CLIS / 100% LOCAL / $0 FOREVER", INK_SOFT);
+  const tag = word(PROOF_LINE, INK_SOFT);
   const roo = spriteRects(OVERSEER, { unit: 1, palette: PALETTE });
 
   const ruleY = WORD_Y + mark.h * WORD_SCALE + RULE_GAP;
