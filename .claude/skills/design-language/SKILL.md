@@ -20,13 +20,13 @@ encodes, is craft over styling:
   the bun, Fly.io has hand illustrations. Kangentic has a pixel-art board creature -
   the kanban board come alive - with an amber card always working through its middle
   column.
-- **Warmth undercutting seriousness.** Serious machinery (eleven agent CLIs, git
+- **Warmth undercutting seriousness.** Serious machinery (twelve agent CLIs, git
   worktrees, PTYs) with a friendly face. Never enterprise, never edgy-hacker.
 - **Light and airy; dark reserved for substance.** The page is warm cream. Dark
   regions are always content: terminals, code, real product output. Dark is never
   mood.
 - **Proof in the hero, not poetry.** Stats and running software over adjectives.
-  "11 agent CLIs · 100% local · $0 forever" leads; superlatives never do.
+  "12 agent CLIs · 100% local · $0 forever" leads; superlatives never do.
 
 If a proposed element cannot be justified as crafted, warm, light, or proof, it does
 not belong.
@@ -205,7 +205,7 @@ Details live in the `motion-craft` skill. Summary:
 - Sentence case everywhere, including buttons and headings.
 - One wink per page is allowed (Fly.io warmth); two is a comedy routine.
 - No em-dashes, no arrow characters (site-wide rule).
-- Numbers stay honest: "11 coding-agent CLIs," never "unlimited agents."
+- Numbers stay honest: "12 coding-agent CLIs," never "unlimited agents."
 
 ## The anti-template checklist
 
