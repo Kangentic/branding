@@ -36,7 +36,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { CREAM, PANEL, knockout, discOnSquare, f4kParts, f4kAlphaParts, f4kMonoSvg, cardKParts } from "./lib/mark.mjs";
+import { CREAM, PANEL, RUST, knockout, discOnSquare, f4kParts, f4kAlphaParts, f4kMonoSvg, cardKParts } from "./lib/mark.mjs";
 import { featureGraphicSvg } from "./lib/feature-graphic.mjs";
 // Only to DOCUMENT the ui set's rasters in resources/README.md below. gen-ui.mjs
 // writes those files; this script owns the README that indexes resources/, and
@@ -213,8 +213,8 @@ await writeFile(join(M, "splash-1024.png"), pngs[1024]);
 // so this is the one output in resources/ that is FLATTENED to truecolour.
 // The composition lives in lib/feature-graphic.mjs so the review sheet can
 // render ground candidates from the same source.
-await sharp(Buffer.from(featureGraphicSvg(PANEL)))
-  .flatten({ background: PANEL })
+await sharp(Buffer.from(featureGraphicSvg(RUST)))
+  .flatten({ background: RUST })
   .png()
   .toFile(join(M, "android-feature-graphic-1024x500.png"));
 
@@ -319,7 +319,7 @@ macOS tray would take a template PNG derived from the pure mono, not an SVG.
 | android-adaptive-monochrome.png (432) | \`adaptiveIcon.monochromeImage\`; Android 13+ themed icon | F4k (white, alpha-shaped) |
 | notification-icon.png (96) | \`expo-notifications\` plugin icon; Android status bar | F4k mono-tuned (white on transparent) |
 | splash-1024.png | splash mark (displays large) | card-K |
-| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + Overseer |
+| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + proof stack + Overseer on a card |
 ${uiRasterRows}
 
 The \`*-tab-*.png\` files are UI GLYPHS, not brandmark renditions, and are
@@ -336,7 +336,7 @@ double it. Tinted is grayscale because iOS maps luminance onto the tint.
 
 The feature graphic is the ONE file here with no alpha channel (Play rejects
 transparency and crops the edges in some placements), which is why it uses the
-panel tint rather than near-white cream and keeps all content inset.
+saturated rust ground rather than near-white cream and keeps all content inset.
 `);
 
 console.log(`Wrote production resources to ${RES}: desktop/, web/, mobile/`);
