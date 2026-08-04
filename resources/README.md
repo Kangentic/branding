@@ -63,7 +63,7 @@ macOS tray would take a template PNG derived from the pure mono, not an SVG.
 | android-adaptive-monochrome.png (432) | `adaptiveIcon.monochromeImage`; Android 13+ themed icon | F4k (white, alpha-shaped) |
 | notification-icon.png (96) | `expo-notifications` plugin icon; Android status bar | F4k mono-tuned (white on transparent) |
 | splash-1024.png | splash mark (displays large) | card-K |
-| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + Overseer |
+| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + proof stack + Overseer on a card |
 | kanban-tab-25.png | iOS tab bar, 1x of the 25pt metric | kanban glyph (white on transparent) |
 | kanban-tab-50.png | iOS tab bar, 2x of the 25pt metric | kanban glyph (white on transparent) |
 | kanban-tab-75.png | iOS tab bar, 3x of the 25pt metric | kanban glyph (white on transparent) |
@@ -82,4 +82,4 @@ double it. Tinted is grayscale because iOS maps luminance onto the tint.
 
 The feature graphic is the ONE file here with no alpha channel (Play rejects
 transparency and crops the edges in some placements), which is why it uses the
-panel tint rather than near-white cream and keeps all content inset.
+saturated rust ground rather than near-white cream and keeps all content inset.

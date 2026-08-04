@@ -419,9 +419,9 @@ m.band("android 13+ themed icon - the monochrome layer tinted from wallpaper, on
 // 5. Play feature graphic: the shipped ground against candidates, at listing
 //    size and at the thumbnail size Play actually shows in the grid.
 const fgGrounds = [
-  { name: "PANEL f6f1e8  SHIPPED", ground: PANEL },
-  { name: "CREAM fdfbf7  (near-white; Play warns off it)", ground: CREAM },
-  { name: "TERMINAL 1d1915  (dark) - REJECTED: ink text vanishes", ground: "#1d1915" },
+  { name: "RUST c0562f  SHIPPED (2026-08-03 redesign; PANEL shipped through 2.7.1)", ground: RUST },
+  { name: "TERMINAL 1d1915  (dark) - legible now the text is cream, but dark-as-mood is off-system", ground: "#1d1915" },
+  { name: "PANEL f6f1e8  - REJECTED: the cream wordmark and card vanish on it", ground: PANEL },
 ];
 const fgShots = [];
 for (const g of fgGrounds) {
