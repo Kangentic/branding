@@ -739,9 +739,69 @@ export const DASH_SPINNER = "75 25";
 export const DASH_CHIP = "65 35";
 export const MARCH_MS = 1400;
 
-// M2 "rotation": what ships today. Only coherent on a radially symmetric mark -
-// a rotating envelope or a rotating chip is the "tilted" artifact, not motion.
-export const SPIN_MS = 1200;
+// M2 "rotation": only coherent on a radially symmetric mark - a rotating
+// envelope or a rotating chip is the "tilted" artifact, not motion.
+//
+// PROMOTED to the production primitive for every ROUND working mark, 2026-08-07,
+// on a performance finding rather than a visual one. `stroke-dashoffset` is a
+// paint property, so Chromium cannot composite it: a marching mark stops
+// producing frames for exactly as long as the consumer's main thread is blocked,
+// and the desktop app measured 194 renderer stalls in 3.6 hours, worst 703ms.
+// The indicator visibly hitched every time. `transform` composites, so a
+// rotating mark keeps turning through a blocked main thread.
+//
+// Measured, not assumed, in Chromium via CDP `Page.startScreencast` (which is
+// pushed from the compositor) against a 4000ms main-thread block, headless and
+// headed, with a rAF witness confirming the block: an HTML rotation produced
+// 222/355 distinct frames during the block, an SVG <g> rotation 182/367, and the
+// dashoffset march produced ZERO. So the SVG-level rotation this set already
+// shipped is composited, and no HTML wrapper is needed to get it.
+//
+// On a circle the two primitives are not merely similar, they are the SAME
+// image: with pathLength normalizing the perimeter to 100, a dash-offset shift
+// of d is exactly a rotation of d percent of 360 degrees. The chip is the one
+// that cannot follow, since a rounded rect is not radially symmetric.
+//
+// The period is the SET's period, not lucide's 1200ms it was drafted from. Two
+// reasons, both load-bearing: a ring must rotate at the rate its dash used to
+// march or the swap is a visible speed change rather than a pure performance
+// change, and marching and spinning marks share a row (an agent ring sits beside
+// a Command Terminal chip in the project sidebar), so a different period would
+// break the lockstep the consumers' timeline anchoring exists to give them.
+export const SPIN_MS = MARCH_MS;
+
+// M3 "blink": a single interior element pulses its OPACITY. For the terminal
+// chip, that element is the prompt bar, so a working terminal is a solid chip
+// with a blinking cursor - which is what a live shell actually looks like.
+//
+// This exists because the chip cannot rotate and the reason is geometric, not a
+// Chromium limitation, so no amount of engineering was going to rescue the
+// march here. A composited animation can only drive `transform` or `opacity`. To
+// travel a dash along a perimeter with a transform, the transform has to map the
+// shape onto ITSELF while advancing arc length - that is the shape's symmetry
+// group. A circle's is continuous (rotation by any angle), which is exactly why
+// the ring swap is free. A rounded square's is discrete: four 90 degree
+// rotations and four reflections, nothing in between. There is no continuous
+// family to animate.
+//
+// Three alternatives were considered and rejected before changing the design:
+//   - A rotating MASK. A rigidly rotating boundary sweeps at constant ANGULAR
+//     rate, and on this chip the distance from centre runs 9 at a side midpoint
+//     to 12.73 at a corner, so the gap would stretch and shrink about 41% every
+//     lap. Rejected on appearance, before compositing even came into it.
+//   - N dash SEGMENTS crossfading their opacity. Hard-edged with `steps()` means
+//     a visibly quantized gap; soft-edged with a linear ramp turns the crisp gap
+//     into a comet tail; and either way it is N composited layers per mark, on a
+//     glyph that renders at 16px.
+//   - Giving the working terminal the RING silhouette so it could rotate. It
+//     would then collide with `agent-working`, which sits in the same sidebar
+//     row, and with the control marks, which are already ring-plus-interior.
+//
+// Same period as the other two, for the same lockstep reason. The cursor rests
+// at 0.06 rather than 0: at the 12px floor a fully absent bar reads as a mark
+// that has lost a piece rather than as a cursor between blinks.
+export const BLINK_MS = MARCH_MS;
+export const BLINK_REST_OPACITY = 0.06;
 
 // Reduced motion is a rendering, not a mute button, and it is PER MARK:
 //   keep-dash  rest holding the dash (a stopped short arc reads as a spinner)
@@ -890,9 +950,18 @@ export const ring = () => ({
 // Not closed and not dashed: the rotation candidate turns the whole arc.
 export const arc = () => ({ outline: path(ARC_D), interior: "", perimeter: null });
 
-export const chip = ({ plus = false } = {}) => ({
+/**
+ * `cursor: true` splits the prompt BAR out of the interior into its own field,
+ * so the blink primitive has a single element to ride. Everything else is
+ * identical, which is the point: the working chip is the idle chip, and the only
+ * difference is which of its parts is allowed to move.
+ */
+export const chip = ({ plus = false, cursor = false } = {}) => ({
   outline: inkBox(R_CHIP),
-  interior: plus ? path(PLUS_V_D) + path(PLUS_H_D) : path(PROMPT_D) + path(PROMPT_BAR_D),
+  interior: plus
+    ? path(PLUS_V_D) + path(PLUS_H_D)
+    : path(PROMPT_D) + (cursor ? "" : path(PROMPT_BAR_D)),
+  ...(cursor && !plus ? { cursor: path(PROMPT_BAR_D) } : {}),
   perimeter: rrectPerimeter(INK_BOX, INK_BOX, R_CHIP),
 });
 
@@ -1094,9 +1163,9 @@ export const diamond = () => ({
  * There is no `-rest` mark: rest is the idle GEOMETRY in the muted tone, and
  * tone is the consumer's to apply since everything ships currentColor.
  */
-const statePair = (id, role, parts, { dash, rest }) => [
+const statePair = (id, role, parts, { dash, rest, motion = "march", workingParts = parts }) => [
   { id: `${id}-idle`, role: `${role}, idle`, silhouette: id, state: "idle", tone: "attention", ...parts, motion: null, rest: REST_STATIC },
-  { id: `${id}-working`, role: `${role}, working`, silhouette: id, state: "working", tone: "active", ...parts, motion: "march", dash, rest },
+  { id: `${id}-working`, role: `${role}, working`, silhouette: id, state: "working", tone: "active", ...workingParts, motion, dash, rest },
 ];
 
 export const DIRECTIONS = [
@@ -1114,11 +1183,36 @@ export const DIRECTIONS = [
       // That is the whole direction: an envelope can be read as "finished, and
       // there is something here for you", a ring as "still running".
       { id: "agent-idle", role: "needs you", silhouette: "envelope", state: "idle", tone: "attention", ...envelope(), motion: null, rest: REST_STATIC },
-      { id: "agent-working", role: "working", silhouette: "ring", state: "working", tone: "active", ...ring(), motion: "march", dash: DASH_SPINNER, rest: REST_KEEP },
+      // Spins rather than marches, which on a circle is the SAME image (see
+      // SPIN_MS) but composited, so the ring keeps turning while a consumer's
+      // main thread is blocked. Geometry, dash and period are untouched.
+      { id: "agent-working", role: "working", silhouette: "ring", state: "working", tone: "active", ...ring(), motion: "spin", dash: DASH_SPINNER, rest: REST_KEEP },
       // Everything else is one silhouette in two states, named explicitly rather
       // than left for a consumer to compose out of a tone and an animation
       // class. Composition is where three surfaces drift apart.
-      ...statePair("terminal", "terminal", chip(), { dash: DASH_CHIP, rest: REST_DROP }),
+      //
+      // The chip BLINKS as of 2026-08-07, and it is the one mark in this set
+      // whose motion change is a design decision rather than a free swap. It
+      // marched from 2026-07-28: a 65/35 gap travelling the perimeter. That
+      // cannot be composited on a rounded rect for the geometric reason recorded
+      // at BLINK_MS, so the chip was the single mark left stalling on a blocked
+      // main thread once the rings moved - and it is the mark the project
+      // sidebar and the title bar both show, which is where it was reported.
+      //
+      // Solid outline plus a blinking cursor was chosen over keeping the march,
+      // on a rendered side-by-side under a deliberate 3s main-thread block. It
+      // costs the travelling gap and buys a mark that reads as a live shell.
+      //
+      // The dash goes entirely, which is why the rest strategy is now `static`
+      // rather than `drop-dash`: with nothing dashed there is nothing to drop.
+      // Note what that does NOT change - `terminal-working` at rest was already
+      // byte-identical to `terminal-idle`, because drop-dash removed the same
+      // dash. The states have only ever differed by tone with motion off.
+      ...statePair("terminal", "terminal", chip(), {
+        rest: REST_STATIC,
+        motion: "blink",
+        workingParts: chip({ cursor: true }),
+      }),
       // The two shipped controls. They were never candidates - they are the rest
       // of the family, and they belong here for one reason: the 47/16 dash they
       // carry is a hand-computed pair duplicated across two desktop files that
@@ -1142,8 +1236,14 @@ export const DIRECTIONS = [
       // 62.83 circumference resolves to 47.12/15.71 user units, so the packaged
       // mark reproduces the app's hand-computed 47/16 almost exactly. The dash
       // stops being hand-maintained without the radius quietly changing.
-      ...statePair("control-pause", "pause button", controlRing("pause"), { dash: DASH_SPINNER, rest: REST_KEEP }),
-      ...statePair("control-stop", "stop button", controlRing("stop"), { dash: DASH_SPINNER, rest: REST_KEEP }),
+      //
+      // Rotating again as of 2026-08-07, which is what they did before this set
+      // existed. The 2026-07-28 note below records marching as costing them
+      // "nothing on screen"; that stayed true, and compositing is what moved
+      // them back. The cleanup is untouched either way - the dash is still the
+      // set's pathLength ratio, not a hand-computed pair.
+      ...statePair("control-pause", "pause button", controlRing("pause"), { dash: DASH_SPINNER, rest: REST_KEEP, motion: "spin" }),
+      ...statePair("control-stop", "stop button", controlRing("stop"), { dash: DASH_SPINNER, rest: REST_KEEP, motion: "spin" }),
       // Stateless: the "new terminal" button is an action, not a status, so it
       // has no idle/working pair. It ships because it is the same chip with a +
       // instead of the prompt, and leaving it out would keep one hand-maintained
@@ -1357,19 +1457,23 @@ export const BASELINE = {
 export function markSvg(mark, { size = 24, motion = mark.motion, resting = false, cls = "" } = {}) {
   const marching = motion === "march" && !resting;
   const spinning = motion === "spin" && !resting;
+  const blinking = motion === "blink" && !resting;
   // A drop-dash mark at rest carries no dasharray at all; a keep-dash one holds
   // its dash so the stopped glyph still reads as the mark it is.
-  // The dash is what makes EITHER primitive visible: a solid ring rotating
-  // shows nothing at all, so spin needs it exactly as much as march does.
+  // The dash is what makes EITHER OUTLINE primitive visible: a solid ring
+  // rotating shows nothing at all, so spin needs it exactly as much as march
+  // does. Blink is not an outline primitive and carries no dash.
   const moving_ = marching || spinning;
   const dash = mark.dash && (moving_ || (resting && mark.rest === REST_KEEP)) ? ` stroke-dasharray="${mark.dash}"` : "";
   const anim = marching ? "kng-march" : spinning ? "kng-spin" : "";
-  // Motion rides on the OUTLINE alone, never on the <svg>. Rotating the whole
-  // element would turn the centred glyph with it, which is the tilt artifact:
-  // the shipped controls put animate-spin on the <Circle> and leave the pause
-  // bars and stop square as static siblings. Same structure here.
+  // Motion rides on ONE part, never on the <svg>. Rotating the whole element
+  // would turn the centred glyph with it, which is the tilt artifact: the
+  // shipped controls put the animation on the <circle> and leave the pause bars
+  // and stop square as static siblings. Same structure here, and the same reason
+  // the blinking cursor is its own element rather than the whole interior.
   const outline = mark.outline.replace("/>", `${dash}/>`);
   const moving = anim ? `<g class="${anim}">${outline}</g>` : outline;
+  const cursor = mark.cursor ? (blinking ? `<g class="kng-blink">${mark.cursor}</g>` : mark.cursor) : "";
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW} ${VIEW}" width="${size}" height="${size}"`,
     ` fill="none" stroke="currentColor" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"`,
@@ -1377,6 +1481,7 @@ export function markSvg(mark, { size = 24, motion = mark.motion, resting = false
     ` data-mark="${mark.id}" data-rest="${mark.rest}" aria-hidden="true">`,
     moving,
     mark.interior,
+    cursor,
     `</svg>`,
   ].join("");
 }
@@ -1397,6 +1502,18 @@ export const fileFor = (mark) => `${mark.id}.svg`;
  */
 export function manifest() {
   const marks = {};
+  // DERIVED, never a literal. This read "march" while three of the four working
+  // marks rotated, which is the record drift this package's gates exist to stop:
+  // a hand-written default is only correct until the set changes under it. The
+  // per-mark `motion` is the authority; this says which primitive the set leans
+  // on, for a consumer that has to pick one without a mark in hand.
+  // At an exact tie there is no dominant primitive, and picking one alphabetically would be a
+  // claim the set does not support, so say null instead. Today it is 3 spin to 1 march.
+  const tally = {};
+  for (const m of shippedSet().marks) if (m.motion) tally[m.motion] = (tally[m.motion] ?? 0) + 1;
+  const ranked = Object.keys(tally).sort((a, b) => tally[b] - tally[a] || a.localeCompare(b));
+  const tied = ranked.length > 1 && tally[ranked[0]] === tally[ranked[1]];
+  const dominant = tied ? null : (ranked[0] ?? null);
   for (const m of shippedSet().marks) {
     marks[m.id] = {
       file: fileFor(m),
@@ -1422,7 +1539,8 @@ export function manifest() {
     motion: {
       march: { keyframes: "kng-activity-march", durationMs: MARCH_MS, timing: "linear", property: "stroke-dashoffset" },
       spin: { keyframes: "kng-activity-spin", durationMs: SPIN_MS, timing: "linear", property: "transform" },
-      default: "march",
+      blink: { keyframes: "kng-activity-blink", durationMs: BLINK_MS, timing: "linear", property: "opacity" },
+      default: dominant,
     },
     marks,
   };
@@ -1433,16 +1551,30 @@ export function motionCss() {
   return [
     `@keyframes kng-activity-march { to { stroke-dashoffset: -${PATH_LENGTH}; } }`,
     `@keyframes kng-activity-spin { to { transform: rotate(360deg); } }`,
+    // A cursor, not a fade: the ramps are 6% of the period, so the bar is
+    // effectively on or off rather than pulsing. Symmetric duty cycle.
+    `@keyframes kng-activity-blink { 0%, 44% { opacity: 1; } 50%, 94% { opacity: ${BLINK_REST_OPACITY}; } 100% { opacity: 1; } }`,
+    // NO shipped mark marches as of 2.8.0 - the rings rotate and the chip
+    // blinks. The primitive stays declared because the draft directions in
+    // lib/activity.mjs still render with it on the review sheet, and because a
+    // future radially symmetric mark can use it. It is not dead by accident.
     `.kng-march { animation: kng-activity-march ${MARCH_MS}ms linear infinite; }`,
     // Explicit user-unit origin: every mark in this set is centred on 12,12, and
     // a percentage origin on an inner <g> resolves against its own bbox, which
     // for a dashed arc is not the circle's centre.
-    `.kng-spin { animation: kng-activity-spin ${SPIN_MS}ms linear infinite; transform-origin: ${VIEW / 2}px ${VIEW / 2}px; }`,
+    //
+    // `transform-box: view-box` is the CSS initial value, written out rather
+    // than inherited: it is what makes the px origin above resolve in viewBox
+    // units, so a UA that resolved it against the element's own fill-box would
+    // silently rotate a dashed arc about the wrong centre. This rule is now
+    // production motion, not a review artifact, so it does not rely on a default.
+    `.kng-spin { animation: kng-activity-spin ${SPIN_MS}ms linear infinite; transform-origin: ${VIEW / 2}px ${VIEW / 2}px; transform-box: view-box; }`,
+    `.kng-blink { animation: kng-activity-blink ${BLINK_MS}ms linear infinite; }`,
     // No fill mode: the desktop app's animations-off setting zeroes
     // animation-duration, and a FILLED zero-duration animation snaps to its
     // 100% keyframe instead of resting on the canonical frame.
     `@media (prefers-reduced-motion: reduce) {`,
-    `  .kng-march, .kng-spin { animation: none; }`,
+    `  .kng-march, .kng-spin, .kng-blink { animation: none; }`,
     // Per-mark rest rendering: a drop-dash mark clears its dash entirely, so a
     // stopped 65/35 ring is a solid ring rather than one with a hole in it.
     // A keep-dash mark holds its dash: a stopped short arc still reads correctly.
