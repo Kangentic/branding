@@ -770,9 +770,11 @@ export const MARCH_MS = 1400;
 // break the lockstep the consumers' timeline anchoring exists to give them.
 export const SPIN_MS = MARCH_MS;
 
-// M3 "blink": a single interior element pulses its OPACITY. For the terminal
-// chip, that element is the prompt bar, so a working terminal is a solid chip
-// with a blinking cursor - which is what a live shell actually looks like.
+// M3 "blink": the interior pulses its OPACITY while the outline holds. For the
+// terminal chip that interior is the shell prompt, so a working terminal is a
+// solid chip whose prompt pulses - which is what a live shell actually looks
+// like. Which element carries it is a LEGIBILITY decision made at the indicator
+// floor, not at review size; see `chip()` for what that cost 2.8.0.
 //
 // This exists because the chip cannot rotate and the reason is geometric, not a
 // Chromium limitation, so no amount of engineering was going to rescue the
@@ -797,9 +799,9 @@ export const SPIN_MS = MARCH_MS;
 //     would then collide with `agent-working`, which sits in the same sidebar
 //     row, and with the control marks, which are already ring-plus-interior.
 //
-// Same period as the other two, for the same lockstep reason. The cursor rests
-// at 0.06 rather than 0: at the 12px floor a fully absent bar reads as a mark
-// that has lost a piece rather than as a cursor between blinks.
+// Same period as the other two, for the same lockstep reason. The trough is 0.06
+// rather than 0: at the 12px floor a fully absent prompt reads as a mark that has
+// lost a piece rather than as one between blinks.
 export const BLINK_MS = MARCH_MS;
 export const BLINK_REST_OPACITY = 0.06;
 
@@ -951,19 +953,38 @@ export const ring = () => ({
 export const arc = () => ({ outline: path(ARC_D), interior: "", perimeter: null });
 
 /**
- * `cursor: true` splits the prompt BAR out of the interior into its own field,
- * so the blink primitive has a single element to ride. Everything else is
- * identical, which is the point: the working chip is the idle chip, and the only
- * difference is which of its parts is allowed to move.
+ * `blink: true` moves the WHOLE PROMPT out of the interior into its own field, so
+ * the blink primitive has something to ride. Everything else is identical, which
+ * is the point: the working chip is the idle chip, and the only difference is
+ * which of its parts is allowed to move.
+ *
+ * The whole prompt, not the bar alone. 2.8.0 blinked the bar and it was reported
+ * illegible in the consumer's project sidebar, which is where this mark lives at
+ * 16px. Measured rather than argued: the bar is 4 units, so it draws 2.7px at a
+ * 16px render, against the 15.6px of perimeter that the march it replaced put in
+ * motion. The whole prompt is 11.8 units, or 7.9px - three times the moving ink,
+ * with no geometry change and no new constant. The bar was judged at 88px, where
+ * it draws 14.7px and reads perfectly well. The lesson is the one this set's own
+ * isolation sheets already encode: a candidate for an INDICATOR is unreviewed
+ * until it has been seen at the indicator floor, and that applies to motion, not
+ * just to form.
+ *
+ * Blinking MORE than the prompt was weighed and rejected. The outline, or the
+ * whole mark, moves the most ink, but both fade the glyph as a whole - and the
+ * consumers encode state in TONE, a working terminal in the active token and a
+ * resting one muted. A whole-mark fade therefore makes a working terminal
+ * periodically read as a resting one, so the motion would fight the colour
+ * channel. Holding the outline at full strength is what prevents that.
  */
-export const chip = ({ plus = false, cursor = false } = {}) => ({
-  outline: inkBox(R_CHIP),
-  interior: plus
-    ? path(PLUS_V_D) + path(PLUS_H_D)
-    : path(PROMPT_D) + (cursor ? "" : path(PROMPT_BAR_D)),
-  ...(cursor && !plus ? { cursor: path(PROMPT_BAR_D) } : {}),
-  perimeter: rrectPerimeter(INK_BOX, INK_BOX, R_CHIP),
-});
+export const chip = ({ plus = false, blink = false } = {}) => {
+  const prompt = path(PROMPT_D) + path(PROMPT_BAR_D);
+  return {
+    outline: inkBox(R_CHIP),
+    interior: plus ? path(PLUS_V_D) + path(PLUS_H_D) : (blink ? "" : prompt),
+    ...(blink && !plus ? { blink: prompt } : {}),
+    perimeter: rrectPerimeter(INK_BOX, INK_BOX, R_CHIP),
+  };
+};
 
 /**
  * A slot candidate's ring, for the review sheet only.
@@ -1211,7 +1232,7 @@ export const DIRECTIONS = [
       ...statePair("terminal", "terminal", chip(), {
         rest: REST_STATIC,
         motion: "blink",
-        workingParts: chip({ cursor: true }),
+        workingParts: chip({ blink: true }),
       }),
       // The two shipped controls. They were never candidates - they are the rest
       // of the family, and they belong here for one reason: the 47/16 dash they
@@ -1473,7 +1494,7 @@ export function markSvg(mark, { size = 24, motion = mark.motion, resting = false
   // the blinking cursor is its own element rather than the whole interior.
   const outline = mark.outline.replace("/>", `${dash}/>`);
   const moving = anim ? `<g class="${anim}">${outline}</g>` : outline;
-  const cursor = mark.cursor ? (blinking ? `<g class="kng-blink">${mark.cursor}</g>` : mark.cursor) : "";
+  const blinkPart = mark.blink ? (blinking ? `<g class="kng-blink">${mark.blink}</g>` : mark.blink) : "";
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW} ${VIEW}" width="${size}" height="${size}"`,
     ` fill="none" stroke="currentColor" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"`,
@@ -1481,7 +1502,7 @@ export function markSvg(mark, { size = 24, motion = mark.motion, resting = false
     ` data-mark="${mark.id}" data-rest="${mark.rest}" aria-hidden="true">`,
     moving,
     mark.interior,
-    cursor,
+    blinkPart,
     `</svg>`,
   ].join("");
 }
