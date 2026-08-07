@@ -2,6 +2,47 @@
 
 <!-- releases -->
 
+## [v2.8.1] - 2026-08-07
+
+### Fixes
+- Blink the whole terminal prompt, not the bar alone (cd7b0a2).
+  **`terminal-working` changes again**, one release after 2.8.0 introduced the
+  blink. If you have not adopted 2.8.0 yet, go straight to this.
+
+  2.8.0 put the chip's working state on a blinking prompt BAR. It was reported
+  illegible within the hour, in the consumer's project sidebar, which is where
+  this mark actually lives at 16px. The report is measurable: the bar is 4
+  units, so it draws 2.7px at a 16px render, against the 15.6px of perimeter
+  the march it replaced put in motion. A sixth of the moving ink, placed on the
+  smallest element in the mark. The whole prompt is 11.8 units, 7.9px.
+
+  Only the grouping changed - no geometry moved, and every other mark is
+  byte-identical:
+
+  ```diff
+  -<rect .../><path d="M7.5 9.5 L10.5 12 L7.5 14.5"/><g class="kng-blink"><path d="M12.5 14.5 H16.5"/></g>
+  +<rect .../><g class="kng-blink"><path d="M7.5 9.5 L10.5 12 L7.5 14.5"/><path d="M12.5 14.5 H16.5"/></g>
+  ```
+
+  **Why not blink more.** The outline, or the whole mark, moves considerably
+  more ink (44.6px and 52.4px), and both were rendered side by side at 16px
+  before being rejected. Both fade the glyph as a whole, and the consumers
+  encode state in TONE: a working terminal in the active token, a resting one
+  muted. A whole-mark fade therefore makes a working terminal periodically read
+  as a resting one, so the motion would fight the colour channel it is meant to
+  complement. Holding the outline at full strength prevents that.
+
+  **The process defect, recorded because it is the reusable part.** The bar was
+  judged at 88px, where it draws 14.7px and reads perfectly well. This set
+  already had an answer for that: `gen:activity` emits `_isolation-*.png` and
+  the 14/15/16px pixel-truth zooms precisely because a candidate reviewed only
+  at review size is unreviewed. That rule was written about FORM; it applies to
+  MOTION identically. Now stated in `chip()`'s doc comment.
+
+  Internal: the `chip()` option is renamed `cursor` -> `blink` and the mark
+  field with it, since it no longer carries a cursor specifically - it carries
+  whatever the blink primitive rides.
+
 ## [v2.8.0] - 2026-08-07
 
 ### Features
