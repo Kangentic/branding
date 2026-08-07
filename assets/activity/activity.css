@@ -1,8 +1,10 @@
 @keyframes kng-activity-march { to { stroke-dashoffset: -100; } }
 @keyframes kng-activity-spin { to { transform: rotate(360deg); } }
+@keyframes kng-activity-blink { 0%, 44% { opacity: 1; } 50%, 94% { opacity: 0.06; } 100% { opacity: 1; } }
 .kng-march { animation: kng-activity-march 1400ms linear infinite; }
-.kng-spin { animation: kng-activity-spin 1200ms linear infinite; transform-origin: 12px 12px; }
+.kng-spin { animation: kng-activity-spin 1400ms linear infinite; transform-origin: 12px 12px; transform-box: view-box; }
+.kng-blink { animation: kng-activity-blink 1400ms linear infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .kng-march, .kng-spin { animation: none; }
+  .kng-march, .kng-spin, .kng-blink { animation: none; }
   svg[data-rest="drop-dash"] * { stroke-dasharray: none; }
 }

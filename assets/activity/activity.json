@@ -24,11 +24,17 @@
     },
     "spin": {
       "keyframes": "kng-activity-spin",
-      "durationMs": 1200,
+      "durationMs": 1400,
       "timing": "linear",
       "property": "transform"
     },
-    "default": "march"
+    "blink": {
+      "keyframes": "kng-activity-blink",
+      "durationMs": 1400,
+      "timing": "linear",
+      "property": "opacity"
+    },
+    "default": "spin"
   },
   "marks": {
     "agent-idle": {
@@ -47,7 +53,7 @@
       "state": "working",
       "role": "working",
       "tone": "active",
-      "motion": "march",
+      "motion": "spin",
       "dash": "75 25",
       "dashUserUnits": "42.4115 14.1372",
       "reducedMotion": "keep-dash",
@@ -69,10 +75,8 @@
       "state": "working",
       "role": "terminal, working",
       "tone": "active",
-      "motion": "march",
-      "dash": "65 35",
-      "dashUserUnits": "43.4522 23.3974",
-      "reducedMotion": "drop-dash",
+      "motion": "blink",
+      "reducedMotion": "static",
       "minPx": 12
     },
     "control-pause-idle": {
@@ -91,7 +95,7 @@
       "state": "working",
       "role": "pause button, working",
       "tone": "active",
-      "motion": "march",
+      "motion": "spin",
       "dash": "75 25",
       "dashUserUnits": "47.1239 15.708",
       "reducedMotion": "keep-dash",
@@ -113,7 +117,7 @@
       "state": "working",
       "role": "stop button, working",
       "tone": "active",
-      "motion": "march",
+      "motion": "spin",
       "dash": "75 25",
       "dashUserUnits": "47.1239 15.708",
       "reducedMotion": "keep-dash",
