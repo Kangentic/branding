@@ -2,6 +2,71 @@
 
 <!-- releases -->
 
+## [v2.8.0] - 2026-08-07
+
+### Features
+- Put every working mark's motion on a composited property (d3c8cb3).
+  **Two marks change how they move, and one of them changes how it looks.**
+
+  `stroke-dashoffset` is a paint property, so Chromium cannot composite the
+  march: a marching mark stops producing frames for exactly as long as the
+  consumer's main thread is blocked. The desktop app measured 194 renderer
+  stalls in 3.6 hours, worst 703ms, and the indicators visibly hitched every
+  time. Measured in the shipping runtime (Electron 41, Chromium 146) via CDP
+  `Page.startScreencast`, which is pushed from the compositor, against a 4000ms
+  main-thread block with a rAF witness confirming the block landed: an HTML
+  rotation produced 349 distinct frames during the block, an SVG `<g>` rotation
+  355, and the dashoffset march ZERO.
+
+  Which composited primitive a mark can take is decided by its geometry, not by
+  taste. To travel a dash along a perimeter, a transform has to map the shape
+  onto ITSELF while advancing arc length, which is the shape's symmetry group.
+
+  - **`agent-working`, `control-pause-working`, `control-stop-working` now
+    rotate** (`.kng-spin` instead of `.kng-march`). No visual change: a circle's
+    symmetry group is continuous, and with `pathLength` normalizing the
+    perimeter to 100 a dash-offset shift of d is exactly a rotation of d percent
+    of 360 degrees. Verified by pixel diff across eight phases rather than taken
+    on trust - 0 to 2.2 percent of ink differing once edge antialiasing is
+    averaged out. Geometry, dash and period are untouched.
+  - **`terminal-working` is redrawn**: a SOLID outline whose prompt bar blinks
+    (`.kng-blink`, a new `opacity` primitive), instead of a `65 35` dash
+    travelling the perimeter. A rounded square's symmetry group is discrete -
+    four 90 degree rotations, nothing between - so no transform can travel a
+    dash around it at all. Its `reducedMotion` changes from `drop-dash` to
+    `static`, which is not a behavior change at rest: `drop-dash` already
+    resolved this mark to byte-identical geometry with `terminal-idle`, so the
+    two states have only ever differed by tone with motion off.
+
+  Rejected before redesigning the chip, recorded so they are not re-tried: a
+  rotating mask (a rigid boundary sweeps at constant ANGULAR rate, and the chip
+  runs 9 units from centre at a side midpoint to 12.73 at a corner, so the gap
+  would stretch and shrink about 41% per lap); N dash segments crossfading
+  opacity (quantized with `steps()`, a comet tail with a linear ramp, and N
+  composited layers per mark on a glyph that renders at 16px); and giving the
+  chip the ring silhouette (collides with `agent-working`, which shares its
+  sidebar row, and with the control marks, which are already ring-plus-interior).
+
+  **Adopting consumers:** the marks are `currentColor` and same-size as before,
+  so a straight version bump is enough for the three rotating marks. A consumer
+  that implements only `march` and `spin` degrades gracefully on the chip - it
+  renders as a solid outline with a static prompt, which is its correct rest
+  form. To get the blink, honor `motion: "blink"` from `activity.json` or the
+  `.kng-blink` class from `activity.css`. Anything asserting
+  `terminal-working`'s `65 35` dash or its `drop-dash` strategy needs updating.
+
+  Also: `SPIN_MS` is now `MARCH_MS` (1400ms), so every primitive shares one
+  period and marks of different primitives stay in lockstep in a shared row.
+  `transform-box: view-box` is written out on `.kng-spin` rather than inherited,
+  so a dashed arc's px origin cannot resolve against its own fill-box and wobble
+  instead of spinning. `.kng-march` still ships but no mark uses it. And
+  `motion.default` in the manifest is now DERIVED from the shipped marks rather
+  than a literal, reporting `null` at a tie - it read `"march"` while three of
+  the four working marks rotated, which is the record drift this repo's gates
+  exist to stop.
+- Redesign the Play feature graphic on the rust ground (5a60686).
+- Bump the pixelfont proof line to 12 agent CLIs, add the 5x7 "2" (497d353).
+
 ## [v2.7.1] - 2026-07-31
 
 ### Fixes
