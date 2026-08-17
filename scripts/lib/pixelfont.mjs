@@ -10,7 +10,7 @@
 //
 // Coverage is deliberately narrow (the strings the brand actually sets):
 //   letters  K A N G E T I C L S O F R V
-//   digits   0 1 2
+//   digits   0 1 2 4
 //   symbols  / % $
 // word() THROWS on anything else rather than silently dropping it. To set new
 // copy, add the glyph map here first.
@@ -56,6 +56,7 @@ export const FONT = {
   0: ".###.\n#...#\n#..##\n#.#.#\n##..#\n#...#\n.###.",
   1: "..#..\n.##..\n..#..\n..#..\n..#..\n..#..\n.###.",
   2: ".###.\n#...#\n....#\n...#.\n..#..\n.#...\n#####",
+  4: "...#.\n..##.\n.#.#.\n#..#.\n#####\n...#.\n...#.",
   "/": "....#\n....#\n...#.\n..#..\n.#...\n#....\n#....",
   "%": "##..#\n##.#.\n...#.\n..#..\n.#...\n.#.##\n#..##",
   $: "..#..\n.####\n#.#..\n.###.\n..#.#\n####.\n..#..",
@@ -65,7 +66,7 @@ export const FONT = {
 // graphic). The CLI count is a hand-maintained literal: this is the branding
 // repo, and there is no CLI registry to derive it from. Declared once for the
 // same reason the font table is - a second copy is drift waiting to happen.
-export const PROOF_LINE = "12 AGENT CLIS / 100% LOCAL / $0 FOREVER";
+export const PROOF_LINE = "14 AGENT CLIS / 100% LOCAL / $0 FOREVER";
 
 // Sets one uppercase string. Advance is 6 units per glyph (5 wide + 1
 // letterspace); a space is 4. Returned w trims the trailing letterspace.
