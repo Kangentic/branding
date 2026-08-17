@@ -15,7 +15,7 @@
       "color": "#8b5cf6",
       "autoSpawn": true,
       "permissionMode": "plan",
-      "modelOverride": "claude-opus-5",
+      "modelOverride": "claude-fable-5",
       "planExitTarget": "Executing"
     },
     {
@@ -23,7 +23,7 @@
       "name": "Executing",
       "icon": "square-terminal",
       "autoSpawn": true,
-      "modelOverride": "claude-opus-5"
+      "modelOverride": "claude-fable-5"
     },
     {
       "id": "6cf089e1-23f9-4241-b16d-5dfbf5640970",
