@@ -2,6 +2,21 @@
 
 <!-- releases -->
 
+## [v2.9.0] - 2026-08-16
+
+### Features
+- Bump the pixelfont proof line to 14 agent CLIs, add the 5x7 "4" (d582244).
+  Grok Build and Antigravity CLI landed on the desktop app's main branch, and
+  its agent registry now registers 14 adapters (recounted against that repo,
+  not assumed). Both surfaces the constant feeds move together: the Play
+  feature graphic and the social image. The new "4" is the open-top diagonal
+  form, picked from three rendered candidates; every glyph in the font is 5
+  columns wide, so "12" and "14" set at the same 11-unit advance and neither
+  composition shifts a pixel beyond the digit itself.
+
+### Other
+- Run the board's Planning and Executing columns on Fable 5 (02145d8).
+
 ## [v2.8.1] - 2026-08-07
 
 ### Fixes
