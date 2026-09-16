@@ -2,6 +2,19 @@
 
 <!-- releases -->
 
+## [v2.10.0] - 2026-09-16
+
+### Features
+- Bump the pixelfont proof line to 15 agent CLIs, add the 5x7 "5" (22be79c).
+  Goose CLI landed as the fifteenth agent adapter on the desktop app's main
+  branch (Kangentic/kangentic#416), whose agent registry now registers 15
+  adapters (recounted against that repo, not assumed). Both surfaces the
+  constant feeds move together: the Play feature graphic and the social
+  image. The new "5" is the classic round-bowl form, picked from three
+  rendered candidates; every glyph in the font is 5 columns wide, so "14"
+  and "15" set at the same 11-unit advance and neither composition shifts a
+  pixel beyond the digit itself.
+
 ## [v2.9.0] - 2026-08-16
 
 ### Features
