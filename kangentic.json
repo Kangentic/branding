@@ -15,7 +15,7 @@
       "color": "#8b5cf6",
       "autoSpawn": true,
       "permissionMode": "plan",
-      "modelOverride": "claude-fable-5",
+      "modelOverride": "opus",
       "planExitTarget": "Executing"
     },
     {
@@ -23,7 +23,7 @@
       "name": "Executing",
       "icon": "square-terminal",
       "autoSpawn": true,
-      "modelOverride": "claude-fable-5"
+      "modelOverride": "opus"
     },
     {
       "id": "6cf089e1-23f9-4241-b16d-5dfbf5640970",
@@ -31,9 +31,18 @@
       "icon": "flask-conical",
       "color": "#06b6d4",
       "autoSpawn": true,
-      "autoCommand": "/pull-request",
-      "modelOverride": "claude-sonnet-5",
-      "effortOverride": "high"
+      "modelOverride": "sonnet",
+      "effortOverride": "high",
+      "automations": {
+        "onEnter": [
+          {
+            "name": "Message",
+            "type": "send_message",
+            "message": "/pull-request",
+            "mode": "immediate"
+          }
+        ]
+      }
     },
     {
       "id": "9c5aa6d3-b380-427d-927f-6b9f78699494",
@@ -41,9 +50,18 @@
       "icon": "merge",
       "color": "#F97316",
       "autoSpawn": true,
-      "autoCommand": "/merge-pull-request",
-      "modelOverride": "claude-sonnet-5",
-      "effortOverride": "high"
+      "modelOverride": "sonnet",
+      "effortOverride": "high",
+      "automations": {
+        "onEnter": [
+          {
+            "name": "Message",
+            "type": "send_message",
+            "message": "/merge-pull-request",
+            "mode": "immediate"
+          }
+        ]
+      }
     },
     {
       "id": "cf59af53-634f-4e03-a840-4c2100171fc7",
@@ -51,39 +69,6 @@
       "role": "done",
       "icon": "circle-check-big",
       "color": "#10b981"
-    }
-  ],
-  "actions": [
-    {
-      "id": "2420119f-1160-43c8-beef-16f61a4f4214",
-      "name": "Kill Session",
-      "type": "kill_session",
-      "config": {}
-    },
-    {
-      "id": "a41bd8a0-dc98-4e85-99a0-d45c2fba72d9",
-      "name": "Start Planning Agent",
-      "type": "spawn_agent",
-      "config": {
-        "promptTemplate": "{{task_xml}}{{attachments}}"
-      }
-    }
-  ],
-  "transitions": [
-    {
-      "from": "*",
-      "to": "Done",
-      "actions": [
-        "Kill Session"
-      ]
-    },
-    {
-      "from": "*",
-      "to": "Planning",
-      "actions": [
-        "Kill Session",
-        "Start Planning Agent"
-      ]
     }
   ],
   "_modifiedBy": "7ef4fd0cb484"
