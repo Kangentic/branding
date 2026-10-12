@@ -9,9 +9,12 @@
 // drift that lib/mark.mjs and lib/sprite.mjs exist to prevent.
 //
 // Coverage is deliberately narrow (the strings the brand actually sets):
-//   letters  K A N G E T I C L S O F R V
+//   letters  K A N G E T I C L S O F R V U Y P D
 //   digits   0 1 2 4 5
 //   symbols  / % $
+// U Y P D arrived 2026-10-12 with the store stack in lib/feature-graphic.mjs
+// ("NO ACCOUNT / E2E ENCRYPTED"), reviewed at 12x on the unit grid beside
+// N K R V A.
 // word() THROWS on anything else rather than silently dropping it. To set new
 // copy, add the glyph map here first.
 
@@ -53,6 +56,10 @@ export const FONT = {
   F: "#####\n#....\n#....\n####.\n#....\n#....\n#....",
   R: "####.\n#...#\n#...#\n####.\n#.#..\n#..#.\n#...#",
   V: "#...#\n#...#\n#...#\n#...#\n#...#\n.#.#.\n..#..",
+  U: "#...#\n#...#\n#...#\n#...#\n#...#\n#...#\n.###.",
+  Y: "#...#\n#...#\n.#.#.\n..#..\n..#..\n..#..\n..#..",
+  P: "####.\n#...#\n#...#\n####.\n#....\n#....\n#....",
+  D: "####.\n#...#\n#...#\n#...#\n#...#\n#...#\n####.",
   0: ".###.\n#...#\n#..##\n#.#.#\n##..#\n#...#\n.###.",
   1: "..#..\n.##..\n..#..\n..#..\n..#..\n..#..\n.###.",
   2: ".###.\n#...#\n....#\n...#.\n..#..\n.#...\n#####",
@@ -63,10 +70,13 @@ export const FONT = {
   $: "..#..\n.####\n#.#..\n.###.\n..#.#\n####.\n..#..",
 };
 
-// THE proof line both compositions set (the social image and the Play feature
-// graphic). The CLI count is a hand-maintained literal: this is the branding
-// repo, and there is no CLI registry to derive it from. Declared once for the
-// same reason the font table is - a second copy is drift waiting to happen.
+// THE proof line the social image sets (it sells the desktop app, where the
+// CLI count is the proof). The CLI count is a hand-maintained literal: this is
+// the branding repo, and there is no CLI registry to derive it from. Declared
+// once for the same reason the font table is - a second copy is drift waiting
+// to happen. The store art (Play feature graphic, App Store header and search)
+// set this line until 2026-10-12 and now sets STORE_LINE in
+// lib/feature-graphic.mjs instead; see that file's header for why.
 export const PROOF_LINE = "15 AGENT CLIS / 100% LOCAL / $0 FOREVER";
 
 // Sets one uppercase string. Advance is 6 units per glyph (5 wide + 1

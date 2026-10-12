@@ -63,7 +63,9 @@ macOS tray would take a template PNG derived from the pure mono, not an SVG.
 | android-adaptive-monochrome.png (432) | `adaptiveIcon.monochromeImage`; Android 13+ themed icon | F4k (white, alpha-shaped) |
 | notification-icon.png (96) | `expo-notifications` plugin icon; Android status bar | F4k mono-tuned (white on transparent) |
 | splash-1024.png | splash mark (displays large) | card-K |
-| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + proof stack + Overseer on a card |
+| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | store lockup (see Store art) |
+| ios-appstore-header-3840x1646.png | App Store product page header (21:9); optional | store lockup (see Store art) |
+| ios-appstore-search-3840x2560.png | App Store search results (3:2); optional | store lockup (see Store art) |
 | kanban-tab-25.png | iOS tab bar, 1x of the 25pt metric | kanban glyph (white on transparent) |
 | kanban-tab-50.png | iOS tab bar, 2x of the 25pt metric | kanban glyph (white on transparent) |
 | kanban-tab-75.png | iOS tab bar, 3x of the 25pt metric | kanban glyph (white on transparent) |
@@ -80,6 +82,26 @@ The iOS dark and tinted variants carry NO background: iOS composites its own
 material behind them and applies the user's tint, so baking one in would
 double it. Tinted is grayscale because iOS maps luminance onto the tint.
 
-The feature graphic is the ONE file here with no alpha channel (Play rejects
-transparency and crops the edges in some placements), which is why it uses the
-saturated rust ground rather than near-white cream and keeps all content inset.
+### Store art (both stores)
+| Store slot | File | Required |
+|------------|------|----------|
+| Play feature graphic (Play's hero) | android-feature-graphic-1024x500.png | yes, beyond internal testing |
+| App Store header (Header and Search Results tab) | ios-appstore-header-3840x1646.png | optional |
+| App Store search results (same tab) | ios-appstore-search-3840x2560.png | optional; uploading it REPLACES the screenshots shown in search |
+| App Store 16:9 universal (5244x2950) | not shipped; the two files above cover both slots at full size | - |
+
+Play has no header or search-results slot; the feature graphic is its one
+wide image. All three files set one lockup (the wordmark, the amber rule, a
+three-line stack, the Overseer on a cream card) from `lib/feature-graphic.mjs`,
+at 1x for Play and 2x for the App Store, so they read as one family. The stack
+says NO ACCOUNT / E2E ENCRYPTED / 100% LOCAL rather than the social image's
+proof line: both stores bar price claims in this art, and store copy should
+never need a bump when a CLI is added.
+
+The store art is the one family of files here with NO alpha channel (both
+stores reject transparency) and both stores crop it (Play in some placements,
+Apple per device and orientation). Hence the saturated rust ground rather than
+near-white cream, the inset on the Play graphic, and the App Store lockup
+centred with nothing but ground outside Apple's art-safe area. Those safe-area
+figures come from third-party readings of Apple's templates: check both App
+Store files in App Store Connect's Preview before the first upload.

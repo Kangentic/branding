@@ -27,8 +27,10 @@
 //               the notification icon). Color varies, geometry never does.
 //
 // This script also emits the non-icon mobile assets that share the same
-// tree: the splash mark and the Play Store feature graphic (the one output
-// under resources/ with NO alpha channel, because Play rejects it).
+// tree: the splash mark and the store art - the Play Store feature graphic
+// and the App Store product-page header and search-results images. The store
+// art is the one family of outputs under resources/ with NO alpha channel,
+// because both stores reject it.
 //
 // Usage: npm run gen:icons   (or node scripts/gen-icons.mjs)
 
@@ -37,7 +39,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { CREAM, PANEL, RUST, knockout, discOnSquare, f4kParts, f4kAlphaParts, f4kMonoSvg, cardKParts } from "./lib/mark.mjs";
-import { featureGraphicSvg } from "./lib/feature-graphic.mjs";
+import { featureGraphicSvg, appStoreArtSvg, APP_STORE_SLOTS, FEATURE_FILE } from "./lib/feature-graphic.mjs";
 // Only to DOCUMENT the ui set's rasters in resources/README.md below. gen-ui.mjs
 // writes those files; this script owns the README that indexes resources/, and
 // deriving the rows from the lib keeps a filename from going stale here.
@@ -208,15 +210,20 @@ await writeFile(
 // future desktop retier would have silently changed the mobile splash.
 await writeFile(join(M, "splash-1024.png"), pngs[1024]);
 
-// Play Store feature graphic. REQUIRED to publish on every track beyond
-// internal testing. Play rejects an alpha channel (JPEG or 24-bit PNG only),
-// so this is the one output in resources/ that is FLATTENED to truecolour.
-// The composition lives in lib/feature-graphic.mjs so the review sheet can
-// render ground candidates from the same source.
-await sharp(Buffer.from(featureGraphicSvg(RUST)))
-  .flatten({ background: RUST })
-  .png()
-  .toFile(join(M, "android-feature-graphic-1024x500.png"));
+// Store art: one lockup (lib/feature-graphic.mjs) in three frames. Both
+// stores reject an alpha channel (Play: JPEG or 24-bit PNG only; Apple: "Images
+// can't include alpha channels"), so these are the outputs in resources/ that
+// are FLATTENED to truecolour. npm run check's STORE gate reads each file's PNG
+// header back and fails on a wrong size or any alpha.
+//   - Play feature graphic: REQUIRED to publish on every track beyond internal
+//     testing.
+//   - App Store header (21:9) and search results (3:2): optional slots on the
+//     iOS 27 product page. Uploading the search art REPLACES the screenshots
+//     Apple otherwise shows in search results, so filling that slot is a
+//     store-listing call, not a given.
+const storePng = (svg, file) => sharp(Buffer.from(svg)).flatten({ background: RUST }).png().toFile(join(M, file));
+await storePng(featureGraphicSvg(RUST), FEATURE_FILE);
+for (const slot of Object.values(APP_STORE_SLOTS)) await storePng(appStoreArtSvg(slot, RUST), slot.file);
 
 // --- Preview sheet: the desktop ladder on light and dark bars (shows the
 // tier boundary: card-K at 128+, F4k at 64 and below) ------------------------
@@ -319,7 +326,9 @@ macOS tray would take a template PNG derived from the pure mono, not an SVG.
 | android-adaptive-monochrome.png (432) | \`adaptiveIcon.monochromeImage\`; Android 13+ themed icon | F4k (white, alpha-shaped) |
 | notification-icon.png (96) | \`expo-notifications\` plugin icon; Android status bar | F4k mono-tuned (white on transparent) |
 | splash-1024.png | splash mark (displays large) | card-K |
-| android-feature-graphic-1024x500.png | Play Store listing; REQUIRED beyond internal testing | wordmark + proof stack + Overseer on a card |
+| ${FEATURE_FILE} | Play Store listing; REQUIRED beyond internal testing | store lockup (see Store art) |
+| ${APP_STORE_SLOTS.header.file} | App Store product page header (21:9); optional | store lockup (see Store art) |
+| ${APP_STORE_SLOTS.search.file} | App Store search results (3:2); optional | store lockup (see Store art) |
 ${uiRasterRows}
 
 The \`*-tab-*.png\` files are UI GLYPHS, not brandmark renditions, and are
@@ -334,9 +343,29 @@ The iOS dark and tinted variants carry NO background: iOS composites its own
 material behind them and applies the user's tint, so baking one in would
 double it. Tinted is grayscale because iOS maps luminance onto the tint.
 
-The feature graphic is the ONE file here with no alpha channel (Play rejects
-transparency and crops the edges in some placements), which is why it uses the
-saturated rust ground rather than near-white cream and keeps all content inset.
+### Store art (both stores)
+| Store slot | File | Required |
+|------------|------|----------|
+| Play feature graphic (Play's hero) | ${FEATURE_FILE} | yes, beyond internal testing |
+| App Store header (Header and Search Results tab) | ${APP_STORE_SLOTS.header.file} | optional |
+| App Store search results (same tab) | ${APP_STORE_SLOTS.search.file} | optional; uploading it REPLACES the screenshots shown in search |
+| App Store 16:9 universal (5244x2950) | not shipped; the two files above cover both slots at full size | - |
+
+Play has no header or search-results slot; the feature graphic is its one
+wide image. All three files set one lockup (the wordmark, the amber rule, a
+three-line stack, the Overseer on a cream card) from \`lib/feature-graphic.mjs\`,
+at 1x for Play and 2x for the App Store, so they read as one family. The stack
+says NO ACCOUNT / E2E ENCRYPTED / 100% LOCAL rather than the social image's
+proof line: both stores bar price claims in this art, and store copy should
+never need a bump when a CLI is added.
+
+The store art is the one family of files here with NO alpha channel (both
+stores reject transparency) and both stores crop it (Play in some placements,
+Apple per device and orientation). Hence the saturated rust ground rather than
+near-white cream, the inset on the Play graphic, and the App Store lockup
+centred with nothing but ground outside Apple's art-safe area. Those safe-area
+figures come from third-party readings of Apple's templates: check both App
+Store files in App Store Connect's Preview before the first upload.
 `);
 
 console.log(`Wrote production resources to ${RES}: desktop/, web/, mobile/`);

@@ -15,7 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { CREAM, PANEL, INK, INK_SOFT, RUST, knockout, f4kParts, f4kAlphaParts, f4kMonoSvg, f4kDuoSvg, cardKParts } from "./lib/mark.mjs";
-import { featureGraphicSvg } from "./lib/feature-graphic.mjs";
+import { featureGraphicSvg, APP_STORE_SLOTS } from "./lib/feature-graphic.mjs";
 // The ui set, so the Board tab icon is reviewed in the surface it ships to.
 // Filenames come from the lib rather than being retyped here.
 import { GLYPHS as UI_GLYPHS, TAB_SIZES as UI_TAB_SIZES, rasterFileFor as uiRasterFileFor } from "./lib/ui-glyphs.mjs";
@@ -436,6 +436,34 @@ m.band("play feature graphic 1024x500 - ground candidates, at 440 wide and at Pl
       ${imgRect(s.data, PAD + 460, ry + 54, 220, 107)}
       <text x="${PAD + 700}" y="${ry + 112}" font-family="monospace" font-size="12" fill="#4a463f">${s.name}</text>`;
     ry += FG_PITCH;
+  }
+  return out;
+});
+
+// 6. App Store header and search art, read back as SHIPPED. The dashed box is
+//    each slot's art-safe area as lib/feature-graphic.mjs declares it - a
+//    third-party reading of Apple's templates, not a measured crop - so the
+//    band shows where the lockup sits against that claim, and nothing more.
+//    App Store Connect's Preview is what verifies it.
+const ascShots = [];
+for (const slot of [APP_STORE_SLOTS.header, APP_STORE_SLOTS.search]) {
+  ascShots.push({ slot, data: await shipped(slot.file) });
+}
+const ASC_ROW_H = 320;
+m.band("app store header + search, shipped - dashed: reported safe box (third-party, unverified until ASC Preview)", ASC_ROW_H, () => {
+  let out = `<rect width="${W}" height="${ASC_ROW_H}" fill="#e8e6e1"/>`;
+  let x = PAD;
+  for (const { slot, data } of ascShots) {
+    const w = slot === APP_STORE_SLOTS.header ? 620 : 390;
+    const h = Math.round((w * slot.h) / slot.w);
+    const s = w / slot.w;
+    const sx = x + ((slot.w - slot.safe.w) / 2) * s;
+    const sy = 8 + ((slot.h - slot.safe.h) / 2) * s;
+    out += `${imgRect(data, x, 8, w, h)}
+      <rect x="${sx}" y="${sy}" width="${slot.safe.w * s}" height="${slot.safe.h * s}" fill="none" stroke="${CREAM}" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="${x}" y="${h + 28}" font-family="monospace" font-size="12" fill="#4a463f">${slot.file}</text>
+      <text x="${x}" y="${h + 46}" font-family="monospace" font-size="12" fill="#4a463f">safe ${slot.safe.w}x${slot.safe.h}, lockup at ${slot.k}x</text>`;
+    x += w + 30;
   }
   return out;
 });
