@@ -129,8 +129,8 @@ Mascot != brandmark is deliberate (Claude Code's Clawd-vs-starburst split).
 | `scripts/lib/mark.mjs` | THE geometry: frozen K path, split-tip cuts, tight card, F4k glyph, knockout/square document builders, the `partsFor(size)` tier picker. Import from here; never re-declare. |
 | `scripts/gen-brandmark.mjs` | Exploration harness: concept rounds, contact sheets, canonical SVG exports to `assets/`. `npm run gen`. |
 | `scripts/gen-icons.mjs` | Production tree: every size/type for web, desktop (ICO/ICNS), and mobile into `resources/`. `npm run gen:icons`. |
-| `scripts/lib/feature-graphic.mjs` | THE Play Store feature graphic composition (1024x500). Imported by `gen-icons.mjs` (ships it) and `gen-review.mjs` (renders ground candidates). |
-| `scripts/lib/pixelfont.mjs` | THE 5x7 plate font shared by the social image and the feature graphic. Narrow coverage on purpose; `word()` throws on an unknown glyph. |
+| `scripts/lib/feature-graphic.mjs` | THE store art lockup and its copy (`STORE_LINE`), set at an integer multiplier in three frames: the Play feature graphic (1024x500, 1x) and the App Store header (3840x1646) and search art (3840x2560, both 2x). Imported by `gen-icons.mjs` (ships all three), `gen-review.mjs` (review bands) and `check-invariants.mjs` (the STORE gate). |
+| `scripts/lib/pixelfont.mjs` | THE 5x7 plate font shared by the social image and the store art. Narrow coverage on purpose; `word()` throws on an unknown glyph. |
 
 Still in kangentic.com `scripts/` pending migration: `gen-sprites.mjs`
 (mascot), `gen-app-icons.mjs` (mascot icon sets), `gen-brand.mjs` (OG
@@ -249,6 +249,27 @@ Key mechanics:
   A dark/terminal ground was rendered in the same review and rejected -
   the ink wordmark vanishes on it and it would need a separately
   recolored lockup.
+  - Corrected 2026-10-12. The panel tint is no longer what ships. The
+    2026-08-03 redesign moved the graphic to the RUST ground with a cream
+    wordmark (`lib/feature-graphic.mjs`; `gen-review.mjs` labels PANEL as
+    "shipped through 2.7.1"). The cream rejection above still stands, and
+    so does the dark ground's, for the reason `gen-review.mjs` now gives
+    (dark-as-mood is off-system), not the vanishing ink wordmark, which no
+    longer exists.
+- Proof line on the store art: replaced 2026-10-12 at maintainer
+  sign-off, from four rendered copy sets. The store stack now sets
+  `STORE_LINE` ("NO ACCOUNT / E2E ENCRYPTED / 100% LOCAL") instead of
+  `PROOF_LINE`. There were three reasons. Both stores bar price claims, so
+  "$0 FOREVER" could not stay. The CLI count went stale with every new CLI.
+  And the store art sells the mobile app. The backup is "what the app does"
+  ("WATCH AGENTS / ANSWER PROMPTS / REVIEW DIFFS"). A blend of the two sets
+  was rejected; each set stays one idea. A two-line price-free proof stack,
+  with an even-spacing variant, was rendered and dropped, because three
+  lines keep the settled stack rhythm. The social image keeps `PROOF_LINE`.
+- App Store 16:9 universal asset (5244x2950): not shipped, 2026-10-12.
+  Its reported safe box (1402 wide) only fits a 1x lockup, 15.6% of the
+  canvas width against 42.5% in the dedicated 21:9 header. The dedicated
+  header and search files cover both slots at full size.
 - Canonical F4k rects in the mono pair: review finding 2026-07-13, the
   breakoff is illegible at 20-24px when theme-tinted. Five geometries
   (v0-v4) rendered at 16/24 and 64/192, pixel-truth zooms; the

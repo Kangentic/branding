@@ -8,11 +8,12 @@
 // ("reads as craft, not AI clip-art") is NOT here - it stays a human decision.
 //
 // Checks, in run order: PALETTE, SPRITE, TIERING, FROZEN-K, BANNED, MONO,
-// ANIMATION, ACTIVITY, UI, RECORD. Respectively: palette membership, sprite
-// constraints, mark tiering (no card-K on a downscaled master), frozen-K /
-// single-source geometry, banned colors, the theme-safe mono pair, the shared
+// ANIMATION, ACTIVITY, UI, STORE, RECORD. Respectively: palette membership,
+// sprite constraints, mark tiering (no card-K on a downscaled master), frozen-K
+// / single-source geometry, banned colors, the theme-safe mono pair, the shared
 // animation contract (motion budget, compositing safety, packaging), the
-// activity status set, the ui navigation set, and this gate's own record.
+// activity status set, the ui navigation set, the store art (exact slot sizes,
+// no alpha, the lockup inside its safe areas), and this gate's own record.
 // RECORD is what makes the roster above trustworthy: it fails when an
 // enumerating record drifts from the registered set, which is exactly how MONO,
 // ACTIVITY and UI each came to be missing from this very comment.
@@ -20,8 +21,9 @@
 //
 // Sources of truth cross-referenced here (change them, not this file):
 //   scripts/lib/mark.mjs, scripts/lib/sprite.mjs, scripts/lib/activity.mjs,
-//   scripts/lib/ui-glyphs.mjs, the .claude/rules/*.md, the design-language
-//   skill's palette tokens + banned list.
+//   scripts/lib/ui-glyphs.mjs, scripts/lib/feature-graphic.mjs, the
+//   .claude/rules/*.md, the design-language skill's palette tokens + banned
+//   list.
 
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve, relative, extname, basename } from "node:path";
@@ -55,6 +57,16 @@ import {
   manifest as uManifest,
   rasterFileFor as uRasterFileFor,
 } from "./lib/ui-glyphs.mjs";
+// The store art lockup. Pure declarations and pure functions again (it pulls in
+// lib/mark.mjs, lib/sprite.mjs and lib/pixelfont.mjs, all side-effect free);
+// its composition guard is a FUNCTION for the same reason activity's is.
+import {
+  FEATURE_W as S_FEATURE_W,
+  FEATURE_H as S_FEATURE_H,
+  FEATURE_FILE as S_FEATURE_FILE,
+  APP_STORE_SLOTS as S_APP_STORE_SLOTS,
+  lockupFindings as sLockupFindings,
+} from "./lib/feature-graphic.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rel = (p) => relative(ROOT, p).replace(/\\/g, "/");
@@ -201,9 +213,10 @@ checks.TIERING = () => {
 
   // Each downscaled single-image master write must resolve to an F4k builder.
   // Deliberately NOT here: splash-1024.png (displays large, so it is correctly
-  // card-K and would fail the F4k assertion) and
-  // android-feature-graphic-1024x500.png (a marketing raster, not an icon
-  // master - it carries no mark to tier).
+  // card-K and would fail the F4k assertion) and the store art -
+  // android-feature-graphic-1024x500.png, ios-appstore-header-3840x1646.png and
+  // ios-appstore-search-3840x2560.png (marketing rasters, not icon masters -
+  // they carry no mark to tier). Their own contract is the STORE check.
   // Also NOT here: resources/mobile/*-tab-*.png, the ui glyph rasters. They
   // carry no brandmark at all, so there is no tier to pick, and they are written
   // by gen-ui.mjs rather than this file - the grep below only reads gen-icons.
@@ -666,7 +679,54 @@ checks.UI = () => {
   return findings;
 };
 
-// 10. This gate's own record (brand-record-fidelity). Three records ENUMERATE
+// 10. The store art (lib/feature-graphic.mjs). Both stores reject a file of the
+//     wrong size outright (App Store Connect: "File dimensions are invalid",
+//     which is how the header slot first rejected a phone screenshot) and both
+//     reject an alpha channel. sharp is not available here, so the PNG header is
+//     read directly: width and height from IHDR, the colour type byte (2 = RGB,
+//     no alpha), and a walk of the chunk list for tRNS, which can carry
+//     transparency even in an RGB file. The expected sizes come from the lib,
+//     so a slot change and its gate move together. lockupFindings() adds the
+//     composition's own invariants: every stack line fits under the wordmark,
+//     and every App Store lockup sits inside its slot's safe box.
+const pngHeader = (buf) => {
+  if (buf.length < 33 || buf.readUInt32BE(0) !== 0x89504e47 || buf.toString("ascii", 12, 16) !== "IHDR") return null;
+  const chunks = [];
+  for (let off = 8; off + 8 <= buf.length; ) {
+    const len = buf.readUInt32BE(off);
+    const type = buf.toString("ascii", off + 4, off + 8);
+    chunks.push(type);
+    if (type === "IEND") break;
+    off += 12 + len;
+  }
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20), colourType: buf[25], chunks };
+};
+checks.STORE = () => {
+  const findings = [];
+  const rasters = [
+    { file: S_FEATURE_FILE, w: S_FEATURE_W, h: S_FEATURE_H },
+    ...Object.values(S_APP_STORE_SLOTS),
+  ];
+  for (const r of rasters) {
+    const p = `resources/mobile/${r.file}`;
+    if (!has(p)) {
+      findings.push(`${p}: missing (declared by lib/feature-graphic.mjs, run npm run gen:icons)`);
+      continue;
+    }
+    const png = pngHeader(readFileSync(join(ROOT, p)));
+    if (!png) {
+      findings.push(`${p}: not a PNG with a leading IHDR chunk`);
+      continue;
+    }
+    if (png.w !== r.w || png.h !== r.h) findings.push(`${p}: ${png.w}x${png.h}, but its store slot takes exactly ${r.w}x${r.h}`);
+    if (png.colourType !== 2) findings.push(`${p}: PNG colour type ${png.colourType}, must be 2 (RGB, no alpha) - both stores reject transparency`);
+    if (png.chunks.includes("tRNS")) findings.push(`${p}: carries a tRNS chunk (transparency) - both stores reject it`);
+  }
+  findings.push(...sLockupFindings());
+  return findings;
+};
+
+// 11. This gate's own record (brand-record-fidelity). Three records ENUMERATE
 //     the checks that run, and all three had drifted: the header above named six
 //     of nine, CLAUDE.md named five in one place and three in another, ci.yml
 //     named a different five. MONO, ACTIVITY and UI were each added without any
@@ -703,7 +763,7 @@ checks.RECORD = () => {
 
 // ---------------------------------------------------------------------------
 // `order` is the single source for the roster every record above must quote.
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "RECORD"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "STORE", "RECORD"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {

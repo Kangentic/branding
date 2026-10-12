@@ -37,7 +37,9 @@ scripts/lib/ui-glyphs.mjs THE ui glyph geometry: the NAVIGATION marks (the
                           see THIRD-PARTY-NOTICES.md.
 scripts/lib/pixelfont.mjs THE 5x7 plate font (uppercase, narrow coverage);
                           word() throws on a glyph it does not have.
-scripts/lib/feature-graphic.mjs  THE Play feature graphic composition (1024x500)
+scripts/lib/feature-graphic.mjs  THE store art lockup + its copy (STORE_LINE):
+                          the Play feature graphic (1024x500) and the App
+                          Store header (3840x1646) and search art (3840x2560)
 scripts/gen-brandmark.mjs Icon exploration harness + canonical SVGs (npm run gen)
 scripts/gen-icons.mjs     Production icon tree -> resources/ (npm run gen:icons)
 scripts/gen-sprites.mjs   Mascot -> assets/mascot/ + exploration (npm run gen:sprites)
@@ -56,7 +58,7 @@ scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
 scripts/check-invariants.mjs  Mechanical brand-invariant gate (npm run check).
                           Checks, in run order: PALETTE, SPRITE, TIERING,
                           FROZEN-K, BANNED, MONO, ANIMATION, ACTIVITY, UI,
-                          RECORD. RECORD asserts this list matches the checks
+                          STORE, RECORD. RECORD asserts this list matches the checks
                           that actually run, so it cannot silently fall behind.
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
 assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
@@ -73,8 +75,9 @@ assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
 resources/                Production rasters consumers ship: web/, desktop/,
                           mobile/ (app icons incl. iOS dark/tinted, adaptive +
                           Android 13+ themed layers, notification icon, splash,
-                          Play feature graphic, kanban-tab-{25,50,75}.png for
-                          the iOS tab bar), social/og-image.png (see README)
+                          store art: the Play feature graphic and the App
+                          Store header + search images; kanban-tab-{25,50,75}.png
+                          for the iOS tab bar), social/og-image.png (see README)
 archive/v1/               The blue-K brand, frozen verbatim. Never touch.
 archive/mascot-explorations/  Every creature round, superseded mascot-icon
                           sets, and legacy logo candidates. Never touch.

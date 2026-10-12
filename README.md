@@ -34,8 +34,10 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
   manifest icons, logo), `mobile/` (every OS-owned and store-facing asset
   Expo needs: app icons including the iOS dark/tinted variants, adaptive
   and Android 13+ themed layers, the notification icon, the splash mark,
-  the Play feature graphic, and the iOS Board tab rasters), and
-  `social/og-image.png`. See `resources/README.md` for the per-file table.
+  the store art, and the iOS Board tab rasters), and `social/og-image.png`.
+  The store art is the Play feature graphic plus the App Store product-page
+  header and search images, all set from one lockup. See
+  `resources/README.md` for the per-file table.
 
 `assets/` is the vector home (consumer-agnostic SVGs); `resources/` holds
 the shipped per-consumer files, mostly rasters for surfaces that cannot
