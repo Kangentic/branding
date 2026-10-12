@@ -15,6 +15,9 @@ update by bumping this package - a release here is how icons change everywhere.
 
 **Usage:** `/release [patch|minor|major]`
 
+Runs from the main checkout (on `main`) or from a task worktree. From a worktree it pushes
+`HEAD:main`; see the pre-flight checks and Step 5.
+
 - `/release` -- auto-suggests bump type from commit history, asks for confirmation
 - `/release patch` -- refinements within the current brand line (2.0.0 to 2.0.1)
 - `/release minor` -- new assets/variants within the line (2.0.0 to 2.1.0)
@@ -57,13 +60,33 @@ requested or suggested:
 
 ## Pre-flight Checks
 
-1. **Verify branch:** Run `git rev-parse --abbrev-ref HEAD`. Must be `main`. If not, stop: "Release must run from the main branch."
+1. **Detect mode:** Run `git rev-parse --abbrev-ref HEAD`.
+   - `main` -- **main mode**: the maintainer's main checkout.
+   - Any other branch, with CWD containing `.kangentic/worktrees/` -- **worktree mode**: a task
+     worktree. The local branch is the worktree's own slug-hex branch and is never renamed. The
+     release lands on `main` by pushing `HEAD:main`, so `<branch>` in main mode means `main` and
+     in worktree mode means `HEAD` wherever a push or tag target appears below.
+   - `HEAD` (detached), or any other branch outside a worktree -- stop: "Release must run from
+     main or from a task worktree."
 2. **Verify clean tree:** Run `git status --porcelain`. Must be empty. If not, stop: "Working tree must be clean before releasing."
 3. **Fetch latest:** Run `git fetch origin main`
-4. **Verify up-to-date:** Run `git diff HEAD origin/main --stat`. Must be empty. If not, stop: "Local main is behind origin/main. Run `git pull` first."
-5. **Install dependencies:** Run `npm ci`.
+4. **Verify HEAD is origin/main, or a fast-forward of it:**
+   - Main mode: `git diff HEAD origin/main --stat` must be empty. If not, stop: "Local main is
+     behind origin/main. Run `git pull` first."
+   - Worktree mode: `git merge-base --is-ancestor origin/main HEAD` must succeed, so that
+     `git push origin HEAD:main` is a fast-forward and never needs force. If it fails, the
+     worktree is behind or diverged: stop and rebase it (`git rebase origin/main`) first.
+     Then run `git log --oneline origin/main..HEAD`. Any commit listed will be PUSHED TO `main`
+     with the release, with no pull request and no review (see 7 below), and it appears in the
+     changelog. If the list is non-empty, show it and get the maintainer's confirmation before
+     going on. An empty list is the normal case, after the task's PR has been merged and the
+     worktree realigned by `/merge-pull-request`.
+5. **Install dependencies:** Run `npm ci`. (A worktree has its own `node_modules`, so this is
+   needed there too. If it fails with EBUSY, a running process has a file locked: report it and
+   stop.)
 6. **Know before you commit anything: this skill pushes DIRECTLY to a protected `main`.**
-   Step 5 does `git push origin main` with no pull request, no review, and no status check. It
+   Step 5 does `git push origin main` (worktree mode: `git push origin HEAD:main`) with no pull
+   request, no review, and no status check. It
    lands only because the maintainer has admin push access to `main` and admin enforcement is
    off. See Step 5 for what happens if that ever changes.
 
@@ -121,12 +144,19 @@ Read the new version from `package.json` to confirm.
 ## Step 5 -- Tag and Push
 
 1. `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
-2. `git push origin main`
+2. Main mode: `git push origin main`. Worktree mode: `git push origin HEAD:main`.
 3. `git push origin vX.Y.Z`
 
 **If either push fails**, report the error and stop. Do not force-push.
 
-**Step 2 is a direct push to a protected branch, and that is a dependency worth naming.**
+**Worktree mode, afterwards:** the main checkout is now behind. Fast-forward it, from the
+project root (two directories above `.kangentic/worktrees/<slug>/`), with
+`git -C <projectRoot> pull --ff-only`, using forward slashes in the path (backslashes are eaten
+by the Bash tool). If that fails because the main checkout has diverged or has uncommitted work,
+report it and leave it alone, exactly as `/merge-pull-request` Step 3 does. The worktree branch
+already sits on the release commit, so it needs no realign.
+
+**Steps 2 and 3 above are a direct push to a protected branch, and that is a dependency worth naming.**
 `main` requires a pull request with an approving review and a green status check. This push
 satisfies none of them; it succeeds because the maintainer has admin push access and admin
 enforcement is off. `/merge-back` records the same dependency for itself, and this is the
