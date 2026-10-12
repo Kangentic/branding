@@ -136,9 +136,9 @@ npm run check        # mechanical brand-invariant gate (roster in the file heade
 | `icon-drafting` | The brandmark harness: canonical scripts, frozen K, two-tier system, review discipline (size strips + in-situ header renders), decision history. Read before any mark work. |
 | `sprite-drafting` | The pixel-art mascot harness: the sprite engine, the ASCII-map method, review discipline, and the rejected-creature history. Read before any mascot/sprite work. |
 | `design-language` | The Warm Craft constitution: palette, typography, mascot conventions, anti-AI-template checklist. Kept in sync with kangentic.com's copy. |
-| `release` | `/release [patch|minor|major]`: determinism gate, bump, changelog, tag, GitHub release, npm publish. Runs from the main checkout or a task worktree. Major = new brand generation only (archive gate). |
+| `release` | Release column (after Merge): `/release [patch|minor|major]`: determinism gate, bump, changelog, tag, GitHub release, npm publish. Runs from the main checkout or a task worktree. Major = new brand generation only (archive gate). |
 | `pull-request` | Testing column: run the determinism gate locally, commit, rebase, open a clean PR, and drive its CI checks to green (auto-fixing generators/scripts). Never merges. |
-| `merge-pull-request` | Merge column: verify a green PR, merge it (rebase, delete branch), realign the worktree, and fast-forward local `main`. Does NOT publish (that is `/release`). |
+| `merge-pull-request` | Merge column: verify a green PR, merge it (rebase, delete branch), realign the worktree, and fast-forward local `main`. Does NOT publish (that is the Release column's `/release`). |
 
 ## Conventions
 

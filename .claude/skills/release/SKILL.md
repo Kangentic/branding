@@ -1,5 +1,5 @@
 ---
-description: Regenerate and verify brand assets, version bump, changelog, tag, GitHub release, and tag-triggered CI npm publish for @kangentic/branding
+description: Regenerate and verify brand assets, version bump, changelog, tag, GitHub release, and tag-triggered CI npm publish for @kangentic/branding. This is the Release column skill (after Merge); it also runs by hand from the main checkout.
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash(git:*), Bash(npm:*), Bash(npx:*), Bash(gh:*)
 argument-hint: [patch|minor|major]
 ---
@@ -12,6 +12,12 @@ triggers `.github/workflows/publish.yml`, which reruns the determinism gate
 in CI and publishes to npm with provenance via OIDC - no local `npm publish`,
 no stored token. Consumers (kangentic.com, kangentic desktop, kangentic-mobile)
 update by bumping this package - a release here is how icons change everywhere.
+
+This is the **Release column** skill: the board sends `/release` to a task that entered Release
+after the **Merge column** (`/merge-pull-request`) landed its PR, which is worktree mode below.
+The column sends no argument, so Step 0 suggests a bump and waits for confirmation; that pause is
+the human gate on every publish. A merged task that should not cut a version (a board or docs
+chore) skips Release and moves straight from Merge to Done.
 
 **Usage:** `/release [patch|minor|major]`
 
@@ -216,6 +222,9 @@ Publishing runs in CI, not on this machine. The tag push in Step 5 triggers
   would be a hand-maintained record of other repos' internals with no gate able to
   check it, which is precisely the rot `brand-record-fidelity.md` exists to
   prevent. Read the consumers instead of mirroring them.
+- **Worktree mode:** report whether the project root's `main` fast-forwarded (Step 5, "Worktree
+  mode, afterwards"), and remind the user to move the task to Done on the board, which removes
+  the worktree.
 
 ## Allowed Tools
 

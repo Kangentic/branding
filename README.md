@@ -271,9 +271,10 @@ the version tag, before anything is published.
 ## Release
 
 `/release [patch|minor|major]` in Claude Code handles the determinism
-gate, version bump, changelog, tag, GitHub release, and npm publish. The
-package major tracks the brand generation (v1 blue K, v2 Warm Craft); a
-major bump archives the outgoing line first.
+gate, version bump, changelog, tag, GitHub release, and npm publish. On the
+board it runs from the Release column, after Merge; it also runs by hand
+from the `main` checkout. The package major tracks the brand generation
+(v1 blue K, v2 Warm Craft); a major bump archives the outgoing line first.
 
 ## Deeper docs
 

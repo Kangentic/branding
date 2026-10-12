@@ -1,5 +1,5 @@
 ---
-description: Merge an already-green PR (rebase merge, delete branch) and fast-forward the local main checkout. This is the Merge column skill. It assumes the Testing column (/pull-request) already drove the PR green. It does NOT publish - use /release to publish @kangentic/branding. Not for creating a PR (use /pull-request).
+description: Merge an already-green PR (rebase merge, delete branch) and fast-forward the local main checkout. This is the Merge column skill. It assumes the Testing column (/pull-request) already drove the PR green. It does NOT publish - the next column, Release, runs /release to publish @kangentic/branding. Not for creating a PR (use /pull-request).
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash(git:*), Bash(npm:*), Bash(gh:*), Agent, mcp__kangentic__kangentic_get_current_task, mcp__kangentic__kangentic_link_pr
 ---
 
@@ -21,7 +21,8 @@ is the gate. `--admin` enforces nothing.
 
 **This skill does NOT publish.** Landing a PR onto `main` and publishing a new `@kangentic/branding`
 version are separate concerns. Publishing (regenerate + determinism gate, version bump, changelog,
-tag, GitHub release, npm publish) is `/release`, run deliberately when cutting a version. This skill
+tag, GitHub release, npm publish) is `/release`, which the **Release column** runs: move the card
+there when this merge should cut a version, or straight to Done when it should not. This skill
 stops at the merge and the local `main` fast-forward.
 
 **Usage:** `/merge-pull-request`
@@ -143,7 +144,9 @@ realign later needs to stop for a conflict.
 The merge rewrote the PR commits onto `<sourceBranch>` (new SHAs for a rebase merge, or a single new
 squash commit), so the worktree's local branch still holds the pre-merge commits. Left as-is, the
 board's move-to-Done check reports them as "N commits remain only on the local branch" - a false
-positive. Realign the worktree branch onto the merged base, by `<mergeMethod>`:
+positive. The Release column depends on it too: from a worktree, `/release` requires the branch to
+be `origin/main` or a fast-forward of it, and pushes any extra commit to `main` with the release
+(after asking). Realign the worktree branch onto the merged base, by `<mergeMethod>`:
 
 1. Confirm the worktree is clean: `git status --porcelain` (empty right after the merge). If it is
    NOT empty, skip the realign and report - never discard uncommitted work.
@@ -196,8 +199,10 @@ Summarize:
   move-to-Done.
 - Local `main` checkout status (fast-forwarded, or the divergence you surfaced).
 - **This skill did NOT publish.** To ship a new `@kangentic/branding` version to consumers
-  (kangentic.com, the desktop app, kangentic-mobile), run `/release` deliberately.
-- **Reminder:** move the task to Done on the board to trigger worktree cleanup and remove the local
+  (kangentic.com, the desktop app, kangentic-mobile), move the task to the Release column, which
+  runs `/release`.
+- **Next:** move the task to Release to cut a version, or straight to Done when this merge should
+  not publish. Done (directly or after Release) triggers worktree cleanup and removes the local
   worktree.
 
 ## Rules

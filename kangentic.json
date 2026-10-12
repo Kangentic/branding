@@ -64,6 +64,26 @@
       }
     },
     {
+      "id": "14db0058-86ac-45bf-ab93-be1483b6de2c",
+      "name": "Release",
+      "description": "Cuts a @kangentic/branding version from the merged main via /release (determinism gate, bump, changelog, tag, CI npm publish). Merges that should not publish skip straight to Done.",
+      "icon": "rocket",
+      "color": "#EC4899",
+      "autoSpawn": true,
+      "modelOverride": "sonnet",
+      "effortOverride": "high",
+      "automations": {
+        "onEnter": [
+          {
+            "name": "Message",
+            "type": "send_message",
+            "message": "/release",
+            "mode": "immediate"
+          }
+        ]
+      }
+    },
+    {
       "id": "cf59af53-634f-4e03-a840-4c2100171fc7",
       "name": "Done",
       "role": "done",
