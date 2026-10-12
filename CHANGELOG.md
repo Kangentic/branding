@@ -2,6 +2,39 @@
 
 <!-- releases -->
 
+## [v2.11.0] - 2026-10-12
+
+### Features
+- Add the App Store product-page art and make the Play feature graphic
+  store-safe (da8125a). New in `resources/mobile/`:
+  `ios-appstore-header-3840x1646.png` (the 21:9 header) and
+  `ios-appstore-search-3840x2560.png` (the 3:2 search-results art), for App
+  Store Connect's "Header and Search Results" tab. Both are flattened (no
+  alpha, which both stores reject) and set the feature graphic's lockup at 2x.
+  The lockup now lives in `lib/feature-graphic.mjs` as `lockupSvg(k)` at an
+  integer multiplier, so the Play graphic (1x) and both App Store files read
+  as one family.
+  - **The stack copy changed on all three store files** to NO ACCOUNT / E2E
+    ENCRYPTED / 100% LOCAL (`STORE_LINE`). Both stores bar price claims in
+    this art, so "$0 FOREVER" could not stay; the CLI count also went stale
+    with every new CLI, and this art sells the mobile app. The social image
+    keeps the "15 AGENT CLIS" proof line. Adds U, Y, P, D to the 5x7 font.
+    **The Play feature graphic changed: re-upload it to Play Console.**
+  - The App Store art-safe boxes are third-party readings of Apple's
+    templates, not Apple figures, and the header has 7px of slack. Check both
+    files in App Store Connect's Preview before the first upload. Filling the
+    Search Results slot replaces a listing's screenshots in App Store search.
+  - Apple's 16:9 universal (5244x2950) is not shipped: its safe box only fits
+    a 1x lockup, so the two dedicated files cover both slots at full size.
+  - New `STORE` check in `npm run check`: reads each store PNG's header for the
+    exact slot size and colour type 2 (no alpha, no tRNS), and asserts the
+    stack fits under the wordmark and every App Store lockup sits inside its
+    safe box.
+
+### Other
+- Let /release run from a task worktree as well as main (a9aaa2e).
+- Migrate column commands to onEnter automations (9a3a164).
+
 ## [v2.10.0] - 2026-09-16
 
 ### Features
