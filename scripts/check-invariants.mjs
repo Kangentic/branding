@@ -414,9 +414,99 @@ checks.ANIMATION = () => {
   return findings;
 };
 
+/**
+ * The extra extrema a circular arc adds beyond its endpoints: any of the four
+ * compass points of its circle that the sweep passes through. This is the
+ * SVG endpoint-to-centre conversion, specialised to rx = ry (where the x-axis
+ * rotation cannot matter), so a bulging arc is measured where it bulges.
+ */
+const arcExtrema = (x1, y1, r, large, sweep, x2, y2) => {
+  const mx = (x1 - x2) / 2;
+  const my = (y1 - y2) / 2;
+  const d2 = mx * mx + my * my;
+  if (d2 === 0) return [];
+  // SVG scales a radius too small to span the chord up until it just does.
+  const rr = Math.max(r, Math.sqrt(d2));
+  const k = Math.sqrt(Math.max(0, (rr * rr - d2) / d2)) * (large === sweep ? -1 : 1);
+  const cx = k * my + (x1 + x2) / 2;
+  const cy = -k * mx + (y1 + y2) / 2;
+  const a1 = Math.atan2(y1 - cy, x1 - cx);
+  const TAU = 2 * Math.PI;
+  // Sweep 1 runs toward increasing angle in SVG's y-down frame.
+  let span = Math.atan2(y2 - cy, x2 - cx) - a1;
+  if (sweep === 1 && span <= 0) span += TAU;
+  if (sweep === 0 && span >= 0) span -= TAU;
+  const out = [];
+  for (const q of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+    // How far along the sweep this compass point sits, in the sweep's sense.
+    let t = ((q - a1) * Math.sign(span)) % TAU;
+    if (t < 0) t += TAU;
+    // Rounded as the lib rounds its own numbers, so float noise in cos and sin
+    // cannot fail the integer-lattice check on a point that is truly on it.
+    if (t > 1e-9 && t < Math.abs(span) - 1e-9) out.push([+(cx + rr * Math.cos(q)).toFixed(4), +(cy + rr * Math.sin(q)).toFixed(4)]);
+  }
+  return out;
+};
+
+/**
+ * The extrema of a <path> outline, or null if this cannot bound it EXACTLY.
+ *
+ * Added 2026-10-29 for agent-question, the first outline in the set that is a
+ * path (a speech bubble: a rounded body with a tail, which no rect, circle or
+ * polygon can draw). It accepts absolute M, L, H, V and Z, whose bounds are
+ * their endpoints, and CIRCULAR arcs (rx = ry), which arcExtrema bounds from
+ * their centre. Anything else returns null, so the caller reports the outline
+ * as unverifiable rather than measuring it wrong: a cubic or an ellipse can
+ * bulge past its endpoints, and endpoint-only bounds would wave it through.
+ *
+ * Widened the same day for agent-approval's shield, whose sides are arcs wider
+ * than a corner. The first version accepted QUARTER-circle corners only.
+ */
+const pathBounds = (el) => {
+  const m = el.match(/<path[^>]*\sd="([^"]+)"/);
+  if (!m) return null;
+  const toks = m[1].match(/[A-Za-z]|-?\d*\.?\d+/g) ?? [];
+  const xs = [];
+  const ys = [];
+  let x = 0;
+  let y = 0;
+  let i = 0;
+  const num = () => Number(toks[i++]);
+  while (i < toks.length) {
+    const cmd = toks[i++];
+    if (cmd === "M" || cmd === "L") {
+      x = num();
+      y = num();
+    } else if (cmd === "H") x = num();
+    else if (cmd === "V") y = num();
+    else if (cmd === "Z") continue;
+    else if (cmd === "A") {
+      const rx = num();
+      const ry = num();
+      num(); // x-axis rotation: irrelevant to a circle
+      const large = num();
+      const sweep = num();
+      const nx = num();
+      const ny = num();
+      if (rx !== ry || !Number.isFinite(rx)) return null; // an ellipse: not bounded here
+      for (const [ex, ey] of arcExtrema(x, y, rx, large, sweep, nx, ny)) {
+        xs.push(ex);
+        ys.push(ey);
+      }
+      x = nx;
+      y = ny;
+    } else return null; // relative commands, curves, or implicit repeats
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    xs.push(x);
+    ys.push(y);
+  }
+  return xs.length ? { x: [Math.min(...xs), Math.max(...xs)], y: [Math.min(...ys), Math.max(...ys)] } : null;
+};
+
 // The horizontal extent of a mark's outline element, in grid units. Every
-// outline in the set is one rect, one circle or one polygon, so this is exact
-// rather than an approximation of a rendered bbox.
+// outline in the set is one rect, one circle, one polygon or one path that
+// pathBounds can bound exactly, so this is exact rather than an approximation
+// of a rendered bbox.
 const outlineXSpan = (el) => {
   let m = el.match(/<rect[^>]*\sx="([-\d.]+)"[^>]*\swidth="([-\d.]+)"/);
   if (m) return [Number(m[1]), Number(m[1]) + Number(m[2])];
@@ -427,7 +517,7 @@ const outlineXSpan = (el) => {
     const xs = m[1].trim().split(/\s+/).map((p) => Number(p.split(",")[0]));
     return [Math.min(...xs), Math.max(...xs)];
   }
-  return null;
+  return pathBounds(el)?.x ?? null;
 };
 
 /**
@@ -448,7 +538,8 @@ const outlineBounds = (el) => {
     const ys = m[1].trim().split(/\s+/).map((p) => Number(p.split(",")[1]));
     return { x, y: [Math.min(...ys), Math.max(...ys)] };
   }
-  return null;
+  const p = pathBounds(el);
+  return p ? { x, y: p.y } : null;
 };
 
 // 8. The activity icon set (activity-icon-geometry). Five things a grep can
@@ -590,7 +681,7 @@ checks.ACTIVITY = () => {
   if (!/prefers-reduced-motion/.test(css)) findings.push(`${cssPath}: no prefers-reduced-motion block`);
 
   // Single-source geometry, the FROZEN-K rule applied to this set.
-  const GEO = ["INK_BOX", "R_ENVELOPE", "R_CHIP", "RING_R", "FLAP_VARIANTS", "PROMPT_D", "CONTROL_RING_R", "DASH_SPINNER", "DASH_CHIP", "ENVELOPE_CANDIDATES", "ENVELOPE_DEFAULT"];
+  const GEO = ["INK_BOX", "R_ENVELOPE", "R_CHIP", "RING_R", "FLAP_VARIANTS", "PROMPT_D", "CONTROL_RING_R", "DASH_SPINNER", "DASH_CHIP", "ENVELOPE_CANDIDATES", "ENVELOPE_DEFAULT", "QUESTION_CANDIDATES", "QUESTION_DEFAULT", "BUBBLE_BODY_OPEN", "BUBBLE_TAIL_OPEN", "APPROVAL_CANDIDATES", "APPROVAL_DEFAULT", "SHIELD", "R_SHIELD"];
   const owners = scriptFiles().filter(
     (f) => rel(f) !== "scripts/lib/activity.mjs" && rel(f) !== "scripts/check-invariants.mjs",
   );

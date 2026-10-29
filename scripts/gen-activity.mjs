@@ -2,7 +2,7 @@
 // harness that chose them.
 //
 // Writes TWO kinds of output, and the distinction matters:
-//   assets/activity/       SHIPPED. Nine marks + activity.css + activity.json.
+//   assets/activity/       SHIPPED. Eleven marks + activity.css + activity.json.
 //                          Held to byte determinism by the release gate.
 //   exploration/activity/  REVIEW. compare.html and the size strips. Exempt.
 //
@@ -61,6 +61,12 @@ import {
   slotRing,
   SMALL_MASTER,
   smallMasterSvg,
+  QUESTION_CANDIDATES,
+  question,
+  APPROVAL_CANDIDATES,
+  approval,
+  AGGREGATE_CANDIDATES,
+  aggregate,
 } from "./lib/activity.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -83,17 +89,22 @@ const GROUNDS = [
     active: "#34d399",
     rest: "#6f675c",
   },
+  // Corrected 2026-10-29, read off kangentic-mobile's darkTerminalTheme
+  // (src/components/theme/tokens.ts) rather than recalled. The attention amber
+  // here was #d9b83f, which the phone now uses as `warning`; its
+  // `statusNeedsYou` is the brand amber #e8a33d. A review ground painting the
+  // wrong amber is a sheet that does not render what its caption claims.
   {
     id: "mobile",
     label: "Mobile app",
     note: "one dark terminal theme",
     bg: "#0f0d0a",
-    panel: "#1a1613",
-    fg: "#d7d1c6",
-    soft: "#857c71",
-    attention: "#d9b83f",
+    panel: "#16120d",
+    fg: "#f0e9dd",
+    soft: "#b5a892",
+    attention: "#e8a33d",
     active: "#3ddc84",
-    rest: "#6f675c",
+    rest: "#7b7263",
   },
   {
     id: "web",
@@ -224,8 +235,13 @@ const ids = (list) => list.map((d) => d.id.toUpperCase()).join(", ");
 const toneOf = (g, mark) =>
   mark.tone === "active" ? g.active : mark.tone === "attention" ? g.attention : mark.tone === "rest" ? g.rest : g.fg;
 
-// The set's NINE marks and where each one lives, so the section reads as a set
-// rather than as three indicators with two buttons bolted on.
+// The set's ELEVEN marks and where each one lives, so the section reads as a
+// set rather than as three indicators with two buttons bolted on.
+//
+// Eleven as of 2026-10-29, when agent-question and agent-approval joined. Their
+// entries name where they WILL render, not where they do: both consumers ship
+// placeholders until they adopt this release, and a present-tense call site
+// would be a status claim.
 //
 // Corrected 2026-07-31. The comment said "five marks", the table listed eight
 // keys, and the set is nine - `terminal-new` was absent. Five is the count of
@@ -236,6 +252,8 @@ const toneOf = (g, mark) =>
 const MARK_ROLES = {
   "agent-idle": "task card 16, sidebar 16/12, monitor 15, tooltip 12",
   "agent-working": "task card 16, sidebar 16/12, monitor 15, tooltip 12",
+  "agent-question": "pending adoption: desktop card 16, tooltip 12; phone card 16",
+  "agent-approval": "pending adoption: desktop card 16, tooltip 12; phone card 16",
   "terminal-idle": "sidebar 14, title bar 20",
   "terminal-working": "sidebar 14, title bar 20",
   "terminal-new": "sidebar 14, title bar 20",
@@ -1578,3 +1596,496 @@ const zoomSheet = async (g) => {
 
 for (const g of GROUNDS) await zoomSheet(g);
 console.log(`Wrote ${GROUNDS.length} pixel-truth zooms (${INDICATOR_SIZES.join("/")}px) -> exploration/activity/_isolation-zoom-*.png`);
+
+// ---------------------------------------------------------------------------
+// THE QUESTION MARK ROUND, 2026-10-29 (GitHub #452). Review artifacts only.
+//
+// An idle agent now has THREE amber marks: the bubble (has a question), the
+// approval mark (needs your approval, round 4) and the envelope (turn finished).
+// Rounds 1 to 3 settled the bubble and the envelope (their record is
+// QUESTION_CANDIDATES and TURN_CANDIDATES in the lib); round 4 drafts the
+// approval mark (APPROVAL_CANDIDATES). The page shows the three beside the
+// working ring where they meet: the task card, a counter row, and a card
+// swapping its mark in place, plus the project sidebar, where the consumers
+// keep one waiting count drawn with the bubble. The bubble's fit variant keeps
+// its own section until it is decided.
+//
+// question.html is self-contained, with the PNGs as data URIs, because it is
+// published as the review page exactly as written.
+// ---------------------------------------------------------------------------
+
+const DESK = GROUNDS[0];
+const PHONE = GROUNDS[1];
+const shipped = (id) => SET_MARKS.find((m) => m.id === id);
+const qMark = (c) => ({
+  id: "agent-question",
+  role: "has a question",
+  silhouette: "bubble",
+  state: "waiting",
+  tone: "attention",
+  ...question(c.id),
+  motion: null,
+  rest: REST_STATIC,
+});
+const aMark = (c) => ({
+  id: "agent-approval",
+  role: "needs your approval",
+  silhouette: c.id,
+  state: "waiting",
+  tone: "attention",
+  ...approval(c.id),
+  motion: null,
+  rest: REST_STATIC,
+});
+const WORKING = shipped("agent-working");
+const IDLE = shipped("agent-idle");
+const ASKS = shipped("agent-question");
+// The selected candidate renders as the SHIPPED mark rather than a rebuild of
+// it, so the page shows exactly what assets/ holds.
+const APPROVALS = APPROVAL_CANDIDATES.filter((c) => !c.retired).map((c) => ({ ...c, mark: c.selected ? shipped("agent-approval") : aMark(c) }));
+// Round 5 narrowed the question to the shield's definition, so the in-context
+// sections show the shields (the round-4 plain one as the baseline); the 64px
+// strip and the zoom keep every live candidate.
+const FOCUS = APPROVALS.filter((a) => ["shield", "shield-crest", "shield-crest-tall", "shield-crest-narrow"].includes(a.id));
+const Q_ZOOM_SIZES = [12, ...INDICATOR_SIZES];
+// Round 6: the agnostic idle mark for the counting surfaces.
+const AGGREGATES = AGGREGATE_CANDIDATES.filter((c) => !c.retired).map((c) => ({
+  ...c,
+  mark: { id: "agent-waiting", role: "needs you", silhouette: c.id, state: "waiting", tone: "attention", ...aggregate(c.id), motion: null, rest: REST_STATIC },
+}));
+// The three idle marks, then the agnostic candidates.
+const ZOOM_ROWS = [
+  { id: "agent-question", mark: ASKS },
+  { id: "agent-approval", mark: shipped("agent-approval") },
+  { id: "agent-idle", mark: IDLE },
+  ...AGGREGATES.map((a) => ({ id: a.id, mark: a.mark })),
+];
+
+// The x8 nearest-upscale sheet, one per surface. `color` is set as well as
+// `stroke` so a currentColor fill would resolve; `faithful` resolves the dash
+// into user units, because librsvg ignores pathLength and would otherwise paint
+// agent-working as a closed ring.
+const qZoom = async (g) => {
+  const rows = ZOOM_ROWS;
+  const CELL = Math.max(...Q_ZOOM_SIZES) * ZOOM;
+  const GAP = 16;
+  const PAD = 20;
+  const LABEL = 128;
+  const TOP = 56;
+  const ROW = CELL + 18;
+  const W = PAD * 2 + LABEL + Q_ZOOM_SIZES.length * CELL + (Q_ZOOM_SIZES.length - 1) * GAP;
+  const H = TOP + rows.length * ROW + PAD;
+  const colX = (j) => PAD + LABEL + j * (CELL + GAP);
+  const head =
+    `<text x="${PAD}" y="20" font-family="monospace" font-size="12" fill="${g.fg}">${g.label}: ${Q_ZOOM_SIZES.join("/")}px, nearest x${ZOOM}, amber ${g.attention}, working ${g.active}</text>` +
+    `<text x="${PAD}" y="36" font-family="monospace" font-size="10" fill="${g.soft}">rasterized by librsvg, not Chromium; the true-size bands on the page are the authority.</text>` +
+    Q_ZOOM_SIZES.map(
+      (s, j) => `<text x="${colX(j) + CELL / 2}" y="${TOP - 6}" text-anchor="middle" font-family="monospace" font-size="11" fill="${g.fg}">${s}px</text>`,
+    ).join("");
+  const labels = rows
+    .map((r, i) => `<text x="${PAD}" y="${TOP + i * ROW + CELL / 2 + 4}" font-family="monospace" font-size="12" fill="${g.fg}">${r.id}</text>`)
+    .join("");
+  const base = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${g.bg}"/>${head}${labels}</svg>`;
+  const composites = [];
+  for (const [i, r] of rows.entries()) {
+    for (const [j, s] of Q_ZOOM_SIZES.entries()) {
+      const tone = toneOf(g, r.mark);
+      const one = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${VIEW} ${VIEW}"><rect width="${VIEW}" height="${VIEW}" fill="${g.panel}"/><g fill="none" color="${tone}" stroke="${tone}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${stripInner(
+        faithful(r.mark, s),
+      )}</g></svg>`;
+      const tile = await sharp(Buffer.from(one)).png().resize(s * ZOOM, s * ZOOM, { kernel: "nearest" }).toBuffer();
+      composites.push({ input: tile, left: colX(j) + Math.round((CELL - s * ZOOM) / 2), top: TOP + i * ROW + Math.round((CELL - s * ZOOM) / 2) });
+    }
+  }
+  const png = await sharp(Buffer.from(base)).composite(composites).png().toBuffer();
+  await writeFile(join(OUT, `_question-zoom-${g.id}.png`), png);
+  return png;
+};
+
+const qZooms = [];
+for (const g of [DESK, PHONE]) qZooms.push({ g, png: await qZoom(g) });
+
+/** One mark, painted in a tone, at a true CSS pixel size. */
+const qInk = (color, mark, size, opts = {}) =>
+  `<span class="ink" style="color:${color}">${markSvg(mark, { size, ...opts })}</span>`;
+/** A ground's tokens as custom properties, so one stylesheet serves both surfaces. */
+const groundVars = (g) =>
+  `--t-bg:${g.bg};--t-panel:${g.panel};--t-fg:${g.fg};--t-soft:${g.soft};--t-attn:${g.attention}`;
+const qTile = (g, body, cls = "") =>
+  `<div class="tile ${cls}" style="${groundVars(g)}"><div class="tile-hd"><b>${g.label}</b><span>${g.id === "desktop" ? "--kng-attention" : "statusNeedsYou"} ${g.attention}</span></div>${body}</div>`;
+const still = (m) => (m.motion === "spin" ? {} : { resting: true });
+
+// The task card, one mark and no sibling. Desktop chrome as recorded at
+// taskCardMock above; the phone's from its TaskCard (a Row of the status icon at
+// 16, a bodyStrong title and a mono caption id).
+const qCard = (g, mark, title, id) =>
+  `<div class="card card--${g.id}"><div class="card-hd">${qInk(toneOf(g, mark), mark, CARD_SIZE, still(mark))}<span class="card-title">${esc(title)}</span><span class="card-id">#${id}</span></div></div>`;
+
+// Four cards a board might show at once: one per idle state, and one working.
+// `approval` is filled per candidate; today every idle state is the envelope.
+const CARD_SET = [
+  { title: "Add the store screenshots", id: 452, today: IDLE, mark: () => ASKS, state: "has a question" },
+  { title: "Run the database migration", id: 455, today: IDLE, mark: (a) => a, state: "needs your approval" },
+  { title: "Split the waiting state", id: 453, today: IDLE, mark: () => IDLE, state: "turn finished" },
+  { title: "Sync the branding package", id: 454, today: WORKING, mark: () => WORKING, state: "working" },
+];
+function qCardsSection() {
+  const half = (g, label, pickMark) =>
+    `<div class="half"><span class="lbl">${label}</span><div class="cards">${CARD_SET.map((c) => qCard(g, pickMark(c), c.title, c.id)).join("")}</div></div>`;
+  const legend = `<p class="legend">${CARD_SET.map((c) => `#${c.id} ${c.state}`).join(" / ")}</p>`;
+  return `<div class="pair">${[DESK, PHONE]
+    .map((g) =>
+      qTile(
+        g,
+        `<div class="halves">${half(g, "before", (c) => c.today)}${FOCUS.map((a) => half(g, a.selected ? "after" : `with ${a.id}`, (c) => c.mark(a.mark))).join("")}</div>${legend}`,
+      ),
+    )
+    .join("")}</div>`;
+}
+
+// The approval candidates at 64, each in the trio it would join: the bubble,
+// the candidate, the envelope.
+function qApprovalSection() {
+  const fig = (m, cap) => `<figure>${qInk(DESK.attention, m, 64)}<figcaption>${cap}</figcaption></figure>`;
+  return `<div class="dirs">${APPROVALS.map(
+    (a) => `<article class="dir">
+      <div class="dir-specimen" style="${groundVars(DESK)}">${fig(ASKS, "question")}${fig(a.mark, "approval")}${fig(IDLE, "turn ended")}</div>
+      <h3>${a.id}</h3>
+      <p>${esc(a.note)}.</p>
+      <p class="cost">To ship: ${esc(a.cost)}.</p>
+    </article>`,
+  ).join("")}</div>`;
+}
+
+// The desktop project sidebar, as the maintainer's own screenshot of it shows
+// (2026-10-29), rebuilt from the desktop's code rather than from the image:
+// ProjectListItem rows are py-2.5 px-3 (pl-7 inside a group), a 14px/500 name
+// that truncates, then a right-aligned cluster of SidebarActivityCounts (mark
+// 16, 4px, 11px semibold tabular digits, counts 8px apart) and the Command
+// Terminal indicator; the active row is bg-surface-hover with a 2px accent left
+// border and the full fg. GroupHeaders carry an uppercase name and a project
+// count badge, and NO activity counts. Colours are the desktop's `ember` theme
+// tokens (kangentic src/renderer/index.css), the theme in the screenshot.
+//
+// The screenshot is what corrected the earlier mock, which drew counts on the
+// group header and set the marks on a generic ground. What it shows that the
+// mock did not: the idle mark and the spinner rarely share a row; they share a
+// COLUMN, stacked one above the other down the right edge. So the replica keeps
+// the screenshot's rows, and adds one row (marked) where both appear at once.
+const EMBER = {
+  raised: "#2a2320",
+  hover: "#38302a",
+  edge: "#463e38",
+  fg: "#e6e2de",
+  muted: "#8e8c88",
+  faint: "#6e6c68",
+  accent: "#d49850",
+  attention: DESK.attention,
+  active: DESK.active,
+  rest: DESK.rest,
+};
+const SB_GROUPS = [
+  {
+    name: "Kangentic",
+    projects: [
+      { name: "kangentic", idle: 1 },
+      { name: "kangentic.com" },
+      { name: "kangentic-mobile" },
+      { name: "kangentic-relay" },
+      { name: "kangentic-branding", active: true, working: 1 },
+      { name: "Agent Testing" },
+    ],
+  },
+  {
+    name: "Troy Web",
+    count: 11,
+    projects: [
+      { name: "Troy-Web" },
+      { name: "AKWISE" },
+      { name: "troy-web-operations-dashboard", idle: 1, working: 2, added: true },
+      { name: "RBDMSWolf-Core" },
+    ],
+  },
+];
+const SB_CHEVRON = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9 L12 15 L18 9"/></svg>`;
+const sbCount = (color, mark, n, px) =>
+  `<span class="sb-count" style="color:${color}">${markSvg(mark, { size: px, ...still(mark) })}<b style="height:${px}px">${n}</b></span>`;
+
+/** One replica sidebar, its idle counts drawn with `idleMark`. */
+function sidebarReplica(idleMark) {
+  const e = EMBER;
+  const row = (p) => {
+    const counts =
+      (p.idle ? sbCount(e.attention, idleMark, p.idle, 16) : "") + (p.working ? sbCount(e.active, WORKING, p.working, 16) : "");
+    return `<div class="rp-row${p.active ? " rp-row--active" : ""}"><span class="rp-name">${p.name}</span>${
+      counts ? `<span class="sb-cluster">${counts}</span>` : ""
+    }${p.active ? `<span class="rp-more" aria-hidden="true">&middot;&middot;&middot;</span>` : ""}${p.added ? `<span class="rp-added" title="added to show both on one row">+</span>` : ""}</div>`;
+  };
+  const group = (gr) =>
+    `<div class="rp-group">${SB_CHEVRON}<span class="rp-gname">${gr.name}</span><span class="rp-badge">${gr.count ?? gr.projects.length}</span></div>${gr.projects.map(row).join("")}`;
+  return `<div class="rp" style="--rp-raised:${e.raised};--rp-hover:${e.hover};--rp-edge:${e.edge};--rp-fg:${e.fg};--rp-muted:${e.muted};--rp-faint:${e.faint};--rp-accent:${e.accent}">
+    <div class="rp-head"><span>Projects</span><span class="rp-badge">17</span></div>
+    ${SB_GROUPS.map(group).join("")}
+  </div>`;
+}
+
+// One replica per candidate, today's envelope first, each with the same pair
+// magnified underneath, still spinning.
+function qSpinnerSection() {
+  const rows = [{ id: "today: envelope", mark: IDLE }, ...AGGREGATES.map((a) => ({ id: a.id, mark: a.mark }))];
+  return `<div class="rp-grid">${rows
+    .map(
+      (r) => `<figure class="rp-fig"><figcaption>${r.id}</figcaption>${sidebarReplica(r.mark)}
+        <span class="spin-big">${sbCount(EMBER.attention, r.mark, 2, 40)}${sbCount(EMBER.active, WORKING, 1, 40)}</span></figure>`,
+    )
+    .join("")}</div>`;
+}
+
+
+// All four agent marks side by side at every indicator size, once per approval
+// candidate, on both surfaces. No consumer puts all four in one row (the
+// sidebar folds approvals into the bubble's count), so this is the strictest
+// adjacency there is: three ambers, told apart by outline alone.
+function qCountersSection() {
+  const sizes = [16, 15, 14, 12];
+  const row = (g, s, a) =>
+    `<span class="ctrs">${[
+      [ASKS, 1],
+      [a, 1],
+      [IDLE, 2],
+      [WORKING, 3],
+    ]
+      .map(([m, n]) => `<span class="ctr" style="color:${toneOf(g, m)}">${markSvg(m, { size: s, ...still(m) })}<b>${n}</b></span>`)
+      .join("")}</span>`;
+  return `<div class="pair">${[DESK, PHONE]
+    .map((g) =>
+      qTile(
+        g,
+        `<div class="scroll"><table class="adj"><thead><tr><th></th>${sizes.map((s) => `<th>${s}px</th>`).join("")}</tr></thead><tbody>${FOCUS.map(
+          (a) => `<tr><th>${a.id}</th>${sizes.map((s) => `<td>${row(g, s, a.mark)}</td>`).join("")}</tr>`,
+        ).join("")}</tbody></table></div>`,
+      ),
+    )
+    .join("")}</div>`;
+}
+
+// One slot flipping its mark in place, the way a task card does: an agent
+// works, stops for you, and finishes. One row for the question, one per
+// approval candidate.
+function qSwapSection() {
+  const rows = [{ id: "question", mark: ASKS }, ...FOCUS.map((a) => ({ id: a.id, mark: a.mark }))];
+  const cell = (g, r) => {
+    const seq = [WORKING, r.mark, IDLE];
+    return `<div class="swap-cell">
+      <span class="lbl">${r.id}</span>
+      <span class="frames">${seq.map((m) => qInk(toneOf(g, m), m, 16, still(m))).join("")}</span>
+      <span class="swap" aria-label="animated swap">${seq.map((m) => `<span>${qInk(toneOf(g, m), m, 16, still(m))}</span>`).join("")}</span>
+      <span class="swap swap--big">${seq.map((m) => `<span>${qInk(toneOf(g, m), m, 40, still(m))}</span>`).join("")}</span>
+    </div>`;
+  };
+  return `<div class="pair">${[DESK, PHONE].map((g) => qTile(g, `<div class="stack">${rows.map((r) => cell(g, r)).join("")}</div>`)).join("")}</div>`;
+}
+
+function qLadderSection() {
+  const g = DESK;
+  const sizes = [12, 14, 15, 16, 20, 24];
+  return qTile(
+    g,
+    `<div class="scroll"><table class="ladder"><thead><tr><th></th>${sizes
+      .map((s) => `<th>${s}px<span>${SIZE_SOURCE[s] ?? ""}</span></th>`)
+      .join("")}</tr></thead><tbody>${ZOOM_ROWS.filter((r) => r.id !== "agent-working")
+      .map((r) => `<tr><th>${r.id}</th>${sizes.map((s) => `<td>${qInk(g.attention, r.mark, s, { resting: true })}</td>`).join("")}</tr>`)
+      .join("")}</tbody></table></div>`,
+  );
+}
+
+const qPage = `<title>Agent question mark</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column of sections; each specimen is a tile painted in a
+   consumer surface's real tokens, so tiles stay dark in either page theme. */
+:root {
+  --bg: #fdfbf7;
+  --surface: #f6f1e8;
+  --fg: #24201b;
+  --soft: #6e6659;
+  --rule: rgba(36, 32, 27, 0.16);
+  --accent: #c0562f;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #1d1915; --surface: #262019; --fg: #f3ede3; --soft: #b5a892; --rule: rgba(243, 237, 227, 0.14); --accent: #e07a52; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #1d1915; --surface: #262019; --fg: #f3ede3; --soft: #b5a892; --rule: rgba(243, 237, 227, 0.14); --accent: #e07a52; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 48px; }
+header { display: grid; gap: 12px; max-width: 70ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 24px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lede { color: var(--soft); }
+.lede b { color: var(--fg); }
+section { display: grid; gap: 16px; }
+section > p { max-width: 70ch; color: var(--soft); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; }
+.pair--sb { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.pair--sb3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.rp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
+.rp-fig { margin: 0; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.rp-fig > figcaption { font-family: var(--mono); font-size: 12px; color: var(--soft); }
+.rp { background: var(--rp-raised); color: var(--rp-muted); border-radius: 8px; overflow: hidden; font-size: 14px; max-width: 400px; }
+.rp-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rp-faint); }
+.rp-group { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--rp-edge); border-left: 2px solid transparent; background: color-mix(in srgb, var(--rp-hover) 20%, transparent); color: var(--rp-muted); }
+.rp-gname { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.rp-badge { font-size: 11px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--rp-muted) 18%, transparent); color: var(--rp-muted); }
+.rp-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px 10px 28px; border-left: 2px solid transparent; }
+.rp-row--active { background: var(--rp-hover); border-left-color: var(--rp-accent); color: var(--rp-fg); }
+.rp-name { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-more { color: var(--rp-faint); letter-spacing: 1px; }
+.rp-added { font-family: var(--mono); font-size: 10px; color: var(--rp-faint); }
+.spin-row { display: grid; grid-template-columns: 120px minmax(0, 320px) auto; align-items: center; gap: 20px; }
+@media (max-width: 760px) { .spin-row { grid-template-columns: minmax(0, 1fr); gap: 8px; } }
+.sb--snip { padding-block: 0; overflow: hidden; }
+.sb--snip .sb-group { border-top: 0; }
+.spin-big { display: inline-flex; align-items: center; gap: 28px; justify-self: start; background: var(--t-panel); padding: 12px 18px; border-radius: 8px; }
+.spin-big .sb-count { font-size: 30px; gap: 10px; }
+.tile { background: var(--t-bg); color: var(--t-fg); border-radius: 8px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.tile-hd { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--t-soft); }
+.tile-hd b { color: var(--t-fg); font-weight: 500; }
+.ink { display: inline-flex; flex: none; }
+.ink svg { display: block; }
+.halves { display: grid; gap: 14px; }
+.half { display: grid; gap: 8px; }
+.half + .half { padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--t-soft) 25%, transparent); }
+.cards { display: grid; gap: 8px; }
+.card { background: var(--t-panel); border: 1px solid color-mix(in srgb, var(--t-soft) 40%, transparent); border-radius: 6px; padding: 10px; min-width: 0; }
+.card--mobile { border-radius: 10px; padding: 12px; border-color: #332b21; }
+.card-hd { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.card--mobile .card-hd { gap: 8px; }
+.card-title { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card--mobile .card-title { font-size: 15px; font-weight: 600; }
+.card-id { font-family: var(--mono); font-size: 12px; color: var(--t-soft); }
+.lbl { font-family: var(--mono); font-size: 12px; color: var(--t-soft); }
+.legend { font-family: var(--mono); font-size: 11px; color: var(--t-soft); }
+.sb-fig { margin: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.sb-fig > figcaption { font-family: var(--mono); font-size: 12px; color: var(--soft); }
+.sb-fig > .legend { color: var(--soft); }
+.sb { background: var(--t-bg); color: var(--t-soft); border-radius: 8px; padding-block: 8px; width: 100%; max-width: 320px; font-size: 14px; }
+.sb-head { padding: 4px 12px 8px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+.sb-group { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid color-mix(in srgb, var(--t-soft) 20%, transparent); background: color-mix(in srgb, var(--t-panel) 50%, transparent); color: var(--t-fg); }
+.sb-gname { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-badge { font-size: 11px; padding: 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--t-soft) 20%, transparent); }
+.sb-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-left: 2px solid transparent; }
+.sb-row--grouped { padding-left: 28px; }
+.sb-row--active { background: var(--t-panel); border-left-color: var(--t-soft); color: var(--t-fg); }
+.sb-name { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-cluster { display: flex; align-items: center; gap: 8px; flex: none; }
+.sb-count { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; flex: none; }
+.sb-count svg { display: block; flex: none; }
+.sb-count b { display: inline-flex; align-items: center; justify-content: center; min-width: 1ch; font-weight: 600; }
+.ctrs { display: inline-flex; align-items: center; gap: 8px; }
+.ctr { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ctr svg { display: block; }
+.ctr b { font-weight: 600; }
+.adj { border-collapse: collapse; }
+.adj th, .adj td { padding: 8px 16px 8px 0; text-align: left; font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--t-soft); vertical-align: middle; }
+.adj td { color: inherit; }
+.scroll { overflow-x: auto; }
+.ladder { border-collapse: collapse; }
+.ladder th, .ladder td { padding: 8px 12px 8px 0; text-align: left; font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--t-soft); vertical-align: middle; }
+.ladder td { min-width: 44px; }
+.ladder th span { display: block; font-size: 10px; opacity: 0.8; }
+.swap-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
+.frames { display: inline-flex; gap: 10px; }
+.swap { position: relative; display: inline-flex; }
+.swap > span { position: absolute; inset: 0; opacity: 0; animation: q-swap 4.2s steps(1, end) infinite; }
+.swap > span:first-child { position: relative; }
+.swap > span:nth-child(2) { animation-delay: -2.8s; }
+.swap > span:nth-child(3) { animation-delay: -1.4s; }
+@keyframes q-swap { 0% { opacity: 1; } 33.333% { opacity: 0; } 100% { opacity: 0; } }
+.dirs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.dir { display: grid; gap: 8px; align-content: start; }
+.dir h3 { font-family: var(--mono); font-size: 14px; font-weight: 500; margin: 0; }
+.dir p { font-size: 14px; color: var(--soft); }
+.dir .cost { font-family: var(--mono); font-size: 12px; color: var(--fg); }
+.dir-specimen { background: var(--t-panel); border-radius: 8px; padding: 18px 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+.dir-specimen figure { margin: 0; display: grid; justify-items: center; gap: 6px; }
+.dir-specimen figcaption { font-family: var(--mono); font-size: 11px; color: var(--t-soft); }
+.stack { display: grid; gap: 14px; }
+.swap-cell .lbl { min-width: 72px; }
+.fit-spec { background: var(--t-panel); border-radius: 8px; padding: 16px; display: flex; justify-content: center; }
+.fit-big { display: inline-flex; gap: 24px; }
+.zoom { display: grid; gap: 16px; }
+.zoom img { display: block; max-width: 100%; height: auto; border-radius: 8px; }
+.zoom figure { margin: 0; overflow-x: auto; }
+footer { font-family: var(--mono); font-size: 12px; color: var(--soft); }
+@media (prefers-reduced-motion: reduce) {
+  .swap > span { animation: none; }
+  .swap > span:first-child { opacity: 1; }
+}
+${motionCss()}
+</style>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">activity marks / GitHub #452</span>
+    <h1>Agent question mark</h1>
+    <p class="lede">An idle agent is in one of three states, and today all three show the same amber envelope: it <b>has a question</b>, it <b>needs your approval</b> (a tool approval or a plan), or its <b>turn ended</b>. After five rounds each has its own mark. The <b>speech bubble</b> takes the question, a <b>crested shield</b> takes the approval, and the <b>envelope</b> keeps the finished turn it already shows.</p>
+    <p class="lede">All three are amber and static, and the outline alone tells them apart at 12px. The shield follows lucide's shield proportions (crested top, straight sides, pointed base), redrawn in this set's own arcs. It is 18 wide like every indicator and 20 tall, overshooting the slot by a unit at the peak and the point, as a typeface does for a pointed letter.</p>
+    <p class="lede">Those three are for surfaces that show one agent. The surfaces that <b>count</b> agents, the desktop sidebar and the Agent Monitor, have room for one idle count, and they keep drawing it with the <b>envelope</b>, covering all three kinds, as they do today. Mail means "there is something for you", which is what that count says. A bell, an inbox tray, the closed ring and an amber dot were drawn for that job and set aside.</p>
+  </header>
+
+  <section>
+    <h2>The trio</h2>
+    <p>The three idle marks at 64px in the desktop amber: question, approval, turn ended. Every candidate that lost is recorded in the lib with its reason.</p>
+    ${qApprovalSection()}
+  </section>
+
+  <section>
+    <h2>Task cards, before and after</h2>
+    <p>Four cards a board might show at once, at the card's real 16px. Before, #452, #455 and #453 all show the same envelope, though only #453 has nothing pending.</p>
+    ${qCardsSection()}
+  </section>
+
+  <section>
+    <h2>All four side by side</h2>
+    <p>Question, approval, turn ended and working at every size the indicators render, on both surfaces. No consumer puts all four in one row, so this is the strictest test: three ambers, told apart by outline alone.</p>
+    ${qCountersSection()}
+  </section>
+
+  <section>
+    <h2>Swapping in place</h2>
+    <p>A card flips its mark in the same spot: working, then stopped for you, then finished. One row for a question and one for an approval. The frames are static; the next two cells cycle at 16 and 40.</p>
+    ${qSwapSection()}
+  </section>
+
+  <section>
+    <h2>The sidebar count, beside the spinner</h2>
+    <p>The desktop sidebar from the maintainer's screenshot, rebuilt from the desktop's code in its ember theme. The idle count keeps the envelope, so this is the sidebar as it is today, and it is unchanged by this release. The envelope and the spinner mostly share a <b>column</b> down the right edge. One added row, troy-web-operations-dashboard (marked +), puts both on one row. Under the sidebar is the pair at 40px, spinning as in the app.</p>
+    ${qSpinnerSection()}
+  </section>
+
+  <section>
+    <h2>Size ladder</h2>
+    <p>Each drawing alone at every size the desktop renders, from the 12px tooltip to the natural 24.</p>
+    ${qLadderSection()}
+  </section>
+
+  <section>
+    <h2>Pixel truth</h2>
+    <p>Rendered at 12 to 16px and upscaled eight times, nearest neighbour. These come from librsvg, so the true-size bands above are the authority on how Chromium paints them.</p>
+    <div class="zoom">${qZooms
+      .map(({ g, png }) => `<figure><img src="data:image/png;base64,${png.toString("base64")}" alt="${g.label} pixel-truth zoom of the idle marks and approval candidates"></figure>`)
+      .join("")}</div>
+  </section>
+
+  <footer>Generated by scripts/gen-activity.mjs from scripts/lib/activity.mjs. Every candidate from rounds 1 to 4 is recorded there with its reason (QUESTION_CANDIDATES, TURN_CANDIDATES, APPROVAL_CANDIDATES).</footer>
+</div>
+`;
+await writeFile(join(OUT, "question.html"), qPage);
+console.log(`Wrote the question round (${APPROVALS.length} approval candidates) -> exploration/activity/question.html + _question-zoom-*.png`);

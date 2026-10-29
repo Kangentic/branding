@@ -23,7 +23,7 @@ scripts/lib/sprite.mjs    THE sprite engine: token palette, canonical Overseer
                           (Both libs: the only place their geometry is declared.)
 scripts/lib/activity.mjs  THE activity icon geometry: one 18-unit layout slot on
                           a 24 grid with each form sized optically inside it,
-                          stroke 2, currentColor; the nine shipped marks, the
+                          stroke 2, currentColor; the eleven shipped marks, the
                           retired candidates and envelope boxes with their dated
                           reasons, the march/spin motion contract, and
                           strokeCoverage(), the pixel-hinting scorer every

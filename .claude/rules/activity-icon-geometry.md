@@ -44,6 +44,24 @@ is owned here to prevent.
   - So height is per-form. The envelope is **18 x 16**: an envelope's aspect
     is its identity, and it also needs a silhouette that is not the terminal
     chip's exact rect. Boxes are declared in `ENVELOPE_CANDIDATES`.
+  - `agent-question` (added 2026-10-29) is a speech bubble: an **18 x 14** body
+    with a tail that brings the ink to y 21, so its outline is one `<path>`
+    rather than a rect. It shares `agent-idle`'s amber, so its silhouette alone
+    has to tell the two apart, and it has to do that at the 12px sidebar size.
+    That is why it carries no interior: a "?" inside a frame was measured at
+    about 5 device px tall at 12px and blurred. The rounds and their reasons
+    are in `QUESTION_CANDIDATES`.
+  - `agent-approval` (added 2026-10-29, the same release) is a crested shield,
+    **18 x 20**: the third amber idle mark, told apart from the bubble and the
+    envelope by its pointed base. It is the one indicator TALLER than the 18
+    slot, by a unit at the peak and at the point (y 2 to 22). That is a
+    recorded overshoot, the correction a typeface makes for a pointed letter,
+    and it was chosen at maintainer sign-off over an 18 x 18 version, whose
+    square slot left short sides and a soft point. Width stays on the 3..21
+    keyline, and the gate checks width and the lattice, not height. The
+    construction follows lucide's `shield` proportions (see
+    `THIRD-PARTY-NOTICES.md`) in this set's own circular arcs; no path data is
+    copied. The rounds and their reasons are in `APPROVAL_CANDIDATES`.
   - Corrected 2026-07-31. This read **18 x 14.4** from 2026-07-29 until the
     pixel-hinting round replaced that box; see the hinting bullet below for
     what moved it and what the move cost.
@@ -207,6 +225,40 @@ is owned here to prevent.
   `outlineXSpan` already has, so flaps, prompts and control interiors are
   unchecked. See the hinting bullet for why that is correct for the first two
   and deliberate for the third.
+- **Path outlines are bounded exactly or not at all.** Both checks above read
+  rect, circle and polygon outlines, and as of 2026-10-29 `<path>` outlines
+  too, through `pathBounds()`. It accepts absolute M, L, H, V and Z, bounded by
+  their endpoints, and CIRCULAR arcs, which `arcExtrema()` bounds from their
+  centre (any compass point of the circle the sweep passes through counts as
+  an extremum). A cubic or an ellipse can bulge past its endpoints in ways it
+  does not model, so it returns null, and the mark is reported as unverifiable
+  rather than measured wrong. The first version accepted quarter-circle
+  corners only; the shield's sides, which are wider arcs, are what widened it.
+  Verified to bite 2026-10-29 by moving `BUBBLE_BODY_OPEN` to y0 3.5,
+  regenerating so byte equality passed, then running the gate:
+
+  ```
+  ACTIVITY  FAIL
+      - agent-question: outline extrema x 3..21 y 3.5..21 are off the integer pixel lattice (3.5)
+  ```
+
+  The rejection branch was verified the same day by pointing
+  `QUESTION_DEFAULT` at the retired `bell`, whose flares are cubics:
+
+  ```
+  ACTIVITY  FAIL
+      - agent-question: outline shape not recognised, keyline unverifiable
+      - agent-question: outline shape not recognised, pixel lattice unverifiable
+  ```
+
+  And the arc branch, by turning the bubble's top-right corner into a
+  270-degree arc whose endpoints are unchanged, so only a centre-based bound
+  can see the bulge:
+
+  ```
+  ACTIVITY  FAIL
+      - agent-question: outline spans x 3..23, off its keyline 3..21 (14-16px label in a counter row)
+  ```
 - **BOTH keyline spans are written out, NOT derived.** The control span was
   always a literal, for the reason below. The INDICATOR span was `[INK_MIN,
   INK_MAX]` until 2026-07-31, which was the same trap one step from biting.
