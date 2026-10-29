@@ -2,6 +2,44 @@
 
 <!-- releases -->
 
+## [v2.12.0] - 2026-10-29
+
+### Features
+- Add the `agent-question` and `agent-approval` activity marks (a05bab0),
+  taking the set from nine marks to eleven. An idle agent is in one of three
+  states, and all three drew the same amber envelope (GitHub #452). Each now
+  has its own mark, told apart by outline alone so it holds at the 12px
+  sidebar size, all static, `currentColor`, in the attention amber:
+  - `agent-question`: an empty speech bubble. A pick-an-option question is
+    waiting. An agent wait whose kind is not reported also takes the bubble.
+  - `agent-approval`: a crested shield, 18 wide and 20 tall. A tool approval
+    prompt, or a plan waiting to be approved. It is the one indicator taller
+    than the 18 slot, by a unit at the peak and the point, a recorded
+    overshoot. Its proportions follow lucide's `shield`, redrawn in this set's
+    own arcs with no path data copied (`THIRD-PARTY-NOTICES.md`).
+  - `agent-idle` keeps its envelope geometry. Its `activity.json` `role` moves
+    from "needs you" to "turn finished; the idle count".
+  - A surface that counts agents (a sidebar row, a monitor summary) keeps ONE
+    idle count drawn with `agent-idle`, covering all three kinds. A split count
+    does not fit the row, and a bubble-only count would leave approvals out, so
+    no counting mark was added.
+  - Consumers adopt the new names themselves: add `agent-question` and
+    `agent-approval` to the desktop's `ACTIVITY_MARK_NAMES` and the phone's
+    `ACTIVITY_MARKS`. Each is a single stroked `<path>`. Until a consumer
+    adopts them, `agent-idle` still covers all three states.
+  - The `ACTIVITY` gate now bounds `<path>` outlines exactly (absolute M, L, H,
+    V, Z and circular arcs, the latter from their centre) and reports anything
+    else as unverifiable. Verified to bite on a mark off the pixel lattice, an
+    outline with curves it cannot measure, and a corner arc bulging past the
+    keyline.
+  - Every candidate from six review rounds stays declared in
+    `lib/activity.mjs` with its dated reason.
+
+### Other
+- Forward `CONTEXT7_API_KEY` to the context7 HTTP endpoint (c87af84)
+- Serve context7 over HTTP instead of npx (766ba25)
+- Add a Release column after Merge that runs `/release` (08b7993)
+
 ## [v2.11.0] - 2026-10-12
 
 ### Features
