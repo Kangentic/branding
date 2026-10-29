@@ -1,7 +1,7 @@
 # Third-party notices
 
-`@kangentic/branding` ships no third-party code. This file records the one place
-a third party's work informed a shipped asset.
+`@kangentic/branding` ships no third-party code. This file records the places a
+third party's work informed a shipped asset.
 
 ## lucide
 
@@ -19,6 +19,25 @@ after finding that SF Symbols ships no kanban glyph.
 precedent the activity set already set with lucide Mail's flap ratios: the
 proportions are lucide's and the ink box is ours. No lucide source file, path
 string, or build artifact is copied into or distributed by this package.
+
+**Where, second:** `scripts/lib/activity.mjs`, the `agent-approval` shield
+(`assets/activity/agent-approval.svg`), added 2026-10-29.
+
+**What was used:** the proportions of lucide's `shield`, chosen at maintainer
+review as the bar for the mark's definition: a top that rises from each corner
+to a central peak, small corner radii, straight sides, and a curved base
+meeting at a point.
+
+**How it was used:** the same way as `kanban` above. The shape is rebuilt from
+named constants (`SHIELD`, `R_SHIELD`, the `shield-crest-tall` candidate) as
+circular arcs on this set's own grid, 18 wide and 20 tall where lucide's is 16
+by about 20. No lucide path string or file is copied or distributed.
+
+Feather, whose icons lucide inherited, also ships a `shield`, so lucide's may
+be one of the Feather-derived icons under MIT. That was not verified when this
+entry was written (2026-10-29). It would matter only if path data were ever
+vendored, and nothing is, so the ISC notice below is reproduced as a courtesy,
+matching the `kanban` entry.
 
 lucide carries two licences: ISC for the project, and MIT for the 158 icons it
 inherited from Feather. `square-kanban` is NOT one of the Feather-derived

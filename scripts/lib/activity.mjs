@@ -18,7 +18,8 @@
 // what ships today for comparison.
 //
 // The set SHIPS. Direction d1 was picked from exploration/activity/compare.html
-// and promoted, and nine marks live in assets/activity/ today. The `draft: true`
+// and promoted, and eleven marks live in assets/activity/ today (nine until
+// agent-question and agent-approval joined on 2026-10-29). The `draft: true`
 // entries below are the directions and envelope boxes that LOST, kept with their
 // dated reasons rather than deleted, per .claude/rules/activity-icon-geometry.md,
 // so a later change re-argues them from the record instead of from scratch.
@@ -986,6 +987,632 @@ export const chip = ({ plus = false, blink = false } = {}) => {
   };
 };
 
+// ---------------------------------------------------------------------------
+// agent-question, for GitHub #452. SELECTED 2026-10-29 at maintainer
+// sign-off: `bubble-open`, an empty speech bubble, as drawn. The section is
+// still called "the question mark" because the round started there. The
+// maintainer chose arrangement A (the bubble asks, the envelope keeps the
+// finished turn; see round 3 below), then judged the pair, and later the trio
+// with agent-approval, in context before the bubble was promoted.
+//
+// Corrected 2026-10-29. An earlier edit of this header recorded bubble-open as
+// SELECTED, reading a stated preference as sign-off. The maintainer had not
+// signed off, and had asked to compare the inverse arrangement first.
+//
+// The desktop app and the phone paint `agent-idle` for two states that need to
+// look different: an agent whose turn FINISHED, and an agent BLOCKED ON YOU (a
+// pick-an-option prompt, or a tool approval). `agent-question` is the second.
+// Both take the attention tone, so in one amber at 16px SHAPE is the only
+// channel between them. Every candidate below is judged on that first.
+//
+// Round 1: four directions, one idea each. The circle and the square were asked
+// for by name; the bubble and the bare glyph are proposals.
+//
+// Round 2, opened the same day on the maintainer's finding from the round-1
+// page: a "?" INSIDE a frame does not survive the sidebar. On the zoom sheet the
+// framed glyph is about 5 device px tall at 12px with a 1px stroke, and reads as
+// a blob, which leaves the circle and the square distinguishable from their
+// neighbours by nothing at all. What survives that size is SILHOUETTE and FILL,
+// which d4b's record already measured ("present versus absent survives any
+// size"). So round 2 drops the "?" and carries the state in the outline alone.
+//
+// Arrangement A, the round-2 lead: the bubble asks, the envelope keeps the
+// finished turn. The bubble is the one silhouette in the field that is both
+// legible at the 12px sidebar size (the tail is a feature no other mark has,
+// so nothing depends on an interior) and in the same stroked vocabulary and
+// weight as the rest of the set. Its case for the envelope staying put: both
+// are messages, a delivered one and a conversation waiting on your reply.
+//
+// Round 3, arrangement B, opened at the maintainer's request the same day: the
+// ENVELOPE asks, and a new mark ends the turn. The argument for it is the
+// maintainer's, and it is about meaning: mail says "there is a message for
+// you", which is what a question IS, and it does not say "the turn ended".
+// That is a real counter to the 2026-07-28 record, which chose the envelope for
+// "finished, and there is something here for you"; a blocking question is the
+// sharper case of "something here for you". TURN_CANDIDATES below are B's
+// candidates for the finished turn.
+//
+// Either way, `agent-idle`'s manifest `role` stops reading "needs you", which
+// would describe both marks.
+//
+// A WON, chosen by the maintainer 2026-10-29 from the round-3 page, with the
+// mapping argued like this: of all the drawings, the bubble and the envelope
+// are the pair that read at both 12px and large AND belong to one family (both
+// are messages, so together they say "idle, and waiting on you"). Between the
+// two, the bubble carries the reply that a question needs, and the envelope
+// keeps a known icon in the app doing what it already does, with the bubble
+// added alongside it rather than replacing it.
+//
+// The "?" itself is one drawing at two sizes: a 3/4 bowl, a curve into a short
+// vertical stem, and a dot. The dot is a FILLED rect rounded into a disc, the
+// element the stop control's square already ships as, because it is the one
+// filled shape every consumer draws the same way. Three other dots were tried
+// or ruled out on 2026-10-29:
+//   - a zero-length round-capped subpath renders as a dot in some renderers and
+//     as nothing in others;
+//   - the lib's filled `disc()` reaches the phone as a stroked ring, because
+//     kangentic-mobile's renderer honours `fill` on a rect only;
+//   - a stroked circle with a radius under the stroke's half-width, which should
+//     paint a solid disc, renders with a visible HOLE in librsvg (seen on the
+//     first draft render at 120px), so it is not one geometry everywhere either.
+// ---------------------------------------------------------------------------
+
+// Where the bowl's arc stops and the neck takes over, in degrees clockwise from
+// 3 o'clock. 30 leaves the bowl visibly open on the lower right, which is what
+// separates a "?" from a "2" or a reversed "c" at 12px.
+export const QMARK_ARC_END_DEG = 30;
+// How far the neck's two control points pull, as a fraction of the distance
+// they span. 0.5 is a plain S; higher kinks it.
+export const QMARK_TENSION = 0.5;
+
+// The two glyph sizes, in viewBox units. `top` is the bowl's top CENTRELINE, so
+// the ink starts one unit higher; `dotR` is the painted disc's radius. Framed:
+// 11 units of ink (6.5 to 17.5), centred on 12, leaving 1.5 units to the
+// envelope box at top and bottom. Bare: the full 18-unit slot, ink 3 to 21.
+export const QMARK_FRAMED = { top: 7.5, r: 2.25, neck: 12, stemEnd: 12.75, dotY: 16.25, dotR: 1.25 };
+export const QMARK_BARE = { top: 4, r: 4, neck: 13, stemEnd: 15, dotY: 19.5, dotR: 1.5 };
+
+// The speech bubble's body and tail. Body 18 x 15 on the indicator slot, corners
+// R_ENVELOPE so it reads as the envelope's sibling, tail a 3 x 3 notch at the
+// lower left that brings the ink to y 21. Every extremum is an integer.
+export const BUBBLE_BODY = { y0: 3, y1: 18 };
+export const BUBBLE_TAIL = { x: 8, w: 3, tip: 21 };
+// The bubble's body is centred on 10.5, not 12, so its "?" rides 1.5 higher.
+export const QMARK_BUBBLE = { ...QMARK_FRAMED, top: 6, neck: 10.5, stemEnd: 11.25, dotY: 14.75 };
+
+// Round 2's bubble: no interior to make room for, so the body gives a unit back
+// to the TAIL, the one feature that separates a bubble from the envelope's box
+// once the sizes get small. Tail 3 wide by 4 deep. That proportion is chosen,
+// not incidental: the tail's inscribed radius is (3 + 4 - 5) / 2 = 1, exactly
+// the stroke's half-width, so a stroked tail is SOLID with no pinhole, which is
+// what lets the solid bubble fill its tail without a filled path.
+export const BUBBLE_BODY_OPEN = { y0: 3, y1: 17 };
+export const BUBBLE_TAIL_OPEN = { x: 8, w: 3, tip: 21 };
+
+// The bell: a dome of radius 6 whose top lands on y 4, flared sides meeting a
+// rim that spans the full 3..21 keyline at y 16, and a clapper whose lowest
+// point is y 20, so the ink fills the 18 slot exactly.
+export const BELL = { rim: 16, domeR: 6, domeY: 10, clapper: { y: 18, r: 2 } };
+
+export const QUESTION_CANDIDATES = [
+  {
+    id: "circle",
+    round: 1,
+    draft: true,
+    retired: "2026-10-29: ruled out at review after round 1. The \"?\" is its only difference from agent-working's ring, and at the 12px sidebar size a framed \"?\" is about 5 device px tall and blurs",
+    frame: "ring",
+    glyph: QMARK_FRAMED,
+    note: "the ring at r=9 with a \"?\" inside: the shape everyone already reads as a question. It is also agent-working's exact silhouette, closed instead of dashed, and the controls' ring-plus-centred-glyph vocabulary, which retired d4b and d7",
+    cost: "no gate change: a circle outline on the 3..21 keyline",
+  },
+  {
+    id: "square",
+    round: 1,
+    draft: true,
+    retired: "2026-10-29: ruled out at review after round 1, for the circle's reason. Its outline is the envelope's own, so once the \"?\" blurs at 12px it is indistinguishable from agent-idle",
+    frame: "envelope-box",
+    glyph: QMARK_FRAMED,
+    note: "the envelope's own 18 x 16 box with a \"?\" where the flap was. A sibling of agent-idle by construction, and different from it by interior alone. A framed glyph is also the terminal chip's vocabulary, which retired d2b",
+    cost: "no gate change: the envelope's own rect, y 4 / 20",
+  },
+  {
+    id: "bubble",
+    round: 1,
+    draft: true,
+    retired: "2026-10-29: superseded by bubble-open. Its silhouette was right and its \"?\" was the most cramped of the three framed ones; round 2 kept the outline, dropped the glyph, and gave the space back to the tail",
+    frame: "bubble",
+    glyph: QMARK_BUBBLE,
+    note: "a speech bubble with a \"?\": the agent is asking you something. Same width, corners and family as the envelope (both are messages), and the tail gives it a silhouette no other mark has",
+    cost: "gate change: the keyline and lattice checks learn <path> outlines",
+  },
+  {
+    id: "glyph",
+    round: 1,
+    draft: true,
+    retired: "2026-10-29: removed from the options at review by the maintainer, after round 1",
+    frame: null,
+    glyph: QMARK_BARE,
+    note: "the \"?\" alone, filling the slot's height. The most literal reading, and the only candidate that does not fill the 18 width, so promoting it means amending the indicator keyline rule and its gate",
+    cost: "rule and gate change: it spans x 8..16, so the indicator keyline needs an exemption",
+  },
+  {
+    id: "bubble-open",
+    round: 2,
+    selected: "2026-10-29",
+    frame: "bubble",
+    body: BUBBLE_BODY_OPEN,
+    tail: BUBBLE_TAIL_OPEN,
+    glyph: null,
+    note: "the speech bubble with nothing inside: the outline alone says the agent is talking to you. Nothing to blur at 12px, and the tail is the one feature no other mark has",
+    cost: "gate change: the keyline and lattice checks learn <path> outlines",
+  },
+  {
+    id: "bubble-solid",
+    round: 2,
+    draft: true,
+    retired: "2026-10-29: ruled out at review by the maintainer as too loud. The set has no solid symbol of that weight, so it reads as a different family rather than as the heaviest member of this one",
+    frame: "bubble",
+    body: BUBBLE_BODY_OPEN,
+    tail: BUBBLE_TAIL_OPEN,
+    glyph: null,
+    solid: true,
+    note: "the same bubble, filled. Fill is the channel that survives the smallest sizes, and it makes waiting-on-you the heaviest mark in the row, which matches it being the most urgent state. The only solid indicator in the set",
+    cost: "gate change as bubble-open. The fill is a rect plus the stroked tail, the vocabulary the stop square already ships on the phone",
+  },
+  {
+    id: "bell",
+    round: 2,
+    draft: true,
+    retired: "2026-10-29: lost to bubble-open at review. Legible at 12px, but mail and a bell are both \"notification\", so which one means finished and which means waiting would have to be learned",
+    frame: "bell",
+    glyph: null,
+    note: "a bell: an attention silhouette unlike anything else in the set. The risk is meaning, not legibility: mail and a bell are both \"notification\", so which one means finished and which means waiting has to be learned",
+    cost: "gate change: path outlines, including the dome's arc extremum",
+  },
+  {
+    // A FIT variant of bubble-open, not a new direction. Side by side in the
+    // sidebar the round-2 bubble sits HIGH against the envelope: its body is y
+    // 3..17 (centre 10) where the envelope's box is y 4..20 (centre 12), so the
+    // two tops miss by a unit and the bodies by two. This moves the body down
+    // to the envelope's top, y 4..18, and keeps the ink ending at y 21, which
+    // shortens the tail from 4 deep to 3. Still on the integer lattice.
+    id: "bubble-level",
+    round: 3,
+    draft: true,
+    retired: "2026-10-29: the maintainer kept the bubble as drawn, narrowing the final review to the three idle marks without this variant",
+    frame: "bubble",
+    body: { y0: 4, y1: 18 },
+    tail: { x: 8, w: 3, tip: 21 },
+    glyph: null,
+    note: "bubble-open with its body lowered to the envelope's top line, so the pair sits level in a row; the tail is a unit shorter",
+    cost: "none beyond bubble-open's",
+  },
+];
+// Promotion is setting this and deleting the candidate's `draft` flag, the way
+// ENVELOPE_DEFAULT works. Every other candidate keeps its dated reason. Points
+// at arrangement A's bubble while the arrangements are compared; nothing is
+// promoted yet, which is why bubble-open still carries `draft`.
+export const QUESTION_DEFAULT = "bubble-open";
+
+// Round 3: arrangement B's candidates for the FINISHED TURN, the mark agent-idle
+// would become if the envelope moved to the question. Each is one idea, carried
+// by outline alone for the reason round 2 established, in the set's stroked
+// weight (the solid bubble's rejection rules out fill). Considered and not drawn:
+//   - an inbox tray: a second mail metaphor beside the envelope;
+//   - a crescent moon: its horns cannot reach x 21, so it cannot sit on the
+//     indicator keyline without an exemption;
+//   - pause bars or a stop square: the control marks' own glyphs.
+export const TURN_CHECK_D = "M3 13 L9 19 L21 7";
+export const TURN_FLAG_D = "M3 21 V3 H21 L17 8 L21 13 H3";
+export const TURN_CANDIDATES = [
+  {
+    id: "check",
+    draft: true,
+    retired: "2026-10-29: arrangement B lost to A at review. The maintainer kept the envelope on the finished turn, a known icon doing what it already does, and added the bubble for the question",
+    note: "a check: the turn is done. The plainest \"finished\" there is; the risk is that it reads as the TASK being done, when only the turn is",
+    cost: "an M/L path outline, which the gate already bounds",
+  },
+  {
+    id: "ring-closed",
+    draft: true,
+    retired: "2026-10-29: arrangement B lost to A at review. The maintainer kept the envelope on the finished turn, a known icon doing what it already does, and added the bubble for the question",
+    note: "the working ring, closed and still: the spinner stopped. The smallest possible state change, working to finished is the dash closing. d4a drew this for the old needs-you meaning and lost on meaning; a finished turn asks less of it",
+    cost: "no gate change: agent-working's own circle",
+  },
+  {
+    id: "flag",
+    draft: true,
+    retired: "2026-10-29: arrangement B lost to A at review. The maintainer kept the envelope on the finished turn, a known icon doing what it already does, and added the bubble for the question",
+    note: "a pennant: a finish line or a milestone reached. The risk is that a flag also means \"flagged for your attention\", which is the question's meaning",
+    cost: "an M/V/H/L path outline, which the gate already bounds",
+  },
+];
+
+/** A "?" as path data plus its dot, centred on the grid's vertical axis. */
+const qmarkParts = (g) => {
+  const cx = VIEW / 2;
+  const cy = g.top + g.r;
+  const a = (QMARK_ARC_END_DEG * Math.PI) / 180;
+  const ex = cx + g.r * Math.cos(a);
+  const ey = cy + g.r * Math.sin(a);
+  // Leave the arc along its own tangent, arrive at the neck travelling straight
+  // down, so the curve has no corner at either end.
+  const k1 = QMARK_TENSION * Math.hypot(ex - cx, g.neck - ey);
+  const k2 = QMARK_TENSION * (g.neck - ey);
+  const hook =
+    `M${n(cx - g.r)} ${n(cy)} A${n(g.r)} ${n(g.r)} 0 1 1 ${n(ex)} ${n(ey)}` +
+    ` C${n(ex - k1 * Math.sin(a))} ${n(ey + k1 * Math.cos(a))} ${n(cx)} ${n(g.neck - k2)} ${n(cx)} ${n(g.neck)}` +
+    (g.stemEnd > g.neck ? ` V${n(g.stemEnd)}` : "");
+  return { hook: path(hook), dot: solidRect(cx - g.dotR, g.dotY - g.dotR, 2 * g.dotR, 2 * g.dotR, g.dotR) };
+};
+
+const bubbleD = (body = BUBBLE_BODY, t = BUBBLE_TAIL) => {
+  const r = R_ENVELOPE;
+  const { y0, y1 } = body;
+  return (
+    `M${INK_MIN + r} ${y0} H${INK_MAX - r} A${r} ${r} 0 0 1 ${INK_MAX} ${y0 + r} V${y1 - r}` +
+    ` A${r} ${r} 0 0 1 ${INK_MAX - r} ${y1} H${t.x + t.w} L${t.x} ${t.tip} V${y1} H${INK_MIN + r}` +
+    ` A${r} ${r} 0 0 1 ${INK_MIN} ${y1 - r} V${y0 + r} A${r} ${r} 0 0 1 ${INK_MIN + r} ${y0} Z`
+  );
+};
+
+/**
+ * A question candidate as { outline, interior }. Static, so no perimeter: a
+ * mark without a dash never reaches dashInUserUnits.
+ *
+ * The bare glyph has no closed outline, so its HOOK stands in as `outline`.
+ * That is what the gate's keyline and lattice checks read, and they would
+ * reject it, which is the honest consequence of that direction.
+ */
+export const question = (id = QUESTION_DEFAULT) => {
+  const c = QUESTION_CANDIDATES.find((q) => q.id === id);
+  if (!c) throw new Error(`no question candidate "${id}"`);
+  const q = c.glyph ? qmarkParts(c.glyph) : { hook: "", dot: "" };
+  if (c.frame === "ring") return { outline: circle(CX, CX, RING_R), interior: q.hook + q.dot, perimeter: null };
+  if (c.frame === "envelope-box") {
+    const b = envelopeBox(ENVELOPE_DEFAULT);
+    return { outline: rect(b.x0, b.y0, b.w, b.h, R_ENVELOPE), interior: q.hook + q.dot, perimeter: null };
+  }
+  if (c.frame === "bubble") {
+    const body = c.body ?? BUBBLE_BODY;
+    // Solid: a filled rect under the body's stroke, plus a stroke across the
+    // tail's MOUTH. The outline leaves the mouth open (that is what makes it a
+    // bubble rather than a box with a triangle under it), so without this the
+    // tail is stroked on two sides only and the first solid render showed a
+    // dark wedge in it. Stroked on all three, BUBBLE_TAIL_OPEN's inscribed
+    // radius of 1 makes it solid.
+    const t = c.tail ?? BUBBLE_TAIL;
+    const fill = c.solid
+      ? solidRect(INK_MIN, body.y0, INK_BOX, body.y1 - body.y0, R_ENVELOPE) + path(`M${t.x} ${body.y1} H${t.x + t.w}`)
+      : "";
+    return { outline: path(bubbleD(body, t)), interior: fill + q.hook + q.dot, perimeter: null };
+  }
+  if (c.frame === "bell") {
+    const { rim, domeR, domeY, clapper } = BELL;
+    const l = CX - domeR;
+    const r = CX + domeR;
+    // The flare leaves the dome travelling straight down and meets the rim
+    // travelling outward, so neither join kinks.
+    const d =
+      `M${INK_MIN} ${rim} C${l - 1} ${rim - 1.5} ${l} ${n(rim - 3.5)} ${l} ${domeY}` +
+      ` A${domeR} ${domeR} 0 0 1 ${r} ${domeY} C${r} ${n(rim - 3.5)} ${r + 1} ${rim - 1.5} ${INK_MAX} ${rim} Z`;
+    const k = clapper;
+    return {
+      outline: path(d),
+      interior: path(`M${CX - k.r} ${k.y} A${k.r} ${k.r} 0 0 0 ${CX + k.r} ${k.y}`),
+      perimeter: null,
+    };
+  }
+  return { outline: q.hook, interior: q.dot, perimeter: null };
+};
+
+/** One of arrangement B's finished-turn candidates as { outline, interior }. */
+export const turnEnd = (id) => {
+  if (id === "ring-closed") return { outline: circle(CX, CX, RING_R), interior: "", perimeter: null };
+  if (id === "check") return { outline: path(TURN_CHECK_D), interior: "", perimeter: null };
+  if (id === "flag") return { outline: path(TURN_FLAG_D), interior: "", perimeter: null };
+  throw new Error(`no turn-end candidate "${id}"`);
+};
+
+// ---------------------------------------------------------------------------
+// Round 4, 2026-10-29: agent-approval. SELECTED 2026-10-29 at maintainer
+// sign-off: `shield-crest-tall`, the crested shield at 18 x 20 (round 5).
+//
+// What decided it, from the round-5 page: of the three proportions, the tall
+// one carries lucide's definition best, with longer straight sides and the
+// sharpest point, and it reads as a shield at 12px. It keeps the 18 width that
+// aligns the row; its height overshoots the 18 slot by a unit at the peak and
+// at the point (y 2 to 22), the correction a typeface makes for a pointed
+// letter, so the point does not read short beside the square marks. The gate
+// checks width and the pixel lattice, not height, and both pass.
+//
+// Requested by the desktop task for #452 (Kangentic #920), with the
+// maintainer's go-ahead, after the notification design split the idle agent
+// three ways: "has a question" (a pick-an-option tool is waiting), "needs your
+// approval" (a tool approval prompt, or a plan waiting to be approved), and
+// "went idle" (the turn finished, nothing pending). The envelope keeps the
+// last, the bubble narrows to the first, and this mark is the second.
+//
+// Consumers, as the request described them: an unreported wait shows the
+// bubble; the desktop card, its tooltip and the phone card show this mark for
+// an approval; and the desktop sidebar and Agent Monitor keep ONE waiting
+// count drawn with the bubble. That last part did not survive review (round 6
+// below): the counting surfaces keep one idle count drawn with the ENVELOPE,
+// covering all three kinds. Either way this mark meets the other two on cards,
+// not in the sidebar's counter row.
+//
+// Same constraints as the bubble, for the reasons rounds 1 and 2 measured:
+// the attention amber, static, and no interior glyph, so the SILHOUETTE alone
+// tells three amber marks apart at the sidebar's 12px. A check was ruled out
+// before drawing, by the requester: it reads as "already approved". Each
+// candidate below is one idea.
+// ---------------------------------------------------------------------------
+
+// The shield: a flat top with R_ENVELOPE corners, straight sides down to the
+// shoulder, then two circular arcs meeting at a point on the slot's floor.
+// Each arc leaves the shoulder travelling straight down, so the side has no
+// kink; that tangent fixes the radius at (w^2 + d^2) / 2w for half-width w and
+// drop d. The shoulder is the one number worth iterating: higher reads as a
+// pointed oval, lower as a box with a short point.
+export const SHIELD = { top: 3, shoulder: 9, tip: 21 };
+// Round 5, the same day, on the maintainer's read of round 4: the plain shield
+// "only looks like a shield in shape", and wants detail. Detail is what
+// failed round 1, but what failed there was a curved glyph with a dot inside a
+// frame; a change to the OUTLINE, or one straight stroke, is a far smaller ask
+// of 12px. Two single-idea answers, each on the round-4 shield:
+//   - crest: the top rises to a point at the centre instead of running flat,
+//     which is the outline most people know as a shield or badge. The detail
+//     is in the silhouette, so there is still nothing inside to blur.
+//   - half: the shield divided by one vertical stroke from top to tip, the
+//     heraldic "party per pale" and the idea behind the shield-half glyph on
+//     the phone's permission-request card.
+// The phone's own glyph is both at once; that blend is held back until the
+// single ideas have been judged, per the maintainer's standing preference.
+//
+// Then, mid-round, the maintainer pointed at lucide's `shield` as the bar for
+// definition. Its definition is four things: a crested top that rises from
+// each corner to a peak, small corner radii, STRAIGHT sides, and a curved base
+// meeting at a point. Its proportions are read off it here; its path data is
+// not copied, per this file's founding rule, and the drawing below is this
+// set's own construction in circular arcs, which the gate can bound exactly.
+//
+// The catch is proportion. lucide's shield is 16 wide and about 20 tall; this
+// slot is 18 by 18. A base arc that leaves the shoulder straight down only
+// arrives at a POINT when it drops further than the half-width (radius
+// (w^2 + d^2) / 2w exceeds w only when d > w); at d = w it lands flat and the
+// base is a U. On an 18-square slot that leaves almost no straight side, which
+// is a large part of why the round-4 shield read as a generic shape. So the
+// crested shield is drawn at three proportions, each a candidate:
+//   - 18 x 18: inside the slot and on the keyline, with short sides;
+//   - 18 x 20: the same, overshooting the slot a unit at the top and bottom, the
+//     way a pointed letterform overshoots the baseline;
+//   - 16 x 18: lucide's width, which costs the indicator keyline, though this
+//     mark never sits in the sidebar's counter column.
+//
+// Each crest edge leaves its corner travelling level and rises to the peak on
+// a single arc, radius (a^2 + b^2) / 2b for run a and rise b; the two meet at
+// the peak at about 98 degrees, close to lucide's, and the round line join
+// softens it. Corners are a radius of 1, not R_ENVELOPE: at 2 they eat the
+// short crest edge and the top reads as a dome.
+export const R_SHIELD = 1;
+// The lock: a body on the slot's width, and a shackle arching over it. The
+// shackle is the silhouette; no keyhole, per the no-interior rule.
+export const LOCK = { body: { y0: 11, y1: 21 }, shackle: { halfW: 4.5, top: 3 } };
+// The clipboard: a board on the envelope's footprint with a gap in its top
+// edge where the clip tab sits, so no line runs through the tab.
+export const CLIPBOARD = { board: { y0: 5, y1: 21 }, tab: { x0: 8, x1: 16, y0: 3, y1: 7, r: 1 } };
+
+export const APPROVAL_CANDIDATES = [
+  {
+    id: "shield",
+    draft: true,
+    retired: "2026-10-29: superseded in round 5. At review it read only as a shape, not as a shield; lucide's construction (crested top, straight sides, pointed base) gave the shield its definition",
+    note: "a shield: permission, the vocabulary the phone's permission-request card already speaks. Its pointed base is an outline nothing else in the set has, and that point is what has to survive 12px",
+    cost: "the gate bounds its arcs from their centre (widened 2026-10-29 for exactly this)",
+  },
+  {
+    id: "shield-crest",
+    round: 5,
+    draft: true,
+    retired: "2026-10-29: the maintainer chose shield-crest-tall. On the 18-square slot the sides are short and the point is soft",
+    shield: { crest: { peak: 3, corner: 6 }, x0: 3, x1: 21, shoulder: 10, tip: 21 },
+    note: "lucide's shield construction (crested top, straight sides, pointed base) on this slot's 18 x 18. On the keyline and inside the slot, at the price of short sides and a soft point",
+    cost: "as the shield: circular arcs, bounded exactly by the gate",
+  },
+  {
+    id: "shield-crest-tall",
+    round: 5,
+    selected: "2026-10-29",
+    shield: { crest: { peak: 2, corner: 5 }, x0: 3, x1: 21, shoulder: 11, tip: 22 },
+    note: "the same construction at 18 x 20: a unit of overshoot at the top and the point, the way a pointed letterform overshoots the baseline. Longer sides, a sharper point; it draws a unit taller than its siblings",
+    cost: "as the shield. No gate checks height, but the rule's 18 slot would need the overshoot recorded",
+  },
+  {
+    id: "shield-crest-narrow",
+    round: 5,
+    draft: true,
+    retired: "2026-10-29: the maintainer chose shield-crest-tall, which reaches the same definition while keeping the 3..21 keyline this one leaves",
+    shield: { crest: { peak: 3, corner: 6 }, x0: 4, x1: 20, shoulder: 12, tip: 21 },
+    note: "the same construction at lucide's own 16 width, 16 x 18. The closest to the reference's proportion and the most clearly a shield; the only candidate off the 3..21 keyline",
+    cost: "a rule and gate exception: x 4..20 fails the indicator keyline. Defensible because consumers never put this mark in the counter column the keyline exists for",
+  },
+  {
+    id: "shield-half",
+    round: 5,
+    draft: true,
+    retired: "2026-10-29: the maintainer chose shield-crest-tall: the definition went into the outline, so no interior stroke was needed",
+    shield: { half: true },
+    note: "the shield divided by one vertical stroke, top to tip: the heraldic halved shield, and the idea behind the phone's permission-card glyph. One straight line is the smallest interior there is",
+    cost: "as the shield, plus one interior path",
+  },
+  {
+    id: "lock",
+    draft: true,
+    retired: "2026-10-29: the maintainer chose shield-crest-tall. The shield won on meaning (permission, as on the phone's permission card) and on its unique point",
+    note: "a padlock: the agent is held until you grant access. The shackle's arch is the silhouette. The risk is that a lock also reads as \"locked\" or \"private\", a status rather than a request",
+    cost: "no gate change: the outline is the body's rect",
+  },
+  {
+    id: "clipboard",
+    draft: true,
+    retired: "2026-10-29: the maintainer chose shield-crest-tall. Its envelope-sized box put it closest to the mark it most needed to differ from",
+    note: "a clipboard: something to review and sign off, which is plan approval most literally. The risk is its footprint: a rounded box the envelope's size, told apart by the clip tab alone",
+    cost: "none beyond the bubble's path support",
+  },
+];
+
+// Promotion is setting this and deleting the candidate's `draft` flag, the way
+// QUESTION_DEFAULT and ENVELOPE_DEFAULT work. Every other candidate keeps its
+// dated reason.
+export const APPROVAL_DEFAULT = "shield-crest-tall";
+
+/** One approval candidate as { outline, interior }. Static, so no perimeter. */
+export const approval = (id = APPROVAL_DEFAULT) => {
+  const r = R_ENVELOPE;
+  const c = APPROVAL_CANDIDATES.find((a) => a.id === id);
+  if (id.startsWith("shield") && c) {
+    const s = { ...SHIELD, x0: INK_MIN, x1: INK_MAX, ...(c.shield ?? {}) };
+    const { x0, x1, shoulder, tip, crest, half = false } = s;
+    const w = (x1 - x0) / 2;
+    const d = tip - shoulder;
+    const R = n((w * w + d * d) / (2 * w));
+    // Down the right side, round the base to the point, up to the left
+    // shoulder. Shared by both tops.
+    const base = `A${R} ${R} 0 0 1 ${CX} ${tip} A${R} ${R} 0 0 1 ${x0} ${shoulder}`;
+    let dd;
+    let top;
+    if (crest) {
+      const rc = R_SHIELD;
+      const a = CX - x0 - rc;
+      const b = crest.corner - crest.peak;
+      const Rt = n((a * a + b * b) / (2 * b));
+      top = crest.peak;
+      // Left corner, then the crest edge leaving it level and rising to the
+      // peak (sweep 0 turns it upward), mirrored down to the right corner.
+      dd =
+        `M${x0} ${crest.corner + rc} A${rc} ${rc} 0 0 1 ${x0 + rc} ${crest.corner} A${Rt} ${Rt} 0 0 0 ${CX} ${crest.peak}` +
+        ` A${Rt} ${Rt} 0 0 0 ${x1 - rc} ${crest.corner} A${rc} ${rc} 0 0 1 ${x1} ${crest.corner + rc} V${shoulder} ${base} Z`;
+    } else {
+      top = s.top;
+      dd = `M${x0 + r} ${top} H${x1 - r} A${r} ${r} 0 0 1 ${x1} ${top + r} V${shoulder} ${base} V${top + r} A${r} ${r} 0 0 1 ${x0 + r} ${top} Z`;
+    }
+    return { outline: path(dd), interior: half ? path(`M${CX} ${top} V${tip}`) : "", perimeter: null };
+  }
+  if (id === "lock") {
+    const { body, shackle } = LOCK;
+    const x0 = n(CX - shackle.halfW);
+    const x1 = n(CX + shackle.halfW);
+    const arcY = n(shackle.top + shackle.halfW);
+    return {
+      outline: rect(INK_MIN, body.y0, INK_BOX, body.y1 - body.y0, r),
+      interior: path(`M${x0} ${body.y0} V${arcY} A${shackle.halfW} ${shackle.halfW} 0 0 1 ${x1} ${arcY} V${body.y0}`),
+      perimeter: null,
+    };
+  }
+  if (id === "clipboard") {
+    const { board, tab } = CLIPBOARD;
+    const { y0, y1 } = board;
+    const dd =
+      `M${tab.x0} ${y0} H${INK_MIN + r} A${r} ${r} 0 0 0 ${INK_MIN} ${y0 + r} V${y1 - r} A${r} ${r} 0 0 0 ${INK_MIN + r} ${y1}` +
+      ` H${INK_MAX - r} A${r} ${r} 0 0 0 ${INK_MAX} ${y1 - r} V${y0 + r} A${r} ${r} 0 0 0 ${INK_MAX - r} ${y0} H${tab.x1}`;
+    return {
+      outline: path(dd),
+      interior: rect(tab.x0, tab.y0, tab.x1 - tab.x0, tab.y1 - tab.y0, tab.r).replace(` pathLength="${PATH_LENGTH}"`, ""),
+      perimeter: null,
+    };
+  }
+  throw new Error(`no approval candidate "${id}"`);
+};
+
+// ---------------------------------------------------------------------------
+// Round 6, 2026-10-29: an AGNOSTIC idle mark, for the surfaces that count.
+// DECIDED 2026-10-29 at maintainer sign-off: NO NEW MARK. The counting
+// surfaces keep drawing their one idle count with the envelope, as they did
+// before this release. See the decision note after AGGREGATE_CANDIDATES.
+//
+// The three idle marks are for surfaces that show ONE agent: a card, its
+// tooltip, the phone card, a notification. The desktop sidebar and the Agent
+// Monitor COUNT agents, and the maintainer ruled out the two ways of counting
+// with them. Splitting into a question count and an approval count does not
+// fit the row; and one waiting count drawn with the bubble raises the question
+// of why approvals do not get theirs. Today's sidebar already folds every idle
+// agent into ONE count, which is the shape that fits; its flaw is that it draws
+// that count with the envelope, which now means only "turn finished".
+//
+// So the counting surfaces want a fourth mark that means "idle, needs you" and
+// nothing more specific: questions, approvals and finished turns together,
+// beside the working ring. Each candidate is one idea:
+// ---------------------------------------------------------------------------
+
+// The inbox tray: an open tray whose walls slope in toward the top, and the
+// notch of its floor line. The silhouette is the slope; the notch is the one
+// interior line, kept because without it the tray is a trapezoid.
+export const INBOX = { top: 5, floor: 13, bottom: 21, inset: 3, notch: { x0: 8, x1: 16, depth: 3 } };
+// The amber dot, as a radius in grid units. 4 paints an 8-unit disc, under
+// half the slot, the size a status lamp is rather than a mark.
+export const DOT_R = 4;
+
+export const AGGREGATE_CANDIDATES = [
+  {
+    id: "bell",
+    draft: true,
+    retired: "2026-10-29: the maintainer kept the envelope as the counting mark. Mail already means \"there is something for you\", which is what an idle count says, and it needs no new mark and no consumer change",
+    note: "a bell: attention, nothing more specific. It lost round 2 as the QUESTION mark because beside the envelope nobody could tell which meant what; as the count of all three, being generic is the job",
+    cost: "a redraw: round 2's flares are cubics, which the gate cannot bound, so they would become arcs",
+  },
+  {
+    id: "inbox",
+    draft: true,
+    retired: "2026-10-29: ruled out at review in the sidebar replica, where the maintainer kept the envelope, the bell and the ring as the three that work beside the spinner",
+    note: "an inbox tray: things waiting for you, whatever they are. The same messages family as the envelope and the bubble, one level up: the tray they arrive in",
+    cost: "none beyond the path support: lines and arcs only",
+  },
+  {
+    id: "ring",
+    draft: true,
+    retired: "2026-10-29: the maintainer kept the envelope as the counting mark. Mail already means \"there is something for you\", which is what an idle count says, and it needs no new mark and no consumer change",
+    note: "the working ring, closed and still: the agent stopped and is waiting on you. The ring IS the agent in the sidebar, dashed and spinning while it works, whole and amber when it waits. d4a drew this for the old needs-you meaning and lost on meaning; summarising a count asks less of it",
+    cost: "no gate change: agent-working's own circle",
+  },
+  {
+    id: "dot",
+    draft: true,
+    retired: "2026-10-29: ruled out at review in the sidebar replica, where the maintainer kept the envelope, the bell and the ring as the three that work beside the spinner",
+    note: "an amber dot: the plainest lamp, and the same dot the phone already draws below the 12px floor. The set's only filled mark, and the least loud way to be one",
+    cost: "a rule and gate exception: an 8-unit disc cannot span the 3..21 keyline, and it is the only filled indicator",
+  },
+];
+
+// The decision, recorded where the next change will look for it. Three
+// options survived the sidebar replica (the envelope, the bell, the closed
+// ring), and the maintainer chose the ENVELOPE, so this round ships nothing.
+// The envelope is general in a count and specific on a card: in the desktop
+// sidebar and Agent Monitor it counts every idle agent, whatever it waits on;
+// on a card, a tooltip or the phone, where the bubble and the shield take the
+// question and the approval, it means the turn finished. Splitting the count by
+// kind was ruled out for width, and a count drawn with the bubble was ruled
+// out because it would leave approvals out.
+
+/** One agnostic-idle candidate as { outline, interior }. Static, so no perimeter. */
+export const aggregate = (id) => {
+  if (id === "bell") return question("bell");
+  if (id === "ring") return { outline: circle(CX, CX, RING_R), interior: "", perimeter: null };
+  if (id === "dot") return { outline: solidRect(CX - DOT_R, CX - DOT_R, 2 * DOT_R, 2 * DOT_R, DOT_R), interior: "", perimeter: null };
+  if (id === "inbox") {
+    const { top, floor, bottom, inset, notch } = INBOX;
+    const r = R_ENVELOPE;
+    const dd =
+      `M${INK_MIN} ${floor} V${bottom - r} A${r} ${r} 0 0 0 ${INK_MIN + r} ${bottom} H${INK_MAX - r}` +
+      ` A${r} ${r} 0 0 0 ${INK_MAX} ${bottom - r} V${floor} L${INK_MAX - inset} ${top} H${INK_MIN + inset} Z`;
+    return {
+      outline: path(dd),
+      interior: path(`M${INK_MIN} ${floor} H${notch.x0} L${notch.x0 + 1.5} ${floor + notch.depth} H${notch.x1 - 1.5} L${notch.x1} ${floor} H${INK_MAX}`),
+      perimeter: null,
+    };
+  }
+  throw new Error(`no aggregate candidate "${id}"`);
+};
+
 /**
  * A slot candidate's ring, for the review sheet only.
  *
@@ -1200,14 +1827,36 @@ export const DIRECTIONS = [
       "Three dedicated marks, normalized onto one 18x18 ink box. The envelope is the only mark in the field that can be read as \"that agent finished and there is something here for you\"; the ring is the only one that reads as still running. Two drawings for two states is what buys that, and shape stays a redundant channel alongside colour into the bargain.",
     rotatable: true,
     marks: [
-      // The agent is the one pair whose two states are two different drawings.
-      // That is the whole direction: an envelope can be read as "finished, and
-      // there is something here for you", a ring as "still running".
-      { id: "agent-idle", role: "needs you", silhouette: "envelope", state: "idle", tone: "attention", ...envelope(), motion: null, rest: REST_STATIC },
+      // The agent is the one family whose states are different drawings. That is
+      // the whole direction: an envelope can be read as "finished, and there is
+      // something here for you", a ring as "still running".
+      //
+      // `role` read "needs you" until 2026-10-29, when agent-question and
+      // agent-approval split the blocked-on-you states off this mark. All three
+      // are amber and all three need you, so the phrase stopped telling a reader
+      // of the manifest which was which. The second half says what only the
+      // README said otherwise: a surface that COUNTS agents draws its one idle
+      // count with this mark, covering all three kinds (round 6).
+      { id: "agent-idle", role: "turn finished; the idle count", silhouette: "envelope", state: "idle", tone: "attention", ...envelope(), motion: null, rest: REST_STATIC },
       // Spins rather than marches, which on a circle is the SAME image (see
       // SPIN_MS) but composited, so the ring keeps turning while a consumer's
       // main thread is blocked. Geometry, dash and period are untouched.
       { id: "agent-working", role: "working", silhouette: "ring", state: "working", tone: "active", ...ring(), motion: "spin", dash: DASH_SPINNER, rest: REST_KEEP },
+      // Added 2026-10-29 (GitHub #452): the agent is blocked on a question, a
+      // pick-an-option prompt. The same amber as agent-idle, and static like it,
+      // so the silhouette alone carries the difference. See QUESTION_CANDIDATES
+      // for the rounds that chose the bubble.
+      //
+      // `role` narrowed from "waiting on your answer" to "has a question" the
+      // same day, when agent-approval was requested for approvals; see round 4.
+      { id: "agent-question", role: "has a question", silhouette: "bubble", state: "waiting", tone: "attention", ...question(), motion: null, rest: REST_STATIC },
+      // Added 2026-10-29 (GitHub #452, requested by Kangentic #920): the agent
+      // is blocked on an approval, a tool approval prompt or a plan waiting to
+      // be approved. The third amber, static mark, told apart from the bubble
+      // and the envelope by its pointed base. A card, tooltip and phone mark:
+      // the surfaces that COUNT agents draw one idle count with the envelope
+      // instead (round 6). See APPROVAL_CANDIDATES for the rounds that chose it.
+      { id: "agent-approval", role: "needs your approval", silhouette: "shield", state: "waiting", tone: "attention", ...approval(), motion: null, rest: REST_STATIC },
       // Everything else is one silhouette in two states, named explicitly rather
       // than left for a consumer to compose out of a tone and an animation
       // class. Composition is where three surfaces drift apart.
@@ -1268,7 +1917,7 @@ export const DIRECTIONS = [
       // Stateless: the "new terminal" button is an action, not a status, so it
       // has no idle/working pair. It ships because it is the same chip with a +
       // instead of the prompt, and leaving it out would keep one hand-maintained
-      // glyph beside eight packaged siblings.
+      // glyph beside its packaged siblings.
       { id: "terminal-new", role: "new terminal button", silhouette: "terminal", state: "action", tone: "rest", ...chip({ plus: true }), motion: null, rest: REST_STATIC },
     ],
   },

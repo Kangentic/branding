@@ -41,7 +41,7 @@
       "file": "agent-idle.svg",
       "silhouette": "envelope",
       "state": "idle",
-      "role": "needs you",
+      "role": "turn finished; the idle count",
       "tone": "attention",
       "motion": null,
       "reducedMotion": "static",
@@ -57,6 +57,26 @@
       "dash": "75 25",
       "dashUserUnits": "42.4115 14.1372",
       "reducedMotion": "keep-dash",
+      "minPx": 12
+    },
+    "agent-question": {
+      "file": "agent-question.svg",
+      "silhouette": "bubble",
+      "state": "waiting",
+      "role": "has a question",
+      "tone": "attention",
+      "motion": null,
+      "reducedMotion": "static",
+      "minPx": 12
+    },
+    "agent-approval": {
+      "file": "agent-approval.svg",
+      "silhouette": "shield",
+      "state": "waiting",
+      "role": "needs your approval",
+      "tone": "attention",
+      "motion": null,
+      "reducedMotion": "static",
       "minPx": 12
     },
     "terminal-idle": {

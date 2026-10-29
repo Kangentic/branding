@@ -129,21 +129,44 @@ Rules worth knowing before you build your own player:
 
 `assets/activity/` holds the agent, Command Terminal and pause/stop status
 marks this package owns for the desktop app, the mobile app and the website to
-render in-app. Nine marks, four silhouettes, on one 24 grid with an 18-unit
+render in-app. Eleven marks over seven silhouettes (as `activity.json` counts
+them, the pause and stop rings separately), on one 24 grid with an 18-unit
 layout slot and a 2px stroke. The slot fixes WIDTH; each form takes the height
-it needs, so the ring and the chip fill 18x18 and the envelope is 18x16.
+it needs, so the ring and the chip fill 18x18, the envelope is 18x16, the
+speech bubble is an 18x14 body with a tail that brings it to 18 tall, and the
+shield is 18x20, overshooting the slot by a unit at its peak and its point.
 
 ```
-agent-idle              envelope        needs you, static
-agent-working           ring            working, marching
+agent-idle              envelope        turn finished; the idle count, static
+agent-working           ring            working, spinning
+agent-question          speech bubble   has a question, static
+agent-approval          shield          needs your approval, static
 terminal-idle           prompt chip     needs you, static
-terminal-working        prompt chip     working, marching
+terminal-working        prompt chip     working, prompt blinking
 terminal-new            plus chip       the new-terminal action
 control-pause-idle      ring + bars     needs you, static
-control-pause-working   ring + bars     working, marching
+control-pause-working   ring + bars     working, spinning
 control-stop-idle       ring + square   needs you, static
-control-stop-working    ring + square   working, marching
+control-stop-working    ring + square   working, spinning
 ```
+
+An idle agent has three amber marks, and their shape is the only difference
+between them, so they stay legible at the 12px floor with no interior detail:
+
+- `agent-question`, the bubble: a pick-an-option question is waiting.
+- `agent-approval`, the shield: a tool approval prompt, or a plan waiting to be
+  approved.
+- `agent-idle`, the envelope: the turn finished and nothing is pending.
+
+A wait whose kind the agent does not report takes the bubble.
+
+The envelope is also the COUNTING mark. A surface that counts agents rather
+than showing one (a sidebar row, a monitor summary) keeps a single idle count
+drawn with `agent-idle`, covering all three kinds, beside the working count.
+Mail means "there is something for you", which is what that count says; the
+bubble and the shield are for surfaces that show one agent, where the kind is
+worth knowing. Until you adopt the two new marks, `agent-idle` still covers all
+three states everywhere, exactly as it did before.
 
 Every mark is `currentColor`, so **you apply your own tokens**. Do not hardcode
 a hex: the three consumers deliberately differ (desktop `#34d399`/`#e3b341`,
