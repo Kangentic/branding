@@ -2,6 +2,46 @@
 
 <!-- releases -->
 
+## [v2.13.0] - 2026-11-05
+
+### Features
+- Add the `agent-stopped` activity mark and quarter the `agent-approval`
+  shield (34aaa8b, Kangentic #994). **The set goes from eleven marks to
+  twelve, and from seven silhouettes to eight**, so a consumer that documents
+  the count should update it.
+  - `agent-stopped`: a pennant for a card the board has stopped. The agent
+    finished, and nothing will move the card until a person acts, because an
+    automation spent its run limit or a review step is one only a person can
+    do. Nothing went wrong, so it is not a failure mark. Amber, static,
+    `currentColor`, 18 wide. It has no ring, fill or centred glyph, so it
+    cannot read as `control-stop-idle`.
+  - `agent-approval` now has two opposite solid quarters, so it separates from
+    the `agent-question` bubble at a glance. **Its outline is unchanged byte
+    for byte**, so the look changes on a package bump with no code change. It
+    is now the heaviest amber mark, about 40% more rendered ink than the
+    envelope.
+  - The solid quarters are overlapping strokes in one path, not a `fill`,
+    because kangentic-mobile's `syncBranding.mjs` throws on a path that carries
+    its own fill. Against a true fill there are no seams at any size.
+  - A surface that counts agents (a sidebar row, a monitor summary) keeps ONE
+    idle count drawn with `agent-idle`, as before.
+  - Desktop: add `agent-stopped` to `ACTIVITY_MARK_NAMES` and `RAW_MARKS`. The
+    quartered shield arrives with the bump alone. `activity-mark.test.ts` pins
+    the shield outline with `toContain`, so it stays green and no longer guards
+    the whole mark.
+  - Phone: add `agent-stopped` to the synced marks. The shield updates after
+    `syncBranding` runs.
+  - The `ACTIVITY` gate now fails any shipped mark whose path, circle or
+    polygon carries its own fill or stroke. Verified to bite by shipping a
+    filled path on purpose.
+  - Both activity zoom sheets now rasterize before enlarging. They called a
+    one-step `sharp(svg).resize()`, which re-renders the vector, so they never
+    showed real pixels. Earlier rounds were signed off with the true-size bands
+    beside those sheets.
+  - Every candidate from this round stays declared in `lib/activity.mjs` with
+    its dated reason, and the review page is
+    `exploration/activity/stopped.html`.
+
 ## [v2.12.0] - 2026-10-29
 
 ### Features
