@@ -62,6 +62,28 @@ is owned here to prevent.
     construction follows lucide's `shield` proportions (see
     `THIRD-PARTY-NOTICES.md`) in this set's own circular arcs; no path data is
     copied. The rounds and their reasons are in `APPROVAL_CANDIDATES`.
+    - Quartered 2026-11-05 (round 8), at maintainer sign-off. The bubble and the
+      shield were the closest amber pair at 16px, and both were an empty outline
+      with a small point. Two opposite quarters are now solid and the outline did
+      not change by a byte. The cost, accepted at sign-off, is about 40% more ink
+      than the envelope, which makes it the heaviest amber mark.
+    - **A pair of ambers separates on what is inside it, not on shape alone.** The
+      maintainer's read, and it overturned this round's own theory that a silhouette
+      problem needs a silhouette answer: the envelope and the bubble work because of
+      the line inside the box. Every outline-only redraw of the shield still sat
+      beside the bubble as an empty box.
+    - **Distance rules a drawing out; it cannot select one.** The band scored well
+      and looked like an acorn, and the badge scored best of the field and looked
+      torn. Read the number after the pixels, never instead of them.
+  - `agent-stopped` (added 2026-11-04) is a pennant, **18 x 18**: the fourth
+    amber mark, for a card the board will not move until a person acts, and the
+    only one of the four with an open outline, which is what tells it apart. It
+    must not read as a failure or as `control-stop-idle`, so it has no ring, no
+    fill and no centred glyph. A round mark has no room here at all: five of a
+    card's other glyphs are circles, and the octagon, the obvious stop, renders as
+    one at true size (distance 0.31 from the ring at 12px, where the closest
+    shipped amber pair is 0.57). The drawing is round 3's `TURN_FLAG_D`. The
+    rounds and their reasons are in `STOPPED_CANDIDATES`.
   - Corrected 2026-07-31. This read **18 x 14.4** from 2026-07-29 until the
     pixel-hinting round replaced that box; see the hinting bullet below for
     what moved it and what the move cost.
@@ -139,6 +161,23 @@ is owned here to prevent.
   neighbour. The board renders one mark on a card. `gen:activity` emits
   `_isolation-*.png` and `_isolation-zoom-*.png` for exactly this, and a
   candidate reviewed only in adjacency is unreviewed.
+- **A pixel sheet rasterizes FIRST, in its own sharp pipeline.** One-step
+  `sharp(svg).resize(...)` re-renders the vector at the larger size, so a sheet
+  captioned "nearest x8" shows a smooth drawing and no pixels. Both activity zoom
+  sheets did this until 2026-11-04, so rounds 1 to 6 were signed off without real
+  pixels on those sheets, and the true-size bands beside them were the only pixel
+  evidence. Measured on a 12px ring along one row, one step gives run lengths 8 1
+  7 1 62 and two steps give 8 8 8 48. `pixelTile()` in `gen-activity.mjs` is the
+  one way these sheets rasterize. The stop sign's failure in round 7 was only
+  visible on the corrected sheet.
+- **A solid region is a `<rect>` or a stroke, never a `fill` on another shape.**
+  kangentic-mobile's `syncBranding.mjs` throws on a path, circle or polygon that
+  carries its own fill or stroke, because its renderer draws fill on a rect only.
+  So a non-rect solid is overlapping strokes inside ONE `<path>`, which paints as a
+  single shape and leaves no seams (`SHIELD_SOLID`). Compared with a true fill on
+  2026-11-05 there were no seam pixels at any size from 12px to 192px and about 1%
+  mean difference at indicator sizes; the one visible difference is a slightly
+  rounded inner corner at 48px and up.
 - **`currentColor` only. Never a hex.** The three consumers do not share status
   token values (desktop `#34d399`/`#e3b341`, mobile `#3ddc84`/`#d9b83f`, web
   `#218a4c`/`#d98324`), and a hex in a mark would pick one surface's palette for
@@ -258,6 +297,16 @@ is owned here to prevent.
   ```
   ACTIVITY  FAIL
       - agent-question: outline spans x 3..23, off its keyline 3..21 (14-16px label in a counter row)
+  ```
+- **Gate (blocking): the paint contract.** The same check fails any shipped mark
+  whose path, circle or polygon carries its own fill or stroke, because that stops
+  kangentic-mobile's next branding sync and nothing else in this repo can see it.
+  Verified to bite 2026-11-05 by putting `fill="currentColor"` on the quartered
+  shield's interior, regenerating so byte equality passed, then running the gate:
+
+  ```
+  ACTIVITY  FAIL
+      - agent-approval: a non-rect shape carries its own fill or stroke, which breaks the phone's branding sync (only a <rect> may paint solid)
   ```
 - **BOTH keyline spans are written out, NOT derived.** The control span was
   always a literal, for the reason below. The INDICATOR span was `[INK_MIN,

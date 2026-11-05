@@ -610,6 +610,19 @@ checks.ACTIVITY = () => {
     }
   }
 
+  // PAINT CONTRACT. A shipped mark paints a solid only on a <rect>.
+  //
+  // Added 2026-11-05 with the quartered shield. kangentic-mobile's syncBranding.mjs
+  // THROWS on a path, circle or polygon carrying its own fill or stroke, because its
+  // renderer draws fill on a rect only, so one such attribute stops the phone's next
+  // package sync. Nothing else in this repo can see that. A solid region that is not
+  // a rect is built from overlapping strokes in one path: see SHIELD_SOLID.
+  for (const m of set.marks) {
+    if (/<(?:path|circle|polygon)\b[^>]*\s(?:fill|stroke)=/.test(`${m.outline}${m.interior}${m.blink ?? ""}`)) {
+      findings.push(`${m.id}: a non-rect shape carries its own fill or stroke, which breaks the phone's branding sync (only a <rect> may paint solid)`);
+    }
+  }
+
   // PIXEL HINTING. Every outline extremum sits on the integer lattice.
   //
   // Added 2026-07-31. Stroke 2 on a 24 grid renders a fractional number of
@@ -681,7 +694,7 @@ checks.ACTIVITY = () => {
   if (!/prefers-reduced-motion/.test(css)) findings.push(`${cssPath}: no prefers-reduced-motion block`);
 
   // Single-source geometry, the FROZEN-K rule applied to this set.
-  const GEO = ["INK_BOX", "R_ENVELOPE", "R_CHIP", "RING_R", "FLAP_VARIANTS", "PROMPT_D", "CONTROL_RING_R", "DASH_SPINNER", "DASH_CHIP", "ENVELOPE_CANDIDATES", "ENVELOPE_DEFAULT", "QUESTION_CANDIDATES", "QUESTION_DEFAULT", "BUBBLE_BODY_OPEN", "BUBBLE_TAIL_OPEN", "APPROVAL_CANDIDATES", "APPROVAL_DEFAULT", "SHIELD", "R_SHIELD"];
+  const GEO = ["INK_BOX", "R_ENVELOPE", "R_CHIP", "RING_R", "FLAP_VARIANTS", "PROMPT_D", "CONTROL_RING_R", "DASH_SPINNER", "DASH_CHIP", "ENVELOPE_CANDIDATES", "ENVELOPE_DEFAULT", "QUESTION_CANDIDATES", "QUESTION_DEFAULT", "BUBBLE_BODY_OPEN", "BUBBLE_TAIL_OPEN", "APPROVAL_CANDIDATES", "APPROVAL_DEFAULT", "SHIELD", "R_SHIELD", "SHIELD_CREST_TALL", "SHIELD_LINES", "SHIELD_SOLID", "STOPPED_CANDIDATES", "STOPPED_DEFAULT", "TURN_FLAG_D", "CARD_NEIGHBOURS"];
   const owners = scriptFiles().filter(
     (f) => rel(f) !== "scripts/lib/activity.mjs" && rel(f) !== "scripts/check-invariants.mjs",
   );

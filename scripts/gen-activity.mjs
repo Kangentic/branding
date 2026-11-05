@@ -2,7 +2,7 @@
 // harness that chose them.
 //
 // Writes TWO kinds of output, and the distinction matters:
-//   assets/activity/       SHIPPED. Eleven marks + activity.css + activity.json.
+//   assets/activity/       SHIPPED. Twelve marks + activity.css + activity.json.
 //                          Held to byte determinism by the release gate.
 //   exploration/activity/  REVIEW. compare.html and the size strips. Exempt.
 //
@@ -67,6 +67,10 @@ import {
   approval,
   AGGREGATE_CANDIDATES,
   aggregate,
+  STOPPED_CANDIDATES,
+  stopped,
+  neighbourSvg,
+  solidRing,
 } from "./lib/activity.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -235,13 +239,14 @@ const ids = (list) => list.map((d) => d.id.toUpperCase()).join(", ");
 const toneOf = (g, mark) =>
   mark.tone === "active" ? g.active : mark.tone === "attention" ? g.attention : mark.tone === "rest" ? g.rest : g.fg;
 
-// The set's ELEVEN marks and where each one lives, so the section reads as a
+// The set's TWELVE marks and where each one lives, so the section reads as a
 // set rather than as three indicators with two buttons bolted on.
 //
-// Eleven as of 2026-10-29, when agent-question and agent-approval joined. Their
-// entries name where they WILL render, not where they do: both consumers ship
-// placeholders until they adopt this release, and a present-tense call site
-// would be a status claim.
+// Twelve as of 2026-11-04, when agent-stopped joined. Its entry names where it
+// WILL render, not where it does: Kangentic #994 adopts it, and a present-tense
+// call site would be a status claim. agent-question and agent-approval joined
+// the same way on 2026-10-29, and their entries are left as that release wrote
+// them.
 //
 // Corrected 2026-07-31. The comment said "five marks", the table listed eight
 // keys, and the set is nine - `terminal-new` was absent. Five is the count of
@@ -254,6 +259,7 @@ const MARK_ROLES = {
   "agent-working": "task card 16, sidebar 16/12, monitor 15, tooltip 12",
   "agent-question": "pending adoption: desktop card 16, tooltip 12; phone card 16",
   "agent-approval": "pending adoption: desktop card 16, tooltip 12; phone card 16",
+  "agent-stopped": "pending adoption: desktop card 16, tooltip 12; phone card 16",
   "terminal-idle": "sidebar 14, title bar 20",
   "terminal-working": "sidebar 14, title bar 20",
   "terminal-new": "sidebar 14, title bar 20",
@@ -1531,6 +1537,23 @@ console.log(`Wrote ${GROUNDS.length} isolation sheets -> exploration/activity/_i
 // here rather than letting the sheet imply otherwise is the review-artifact
 // half of brand-record-fidelity.md.
 const ZOOM = 8;
+
+/**
+ * One glyph rendered at its true size, then nearest-upscaled.
+ *
+ * TWO sharp pipelines on purpose. Corrected 2026-11-04: both zoom sheets called
+ * `sharp(svg).png().resize(...)` in one step, and sharp answers that by
+ * re-rendering the VECTOR at the larger size, so the sheets captioned "nearest
+ * x8" and "pixel truth" showed a smooth drawing and no pixels at all. Measured on
+ * a 12px ring along one row, the one-step run lengths are 8 1 7 1 62, a fresh
+ * render, and the two-step ones are 8 8 8 48, the 12px raster. Rounds 1 to 6 were
+ * signed off with the true-size bands beside these sheets, so what those bands
+ * showed stands, but the sheets themselves never did what they claimed.
+ * gen-brandmark, gen-ui and gen-review already rasterize first.
+ */
+const pixelTile = async (svg, s) =>
+  sharp(await sharp(Buffer.from(svg)).png().toBuffer()).resize(s * ZOOM, s * ZOOM, { kernel: "nearest" }).toBuffer();
+
 const zoomSheet = async (g) => {
   const CELL = Math.max(...INDICATOR_SIZES) * ZOOM;
   const GAP = 18;
@@ -1582,7 +1605,7 @@ const zoomSheet = async (g) => {
       const one = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${VIEW} ${VIEW}"><rect width="${VIEW}" height="${VIEW}" fill="${cardSkin(g).bg}"/><g fill="none" stroke="${g.attention}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${stripInner(
         markSvg(r.mark, { size: s, resting: true }),
       )}</g></svg>`;
-      const tile = await sharp(Buffer.from(one)).png().resize(s * ZOOM, s * ZOOM, { kernel: "nearest" }).toBuffer();
+      const tile = await pixelTile(one, s);
       composites.push({
         input: tile,
         left: colX(j) + Math.round((CELL - s * ZOOM) / 2),
@@ -1642,7 +1665,12 @@ const IDLE = shipped("agent-idle");
 const ASKS = shipped("agent-question");
 // The selected candidate renders as the SHIPPED mark rather than a rebuild of
 // it, so the page shows exactly what assets/ holds.
-const APPROVALS = APPROVAL_CANDIDATES.filter((c) => !c.retired).map((c) => ({ ...c, mark: c.selected ? shipped("agent-approval") : aMark(c) }));
+// This page records rounds 1 to 6, so it is pinned to the shield those rounds chose.
+// Round 8 put a band through the shipped mark on 2026-11-04, and reading
+// shipped("agent-approval") here would have rewritten this history with a shield
+// none of them saw.
+const ROUND5_SHIELD = aMark(APPROVAL_CANDIDATES.find((c) => c.id === "shield-crest-tall"));
+const APPROVALS = APPROVAL_CANDIDATES.filter((c) => c.id === "shield-crest-tall").map((c) => ({ ...c, selected: "2026-10-29", mark: ROUND5_SHIELD }));
 // Round 5 narrowed the question to the shield's definition, so the in-context
 // sections show the shields (the round-4 plain one as the baseline); the 64px
 // strip and the zoom keep every live candidate.
@@ -1656,7 +1684,7 @@ const AGGREGATES = AGGREGATE_CANDIDATES.filter((c) => !c.retired).map((c) => ({
 // The three idle marks, then the agnostic candidates.
 const ZOOM_ROWS = [
   { id: "agent-question", mark: ASKS },
-  { id: "agent-approval", mark: shipped("agent-approval") },
+  { id: "agent-approval", mark: ROUND5_SHIELD },
   { id: "agent-idle", mark: IDLE },
   ...AGGREGATES.map((a) => ({ id: a.id, mark: a.mark })),
 ];
@@ -1665,8 +1693,7 @@ const ZOOM_ROWS = [
 // `stroke` so a currentColor fill would resolve; `faithful` resolves the dash
 // into user units, because librsvg ignores pathLength and would otherwise paint
 // agent-working as a closed ring.
-const qZoom = async (g) => {
-  const rows = ZOOM_ROWS;
+const qZoom = async (g, rows = ZOOM_ROWS, name = "question") => {
   const CELL = Math.max(...Q_ZOOM_SIZES) * ZOOM;
   const GAP = 16;
   const PAD = 20;
@@ -1693,12 +1720,12 @@ const qZoom = async (g) => {
       const one = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${VIEW} ${VIEW}"><rect width="${VIEW}" height="${VIEW}" fill="${g.panel}"/><g fill="none" color="${tone}" stroke="${tone}" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round">${stripInner(
         faithful(r.mark, s),
       )}</g></svg>`;
-      const tile = await sharp(Buffer.from(one)).png().resize(s * ZOOM, s * ZOOM, { kernel: "nearest" }).toBuffer();
+      const tile = await pixelTile(one, s);
       composites.push({ input: tile, left: colX(j) + Math.round((CELL - s * ZOOM) / 2), top: TOP + i * ROW + Math.round((CELL - s * ZOOM) / 2) });
     }
   }
   const png = await sharp(Buffer.from(base)).composite(composites).png().toBuffer();
-  await writeFile(join(OUT, `_question-zoom-${g.id}.png`), png);
+  await writeFile(join(OUT, `_${name}-zoom-${g.id}.png`), png);
   return png;
 };
 
@@ -2084,8 +2111,705 @@ ${motionCss()}
       .join("")}</div>
   </section>
 
-  <footer>Generated by scripts/gen-activity.mjs from scripts/lib/activity.mjs. Every candidate from rounds 1 to 4 is recorded there with its reason (QUESTION_CANDIDATES, TURN_CANDIDATES, APPROVAL_CANDIDATES).</footer>
+  <footer>Generated by scripts/gen-activity.mjs from scripts/lib/activity.mjs. Every candidate from rounds 1 to 4 is recorded there with its reason (QUESTION_CANDIDATES, TURN_CANDIDATES, APPROVAL_CANDIDATES). This page keeps the shield as those rounds chose it. Round 8 later added a band through it; see stopped.html.</footer>
 </div>
 `;
 await writeFile(join(OUT, "question.html"), qPage);
 console.log(`Wrote the question round (${APPROVALS.length} approval candidates) -> exploration/activity/question.html + _question-zoom-*.png`);
+
+// ---------------------------------------------------------------------------
+// THE STOPPED ROUND, 2026-11-04 (Kangentic #994). Review artifacts only.
+//
+// The maintainer asked for this as one lineup: every glyph a card can show, with
+// the candidates standing in it, so the pick is made against a card's real
+// neighbours and not against the three ambers alone. The inventory was read off
+// the consumers rather than recalled:
+//   kangentic  src/renderer/components/board/task-card-view.tsx,
+//              AutomationsDisabledStrip.tsx, ActivityReasonTooltip.tsx
+//   mobile     src/components/board/TaskCard.tsx, CardStatusFooter.tsx, CardStrip.tsx
+//
+// stopped.html is self-contained for the same reason question.html is: it is
+// published exactly as written. It is the first page in this file with a light
+// desktop ground, which the round's brief requires and question.html never drew.
+// ---------------------------------------------------------------------------
+
+const APPROVES = shipped("agent-approval");
+const STOP_BUTTON = shipped("control-stop-idle");
+const PAUSE_BUTTON = shipped("control-pause-idle");
+const sMark = (c) => ({
+  id: "agent-stopped",
+  role: "stopped, needs you",
+  silhouette: c.id,
+  state: "waiting",
+  tone: "attention",
+  ...stopped(c.id),
+  motion: null,
+  rest: REST_STATIC,
+});
+const FLAG = shipped("agent-stopped");
+// The selected candidate renders as the SHIPPED mark rather than a rebuild of it,
+// so the page shows exactly what assets/ holds.
+const S_OFFERED = STOPPED_CANDIDATES.filter((c) => !c.retired).map((c) => ({ ...c, mark: c.selected ? FLAG : sMark(c) }));
+const S_DROPPED = STOPPED_CANDIDATES.filter((c) => c.retired).map((c) => ({ ...c, mark: sMark(c) }));
+// Round 8, the shield, as a before and an after.
+const SH_AFTER = APPROVAL_CANDIDATES.find((c) => c.round === 8 && c.selected);
+const SH_ROWS = [
+  { id: "before", idea: "empty", note: "the crested shield as 2.12.0 ships it", mark: ROUND5_SHIELD, group: "shipped" },
+  { id: "after", idea: SH_AFTER.idea, note: SH_AFTER.note, mark: APPROVES, group: "offered" },
+];
+const SH_DROPPED = APPROVAL_CANDIDATES.filter((c) => c.round === 8 && c.retired).map((c) => ({ ...c, mark: aMark(c) }));
+
+// In the GROUNDS shape, so toneOf and qZoom take them as they are, plus the two
+// tokens a card adds. Read off kangentic's src/renderer/index.css: --kng-attention
+// and --kng-active are declared once and no theme overrides them, so the light
+// card really does paint #e3b341 on #fafaf9. That is the weakest amber any surface
+// draws, and it is why a light ground has to be looked at rather than assumed.
+const S_DARK = { ...DESK, label: "Desktop, dark", note: "ember theme", bg: "#1f1a17", panel: EMBER.raised, fg: EMBER.fg, soft: EMBER.muted, faint: EMBER.faint, edge: EMBER.edge };
+const S_LIGHT = {
+  id: "desktop-light",
+  label: "Desktop, light",
+  note: "light theme, the same amber",
+  bg: "#f5f5f4",
+  panel: "#fafaf9",
+  fg: "#1c1917",
+  soft: "#57534e",
+  faint: "#78716c",
+  edge: "#d6d3d1",
+  attention: DESK.attention,
+  active: DESK.active,
+  rest: "#78716c",
+};
+const S_PHONE = { ...PHONE, label: "Phone", note: "dark only", faint: PHONE.soft, edge: "#332b21" };
+const S_WEB = { ...GROUNDS[2], label: "kangentic.com", note: "cream, its own amber", faint: GROUNDS[2].soft, edge: "#d9d2c5" };
+
+const sTokens = (s) =>
+  `--t-bg:${s.bg};--t-panel:${s.panel};--t-fg:${s.fg};--t-soft:${s.soft};--t-faint:${s.faint};--t-edge:${s.edge}`;
+const sTile = (s, body) =>
+  `<div class="tile" style="${sTokens(s)}"><div class="tile-hd"><b>${s.label}</b><span>${s.note}</span></div>${body}</div>`;
+const sInk = (s, m, size, opts = {}) => qInk(opts.color ?? toneOf(s, m), m, size, still(m));
+
+// Each glyph with the tone and size the consumer gives it. Only the ones the
+// phone also draws carry `phone`.
+const CARD_GLYPHS = {
+  ban: { glyph: "ban", tone: "soft", name: "Ban", says: "Automations paused", phone: true },
+  paused: { glyph: "circle-pause", tone: "faint", name: "CirclePause", says: "Paused", phone: true },
+  queued: { glyph: "clock", tone: "faint", name: "Clock", says: "Queued" },
+  blocked: { glyph: "loader-circle", tone: "faint", name: "Loader2, held still", says: "Blocked by #413, in a workflow", phone: true },
+  starting: { glyph: "loader-circle", tone: "faint", spin: true, name: "Loader2, spinning", says: "Starting or resuming the agent", phone: true },
+  browser: { glyph: "globe", tone: "active", name: "Globe", says: "Browser running" },
+  attachments: { glyph: "paperclip", tone: "faint", name: "Paperclip", says: "Attachment count" },
+  tool: { glyph: "wrench", color: "#60a5fa", name: "Wrench", says: "Running a tool" },
+  subagent: { glyph: "users", color: "#c084fc", name: "Users", says: "Running a subagent" },
+  shell: { glyph: "terminal", tone: "active", name: "Terminal", says: "A background shell" },
+};
+const gInk = (s, g, size = 12) =>
+  `<span class="ink${g.spin ? " s-spin" : ""}" style="color:${g.color ?? s[g.tone]}">${neighbourSvg(g.glyph, { size })}</span>`;
+
+// ---- Every glyph a card can show ------------------------------------------
+
+const INVENTORY = [
+  {
+    slot: "The status slot",
+    detail: "Title row, 16px, desktop and phone. One mark at a time. This is the slot agent-stopped joins, and on a stopped card it takes over from the envelope.",
+    rows: [
+      { mark: WORKING, name: "agent-working", says: "Working" },
+      { mark: IDLE, name: "agent-idle", says: "Turn finished" },
+      { mark: ASKS, name: "agent-question", says: "Has a question" },
+      { mark: APPROVES, name: "agent-approval", says: "Needs your approval" },
+      { offered: true, name: "agent-stopped", says: "Stopped, needs you" },
+    ],
+  },
+  {
+    slot: "The tooltip on that mark",
+    detail: "12px, desktop. It leads with the status mark again at 12, or with one of these while the agent works. #994 puts the stop reason here.",
+    rows: [CARD_GLYPHS.tool, CARD_GLYPHS.subagent, CARD_GLYPHS.shell],
+  },
+  {
+    slot: "The top strip",
+    detail: "12px, muted, desktop and phone. Says that something outside the column holds this card.",
+    rows: [CARD_GLYPHS.ban],
+  },
+  { slot: "After the title", detail: "12px, desktop.", rows: [CARD_GLYPHS.browser] },
+  {
+    slot: "The footer",
+    detail: "12px, in a quiet tone. Paused and the held-still spinner are the closest things on a card to stopped, and they stay grey where the new mark is amber.",
+    rows: [CARD_GLYPHS.paused, CARD_GLYPHS.queued, CARD_GLYPHS.blocked, CARD_GLYPHS.starting, CARD_GLYPHS.attachments],
+  },
+  {
+    slot: "Never on a card",
+    detail: "The controls a person presses, at 20px. They are here because the brief names them as the collision to avoid.",
+    rows: [
+      { mark: STOP_BUTTON, size: CONTROL_RENDER_PX, name: "control-stop-idle", says: "Stop button, Command Terminal header" },
+      { mark: PAUSE_BUTTON, size: CONTROL_RENDER_PX, name: "control-pause-idle", says: "Pause button, task detail header" },
+    ],
+  },
+];
+
+function sInventory() {
+  const paint = (s, r) => {
+    if (r.offered) return `<span class="trio">${S_OFFERED.map((c) => sInk(s, c.mark, 16)).join("")}</span>`;
+    return r.mark ? sInk(s, r.mark, r.size ?? 16) : gInk(s, r);
+  };
+  const row = (r) => `<tr class="${r.offered ? "inv-new" : ""}">
+      <td class="inv-g" style="background:${S_DARK.panel}">${paint(S_DARK, r)}</td>
+      <td class="inv-g" style="background:${S_LIGHT.panel}">${paint(S_LIGHT, r)}</td>
+      <td class="inv-n">${r.name}</td>
+      <td>${esc(r.says)}</td>
+    </tr>`;
+  return `<div class="scroll"><table class="inv"><tbody>${INVENTORY.map(
+    (g) => `<tr class="inv-slot"><th colspan="4"><b>${g.slot}</b><span>${esc(g.detail)}</span></th></tr>${g.rows.map(row).join("")}`,
+  ).join("")}</tbody></table></div>`;
+}
+
+// ---- The lineup: one row per candidate, every neighbour in order -----------
+
+const LINEUP = [
+  { head: "working", mark: WORKING },
+  { head: "turn finished", mark: IDLE },
+  { head: "question", mark: ASKS },
+  { head: "approval", mark: APPROVES },
+  { head: "stopped", slot: true },
+  { head: "automations paused", g: CARD_GLYPHS.ban, rule: true },
+  { head: "paused", g: CARD_GLYPHS.paused },
+  { head: "queued", g: CARD_GLYPHS.queued },
+  { head: "blocked", g: CARD_GLYPHS.blocked },
+  { head: "starting", g: CARD_GLYPHS.starting },
+  { head: "browser", g: CARD_GLYPHS.browser },
+  { head: "stop button", mark: STOP_BUTTON, size: CONTROL_RENDER_PX, rule: true, phone: true },
+];
+
+function sLineup(s) {
+  const phone = s.id === "mobile";
+  const cols = LINEUP.filter((c) => !phone || c.mark || c.slot || c.g?.phone);
+  const head = cols.map((c) => `<th class="${c.rule ? "ln-rule" : ""}${c.slot ? " ln-slot" : ""}">${c.head}</th>`).join("");
+  const rows = [{ id: "before", mark: null }, ...S_OFFERED]
+    .map((r) => {
+      const cells = cols
+        .map((c) => {
+          const body = c.slot ? (r.mark ? sInk(s, r.mark, 16) : `<span class="ln-empty">envelope</span>`) : c.mark ? sInk(s, c.mark, c.size ?? 16) : gInk(s, c.g);
+          return `<td class="${c.rule ? "ln-rule" : ""}${c.slot ? " ln-slot" : ""}">${body}</td>`;
+        })
+        .join("");
+      return `<tr><th>${r.id}</th>${cells}</tr>`;
+    })
+    .join("");
+  return sTile(s, `<div class="scroll"><table class="ln"><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`);
+}
+
+// ---- The three candidates ---------------------------------------------------
+
+// The four ambers at 64 on one ground, in the order a card meets them.
+const ambersAt64 = (s, shield, stop) => {
+  const fig = (m, cap) => `<figure>${qInk(s.attention, m, 64)}<figcaption>${cap}</figcaption></figure>`;
+  return `<div class="dir-specimen" style="${sTokens(s)}">${fig(IDLE, "turn finished")}${fig(ASKS, "question")}${fig(shield, "approval")}${fig(stop, "stopped")}</div>`;
+};
+
+function sDirections() {
+  return `<div class="dirs">${S_OFFERED.map(
+    (c) => `<article class="dir">
+      <h3>${c.id}</h3>
+      <p class="dir-idea">${esc(c.idea)}</p>
+      ${ambersAt64(S_DARK, APPROVES, c.mark)}
+      ${ambersAt64(S_LIGHT, APPROVES, c.mark)}
+      <p>${esc(c.note)}.</p>
+      <p><b>Accepted cost:</b> ${esc(c.risk)}.</p>
+    </article>`,
+  ).join("")}</div>`;
+}
+
+function shDirections() {
+  return `<div class="dirs">${SH_ROWS.map(
+    (r) => `<article class="dir">
+      <h3>${r.id}</h3>
+      <p class="dir-idea">${esc(r.idea)}</p>
+      ${ambersAt64(S_DARK, r.mark, FLAG)}
+      ${ambersAt64(S_LIGHT, r.mark, FLAG)}
+      <p>${esc(r.note)}.</p>
+      ${r.cost ? `<p class="cost">To ship: ${esc(r.cost)}.</p>` : ""}
+    </article>`,
+  ).join("")}</div>`;
+}
+
+// ---- 12 and 16 beside the ambers -----------------------------------------------
+
+const S_SIZE_ROWS = S_OFFERED.map((c) => ({ id: c.id, set: [IDLE, ASKS, APPROVES, c.mark] }));
+const SH_SIZE_ROWS = SH_ROWS.map((r) => ({ id: r.id, set: [IDLE, ASKS, r.mark, FLAG] }));
+
+function sSizes(s, list) {
+  const set = (r, size, color) =>
+    `<span class="four">${r.set.map((m) => qInk(color, m, size, { resting: true })).join("")}</span>`;
+  const rows = list.map(
+    (c) => `<tr><th>${c.id}</th><td>${set(c, 16, s.attention)}</td><td>${set(c, 12, s.attention)}</td><td>${set(c, 16, s.fg)}</td><td>${set(c, 12, s.fg)}</td></tr>`,
+  ).join("");
+  return sTile(
+    s,
+    `<div class="scroll"><table class="sz"><thead><tr><th></th><th>16px</th><th>12px</th><th>16px, one neutral colour</th><th>12px, one neutral colour</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+  );
+}
+
+// ---- On a real card ------------------------------------------------------------
+
+// The chrome is read off TaskCard and its footers: `flex items-center gap-1.5`
+// title row, a 29px strip bled to the card edge, and a 12px footer. Titles carry
+// the real #993, #984 and #985 story from Kangentic #994. The strip on the third
+// card is added: those cards did not have automations paused, and it is there to
+// put Ban and the new mark together, because a stopped card can carry both.
+const stopCards = (stopMark) => [
+  { title: "Add the Goose adapter", id: 993, desc: "Turn finished. A column automation moves this card next.", mark: IDLE, foot: "model" },
+  { title: "Add the Aider adapter", id: 984, desc: "The review row spent its run limit, so nothing moves this card.", mark: stopMark, foot: "model", tip: true },
+  { title: "Add the Cursor adapter", id: 985, desc: "Stopped, and its automations are paused as well.", mark: stopMark, foot: "model", strip: true },
+  { title: "Sync the branding package", id: 454, desc: "Regenerating the activity set.", mark: WORKING, foot: "model" },
+  { title: "Run the database migration", id: 455, desc: "Suspended with the rest of the queue.", mark: null, foot: "paused" },
+];
+
+function stopCard(s, c) {
+  const strip = c.strip ? `<div class="c-strip">${gInk(s, CARD_GLYPHS.ban)}<span>Automations paused</span></div>` : "";
+  const mark = c.mark ? sInk(s, c.mark, CARD_SIZE) : "";
+  const foot =
+    c.foot === "paused"
+      ? `<div class="c-foot">${gInk(s, CARD_GLYPHS.paused)}<span>Paused</span></div>`
+      : `<div class="c-foot c-foot--usage"><span>Opus 5.5</span><span>42%</span><i></i></div>`;
+  const tip = c.tip
+    ? `<div class="c-tip">${sInk(s, c.mark, TOOLTIP_SIZE)}<span>Stopped. Back for revisions already ran 3 times, its limit.</span></div>`
+    : "";
+  return `<div class="c-wrap"><div class="c${s.id === "mobile" ? " c--phone" : ""}">${strip}<div class="c-hd">${mark}<span class="c-title">${esc(c.title)}</span><span class="c-id">#${c.id}</span></div><p class="c-desc">${esc(c.desc)}</p>${foot}</div>${tip}</div>`;
+}
+
+const cardColumns = (s, cols, cards) =>
+  sTile(
+    s,
+    `<div class="scroll"><div class="cols" style="--cols:${cols.length}">${cols
+      .map((col) => `<div class="col"><span class="lbl">${col.id}</span>${cards(col.mark).map((c) => stopCard(s, c)).join("")}</div>`)
+      .join("")}</div></div>`,
+  );
+
+function sCards(s) {
+  return cardColumns(s, [{ id: "before", mark: IDLE }, ...S_OFFERED.map((c) => ({ id: `after: ${c.id}`, mark: c.mark }))], stopCards);
+}
+
+// The four kinds of amber card on one board, so the shield is judged against the
+// three it has to differ from. The bubble is the card the maintainer named.
+const shieldCards = (shield) => [
+  { title: "Add the store screenshots", id: 452, desc: "Asks which device frames to use.", mark: ASKS, foot: "model" },
+  { title: "Run the database migration", id: 455, desc: "Waiting for you to approve the migration.", mark: shield, foot: "model" },
+  { title: "Add the Aider adapter", id: 984, desc: "The review row spent its run limit.", mark: FLAG, foot: "model" },
+  { title: "Add the Goose adapter", id: 993, desc: "Turn finished.", mark: IDLE, foot: "model" },
+];
+const shCards = (s) => cardColumns(s, SH_ROWS.map((r) => ({ id: r.id, mark: r.mark })), shieldCards);
+
+// ---- Beside the stop button ----------------------------------------------------
+
+function sButtons(s) {
+  const trio = (c, size) => `<span class="four">${[c.mark, STOP_BUTTON, PAUSE_BUTTON].map((m) => sInk(s, m, size)).join("")}</span>`;
+  const rows = S_OFFERED.map((c) => `<tr><th>${c.id}</th>${[16, CONTROL_RENDER_PX, 40].map((p) => `<td>${trio(c, p)}</td>`).join("")}</tr>`).join("");
+  return sTile(s, `<div class="scroll"><table class="sz"><thead><tr><th></th><th>16px</th><th>20px, the buttons' real size</th><th>40px</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+}
+
+// ---- Swapping in place -----------------------------------------------------------
+
+function sSwap(s) {
+  const cell = (c) => {
+    const seq = [WORKING, IDLE, c.mark];
+    return `<div class="swap-cell">
+      <span class="lbl">${c.id}</span>
+      <span class="frames">${seq.map((m) => sInk(s, m, 16)).join("")}</span>
+      <span class="swap" aria-label="animated swap">${seq.map((m) => `<span>${sInk(s, m, 16)}</span>`).join("")}</span>
+      <span class="swap swap--big">${seq.map((m) => `<span>${sInk(s, m, 40)}</span>`).join("")}</span>
+    </div>`;
+  };
+  return sTile(s, `<div class="stack">${S_OFFERED.map(cell).join("")}</div>`);
+}
+
+// ---- How far apart ----------------------------------------------------------------
+
+// How far apart two glyphs render at true size: the sum of |a - b| over the sum of
+// max(a, b) on the alpha channel. 0 is the same drawing and 1 shares no ink. It
+// lives here rather than in the lib because it needs sharp, and the lib is
+// imported by the deliberately dependency-free gate.
+//
+// It measures SHAPE and nothing else. Tone and motion separate the ring from an
+// amber mark on a real card, so a small number there is a real risk with motion
+// off or a neutral tone, not a defect in every view.
+const alphaOf = async (svg) => {
+  const { data } = await sharp(Buffer.from(svg.replace(/currentColor/g, "#000"))).ensureAlpha().extractChannel(3).raw().toBuffer({ resolveWithObject: true });
+  return data;
+};
+const inkDistance = (a, b) => {
+  let diff = 0;
+  let union = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff += Math.abs(a[i] - b[i]);
+    union += Math.max(a[i], b[i]);
+  }
+  return n2(diff / union);
+};
+const RING_SHAPE = { id: "ring", rest: REST_STATIC, ...solidRing() };
+const distanceTable = async (size) => {
+  const plain = (m) => markSvg(m, { size, resting: true });
+  const against = [
+    { id: "envelope", svg: plain(IDLE) },
+    { id: "bubble", svg: plain(ASKS) },
+    { id: "shield", svg: plain(APPROVES) },
+    { id: "ring", svg: plain(RING_SHAPE) },
+    { id: "Ban", svg: neighbourSvg("ban", { size }) },
+    { id: "CirclePause", svg: neighbourSvg("circle-pause", { size }) },
+    { id: "stop button", svg: plain(STOP_BUTTON) },
+  ];
+  const nb = await Promise.all(against.map(async (a) => ({ ...a, px: await alphaOf(a.svg) })));
+  const subjects = [
+    ...["envelope", "bubble", "shield"].map((id) => ({ id, group: "shipped", self: id, px: nb.find((x) => x.id === id).px })),
+    ...S_OFFERED.map((c) => ({ id: c.id, group: "offered", mark: c.mark })),
+    ...S_DROPPED.map((c) => ({ id: c.id, group: "dropped", mark: c.mark })),
+  ];
+  const rows = [];
+  for (const r of subjects) {
+    const px = r.px ?? (await alphaOf(plain(r.mark)));
+    const cells = nb.map((x) => (x.id === r.self ? null : inkDistance(px, x.px)));
+    const nearest = Math.min(...cells.filter((v) => v !== null));
+    rows.push({ ...r, cells, nearest });
+  }
+  return { size, against, rows };
+};
+const S_DIST = [await distanceTable(12), await distanceTable(16)];
+// Round 8: each shield against the three ambers it sits among, and the ring.
+const shieldDistance = async (size) => {
+  const plain = (m) => markSvg(m, { size, resting: true });
+  const against = [
+    { id: "bubble", svg: plain(ASKS) },
+    { id: "envelope", svg: plain(IDLE) },
+    { id: "flag", svg: plain(FLAG) },
+    { id: "ring", svg: plain(RING_SHAPE) },
+  ];
+  const nb = await Promise.all(against.map((a) => alphaOf(a.svg)));
+  const rows = [];
+  for (const r of SH_ROWS) {
+    const px = await alphaOf(plain(r.mark));
+    const cells = nb.map((x) => inkDistance(px, x));
+    rows.push({ id: r.id, group: r.group, cells, nearest: Math.min(...cells) });
+  }
+  return { size, against, rows };
+};
+const SH_DIST = [await shieldDistance(12), await shieldDistance(16)];
+const shippedFloor = (t) => Math.min(...t.rows.filter((r) => r.group === "shipped").flatMap((r) => r.cells.slice(0, 3).filter((v) => v !== null)));
+
+function sDistance(t) {
+  const floor = shippedFloor(t);
+  const head = t.against.map((a) => `<th>${a.id}</th>`).join("");
+  const rows = t.rows
+    .map((r) => {
+      const cells = r.cells
+        .map((v) => (v === null ? `<td class="d-self"></td>` : `<td class="${v === r.nearest ? "d-near" : ""}${v < floor ? " d-low" : ""}">${v.toFixed(2)}</td>`))
+        .join("");
+      return `<tr class="d-${r.group}"><th>${r.id}<span>${r.group === "offered" ? "selected" : r.group}</span></th>${cells}<td class="d-min">${r.nearest.toFixed(2)}</td></tr>`;
+    })
+    .join("");
+  return `<figure class="d-fig"><figcaption>${t.size}px. The closest pair of shipped ambers is ${floor.toFixed(2)}.</figcaption><div class="scroll"><table class="dist"><thead><tr><th></th>${head}<th>nearest</th></tr></thead><tbody>${rows}</tbody></table></div></figure>`;
+}
+
+// ---- Pixel truth ---------------------------------------------------------------------
+
+const S_ZOOM_ROWS = [
+  { id: "agent-idle", mark: IDLE },
+  { id: "agent-question", mark: ASKS },
+  { id: "agent-approval", mark: APPROVES },
+  ...S_OFFERED.map((c) => ({ id: c.id, mark: c.mark })),
+  { id: "dropped: octagon", mark: S_DROPPED.find((c) => c.id === "octagon").mark },
+  { id: "agent-working", mark: WORKING },
+];
+const sZooms = [];
+for (const g of [S_DARK, S_LIGHT, S_PHONE]) sZooms.push({ g, png: await qZoom(g, S_ZOOM_ROWS, "stopped") });
+const SH_ZOOM_ROWS = [
+  { id: "agent-question", mark: ASKS },
+  ...SH_ROWS.map((r) => ({ id: r.id, mark: r.mark })),
+  { id: "agent-idle", mark: IDLE },
+  { id: "agent-stopped", mark: FLAG },
+];
+const shZooms = [];
+for (const g of [S_DARK, S_LIGHT]) shZooms.push({ g, png: await qZoom(g, SH_ZOOM_ROWS, "shield") });
+
+// ---- Drawn and dropped ----------------------------------------------------------------
+
+// The dated record reads well in the lib and repeats itself on a page that already
+// says when, so the date and the shared opening come off here.
+const dropReason = (c) => {
+  const text = c.retired.replace(/^2026-11-04: (dropped before review\. )?/, "");
+  return `${text[0].toUpperCase()}${text.slice(1)}`;
+};
+
+function sDropped(list) {
+  const s = S_DARK;
+  return `<div class="dropped">${list.map(
+    (c) => `<article class="drop" style="${sTokens(s)}">
+      <div class="drop-spec">${qInk(s.attention, c.mark, 48, { resting: true })}${qInk(s.attention, c.mark, 16, { resting: true })}${qInk(s.attention, c.mark, 12, { resting: true })}</div>
+      <div class="drop-txt"><h3>${c.id}</h3><p>${esc(dropReason(c))}.</p></div>
+    </article>`,
+  ).join("")}</div>`;
+}
+
+const sPage = `<title>Agent stopped mark</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column of sections; each specimen is a tile painted in a
+   consumer surface's real tokens, so tiles keep their ground in either page theme. */
+:root {
+  --bg: #fdfbf7;
+  --surface: #f6f1e8;
+  --fg: #24201b;
+  --soft: #6e6659;
+  --rule: rgba(36, 32, 27, 0.16);
+  --accent: #c0562f;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #1d1915; --surface: #262019; --fg: #f3ede3; --soft: #b5a892; --rule: rgba(243, 237, 227, 0.14); --accent: #e07a52; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #1d1915; --surface: #262019; --fg: #f3ede3; --soft: #b5a892; --rule: rgba(243, 237, 227, 0.14); --accent: #e07a52; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 48px; }
+.wrap > * { min-width: 0; }
+header { display: grid; gap: 12px; max-width: 70ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-size: clamp(30px, 5vw, 44px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-size: 24px; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--mono); font-size: 14px; font-weight: 500; margin: 0; }
+p { margin: 0; }
+.lede { color: var(--soft); }
+.lede b { color: var(--fg); }
+section { display: grid; gap: 16px; min-width: 0; }
+section > p { max-width: 70ch; color: var(--soft); }
+section > p b { color: var(--fg); }
+.scroll { overflow-x: auto; }
+.ink { display: inline-flex; flex: none; }
+.ink svg { display: block; }
+.s-spin svg { animation: s-spin 1s linear infinite; }
+@keyframes s-spin { to { transform: rotate(360deg); } }
+.tile { background: var(--t-bg); color: var(--t-fg); border-radius: 8px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.tile-hd { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: 12px; color: var(--t-soft); }
+.tile-hd b { color: var(--t-fg); font-weight: 500; }
+.lbl { font-family: var(--mono); font-size: 12px; color: var(--t-soft); }
+.stackt { display: grid; gap: 16px; }
+
+/* the inventory */
+.inv { border-collapse: collapse; width: 100%; font-size: 14px; }
+.inv td { padding: 8px 12px; border-top: 1px solid var(--rule); vertical-align: middle; }
+.inv-g { width: 112px; text-align: center; }
+.inv-g .ink { vertical-align: middle; }
+.inv-n { font-family: var(--mono); font-size: 12px; color: var(--soft); white-space: nowrap; }
+.inv-slot th { text-align: left; font-weight: 400; padding: 20px 0 8px; }
+.inv-slot b { display: block; font-family: var(--display); font-size: 17px; }
+.inv-slot span { color: var(--soft); font-size: 14px; }
+.inv-new td:not(.inv-g) { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.trio { display: inline-flex; gap: 10px; align-items: center; }
+
+/* the lineup */
+.ln { border-collapse: collapse; font-family: var(--mono); font-size: 11px; color: var(--t-soft); }
+.ln th, .ln td { padding: 8px 10px; text-align: center; vertical-align: middle; font-weight: 400; }
+.ln thead th { vertical-align: bottom; line-height: 1.25; min-width: 58px; }
+.ln tbody th { text-align: left; color: var(--t-fg); white-space: nowrap; padding-left: 0; }
+.ln-rule { border-left: 1px solid var(--t-edge); }
+.ln-slot { background: color-mix(in srgb, var(--t-soft) 16%, transparent); color: var(--t-fg); }
+.ln-empty { font-size: 10px; opacity: 0.75; }
+
+/* the candidates */
+.dirs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 24px; }
+.dir { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.dir h3 { font-size: 16px; }
+.dir p { font-size: 14px; color: var(--soft); }
+.dir p b { color: var(--fg); font-weight: 600; }
+.dir-idea { font-family: var(--display); font-size: 18px !important; color: var(--fg) !important; }
+.dir .cost { font-family: var(--mono); font-size: 12px; color: var(--fg); }
+.dir-specimen { background: var(--t-panel); border-radius: 8px; padding: 12px 8px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.dir-specimen figure { margin: 0; display: grid; justify-items: center; gap: 4px; min-width: 0; }
+.dir-specimen svg { width: 100%; max-width: 64px; height: auto; }
+.dir-specimen .ink { width: 100%; max-width: 64px; }
+.dir-specimen figcaption { font-family: var(--mono); font-size: 10px; color: var(--t-soft); text-align: center; }
+
+/* sizes */
+.sz { border-collapse: collapse; font-family: var(--mono); font-size: 12px; color: var(--t-soft); }
+.sz th, .sz td { padding: 8px 20px 8px 0; text-align: left; font-weight: 400; vertical-align: middle; white-space: nowrap; }
+.sz tbody th { color: var(--t-fg); }
+.four { display: inline-flex; align-items: center; gap: 10px; }
+
+/* the card */
+.cols { display: grid; grid-template-columns: repeat(var(--cols), minmax(232px, 1fr)); gap: 14px; }
+.col { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.c-wrap { display: grid; gap: 4px; min-width: 0; }
+.c { background: var(--t-panel); border: 1px solid var(--t-edge); border-radius: 6px; padding: 10px; min-width: 0; overflow: hidden; }
+.c--phone { border-radius: 10px; padding: 12px; }
+.c-strip { display: flex; align-items: center; gap: 5px; height: 29px; margin: -10px -10px 8px; padding: 0 10px; border-bottom: 1px solid var(--t-edge); background: color-mix(in srgb, var(--t-bg) 30%, transparent); font-size: 12px; color: var(--t-soft); }
+.c--phone .c-strip { margin: -12px -12px 8px; padding: 0 12px; }
+.c-hd { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.c--phone .c-hd { gap: 8px; }
+.c-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.c--phone .c-title { font-size: 15px; font-weight: 600; }
+.c-id { font-family: var(--mono); font-size: 12px; color: var(--t-soft); }
+.c-desc { font-size: 12px; color: var(--t-faint); margin-top: 4px; line-height: 1.35; }
+.c-foot { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--t-edge); display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--t-faint); }
+.c-foot--usage { display: grid; grid-template-columns: 1fr auto; gap: 4px; }
+.c-foot--usage i { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--t-soft) 42%, var(--t-edge) 42%); opacity: 0.8; }
+.c-tip { display: inline-flex; align-items: center; gap: 6px; justify-self: start; max-width: 100%; padding: 6px 8px; border: 1px solid var(--t-edge); border-radius: 6px; background: var(--t-bg); font-size: 12px; color: var(--t-soft); }
+
+/* swap */
+.stack { display: grid; gap: 14px; }
+.swap-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
+.swap-cell .lbl { min-width: 72px; }
+.frames { display: inline-flex; gap: 10px; }
+.swap { position: relative; display: inline-flex; }
+.swap > span { position: absolute; inset: 0; opacity: 0; animation: q-swap 4.2s steps(1, end) infinite; }
+.swap > span:first-child { position: relative; }
+.swap > span:nth-child(2) { animation-delay: -2.8s; }
+.swap > span:nth-child(3) { animation-delay: -1.4s; }
+@keyframes q-swap { 0% { opacity: 1; } 33.333% { opacity: 0; } 100% { opacity: 0; } }
+
+/* distance */
+.d-fig { margin: 0; display: grid; gap: 8px; min-width: 0; }
+.d-fig figcaption { font-family: var(--mono); font-size: 12px; color: var(--soft); }
+.dist { border-collapse: collapse; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.dist th, .dist td { padding: 6px 12px; text-align: right; font-weight: 400; border-top: 1px solid var(--rule); color: var(--soft); }
+.dist thead th { border-top: 0; vertical-align: bottom; }
+.dist tbody th { text-align: left; color: var(--fg); white-space: nowrap; padding-left: 0; }
+.dist tbody th span { display: block; font-size: 10px; color: var(--soft); }
+.dist .d-near { color: var(--fg); font-weight: 500; }
+.dist .d-low { color: var(--accent); font-weight: 500; }
+.dist .d-min { color: var(--fg); border-left: 1px solid var(--rule); }
+.d-offered th, .d-offered td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+
+/* dropped */
+.dropped { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.drop { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; background: var(--surface); border-radius: 8px; padding: 12px; }
+.drop-spec { display: inline-flex; align-items: center; gap: 8px; background: var(--t-panel); border-radius: 6px; padding: 8px; }
+.drop-txt { display: grid; gap: 4px; min-width: 0; }
+.drop-txt p { font-size: 13px; color: var(--soft); }
+
+.zoom { display: grid; gap: 16px; }
+.zoom img { display: block; max-width: 100%; height: auto; border-radius: 8px; image-rendering: pixelated; }
+.zoom figure { margin: 0; overflow-x: auto; }
+footer { font-family: var(--mono); font-size: 12px; color: var(--soft); }
+@media (prefers-reduced-motion: reduce) {
+  .swap > span { animation: none; }
+  .swap > span:first-child { opacity: 1; }
+  .s-spin svg { animation: none; }
+}
+${motionCss()}
+</style>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">activity marks / Kangentic #994</span>
+    <h1>Agent stopped mark</h1>
+    <p class="lede">A fourth amber mark for a card the board has stopped: <b>the agent finished, and nothing will move this card until a person acts</b>. Nothing went wrong, so it must not read as a failure. It also must not read as the stop button.</p>
+    <p class="lede"><b>The flag is selected.</b> It joins the set as <b>agent-stopped</b>, the twelfth mark. It is an outline with no ring, no fill and no centred glyph, which keeps it away from the stop button.</p>
+    <p class="lede"><b>The shield is quartered.</b> The envelope and the bubble read apart because of the line inside the box. The bubble and the shield did not, because both were an empty outline with a small point at the bottom. So <b>agent-approval</b> now has two opposite quarters solid. Its outline has not changed.</p>
+    <p class="lede">The counting surfaces do not change. The desktop sidebar and the Agent Monitor keep one idle count drawn with the envelope, as round 6 decided, so a stopped agent counts there like any other idle one.</p>
+  </header>
+
+  <section>
+    <h2>The shield, before and after</h2>
+    <p>Solid against empty is the strongest interior a mark can have, and the bubble is empty. The quartering is a heraldic division, drawn on this shield with its outline unchanged.</p>
+    ${shDirections()}
+    <p><b>The cost is weight.</b> The quartered shield carries about 40% more ink than the envelope, so it goes from the lightest amber mark to the heaviest. Round 2 called a fully solid bubble too loud, and this is half of that.</p>
+    <div class="stackt">${[S_DARK, S_LIGHT, S_PHONE, S_WEB].map((s) => sSizes(s, SH_SIZE_ROWS)).join("")}</div>
+  </section>
+
+  <section>
+    <h2>The shield on a real card</h2>
+    <p>All four amber states on one board, before and after, with #452 the bubble the shield has to differ from.</p>
+    <div class="stackt">${shCards(S_DARK)}${shCards(S_LIGHT)}${shCards(S_PHONE)}</div>
+  </section>
+
+  <section>
+    <h2>The shield in true pixels</h2>
+    <p>Before and after, rasterized at true size and enlarged eight times, between the bubble and the two other ambers.</p>
+    <div class="zoom">${shZooms
+      .map(({ g, png }) => `<figure><img src="data:image/png;base64,${png.toString("base64")}" alt="${g.label} pixel-truth enlargement of the shield options beside the other ambers"></figure>`)
+      .join("")}</div>
+  </section>
+
+  <section>
+    <h2>How far the shield moved</h2>
+    <p>This uses the same measure as the flag table further down, with 0 the same drawing and 1 sharing no ink. It can rule a drawing out and it cannot choose one: the band moved the shield further from both the bubble and the envelope, and it still looked like an acorn.</p>
+    <div class="stackt">${SH_DIST.map(sDistance).join("")}</div>
+  </section>
+
+  <section>
+    <h2>The shield needs no code change</h2>
+    <p>The desktop picks it up with the package, and the phone with its next branding sync. The solid parts are drawn as overlapping strokes in one path, not as a fill. The phone's branding sync refuses a path with its own fill, so a real fill would have stopped its next package update. Compared with a true fill, the strokes leave no seams at any size and differ by about 1% at indicator sizes. The one visible difference is a slightly rounded inner corner where the quarters meet, at 48px and up.</p>
+  </section>
+
+  <section>
+    <h2>The shields not chosen</h2>
+    <p>Every line, including the band, every outline-only idea, and half solid. Each keeps its reason in the record.</p>
+    ${sDropped(SH_DROPPED)}
+  </section>
+
+  <section>
+    <h2>Every glyph a card can show</h2>
+    <p>Read off the desktop and phone card code, on the two desktop grounds, at the size each one really renders. Five of these are circles, and the working ring makes six, so a round mark would have no room on a card however it was drawn. <b>Ban is the closest neighbour in meaning.</b> It already says the board will not move this card, for a hold a person chose. The new mark says the same for a hold the board reached by itself.</p>
+    ${sInventory()}
+  </section>
+
+  <section>
+    <h2>The full lineup</h2>
+    <p>Every neighbour in one row, before and after, with the flag standing in the stopped slot. Status marks are at 16, the quiet glyphs at their real 12, and the stop button at its real 20. The phone draws fewer glyphs, so its row is shorter.</p>
+    <div class="stackt">${sLineup(S_DARK)}${sLineup(S_LIGHT)}${sLineup(S_PHONE)}</div>
+  </section>
+
+  <section>
+    <h2>The flag</h2>
+    <p>At 64px with the three ambers it joins, on the dark and the light card ground.</p>
+    ${sDirections()}
+  </section>
+
+  <section>
+    <h2>12px and 16px beside the three ambers</h2>
+    <p>Envelope, bubble, shield, flag, at the sizes the brief names, on all four surfaces. The two right columns drop the colour, because all four marks share one amber and shape has to do the work alone. The light desktop card is the hardest case: it paints the same amber on near-white.</p>
+    <div class="stackt">${[S_DARK, S_LIGHT, S_PHONE, S_WEB].map((s) => sSizes(s, S_SIZE_ROWS)).join("")}</div>
+  </section>
+
+  <section>
+    <h2>On a real card</h2>
+    <p>The Code Review column from #984, before and after, with real card chrome and tokens. #993 is a finished turn that an automation will move. #984 is stopped, and its tip is shown open; the tip's words are a placeholder until #994 settles them. #985 adds the Automations paused strip so Ban and the new mark are judged as a pair. Before, #984 and #985 wear the same envelope as #993.</p>
+    <div class="stackt">${sCards(S_DARK)}${sCards(S_LIGHT)}${sCards(S_PHONE)}</div>
+  </section>
+
+  <section>
+    <h2>Beside the stop button</h2>
+    <p>The flag next to the stop and pause controls, which are amber too. The 16px column is stricter than any real screen, because the controls render at 20 and never share a row with a status mark.</p>
+    <div class="stackt">${sButtons(S_DARK)}${sButtons(S_LIGHT)}</div>
+  </section>
+
+  <section>
+    <h2>Swapping in place</h2>
+    <p>The status slot flips its mark where it sits: working, then a finished turn, then stopped once the board has nothing left to run. The frames are still; the next two cells cycle at 16 and 40.</p>
+    ${sSwap(S_DARK)}
+  </section>
+
+  <section>
+    <h2>How far apart they render</h2>
+    <p>This measures shape alone, with colour and motion removed. 0 is the same drawing and 1 shares no ink. <b>A new mark should sit at least as far from its nearest neighbour as the shipped ambers sit from each other.</b> Figures in the accent colour fall short of that. The shield's one low figure is against the ring, and on a real card tone and motion separate those two. The octagons are low against both the ring and the shield, and the shield is the same amber and just as still, so nothing else would separate them.</p>
+    <div class="stackt">${S_DIST.map(sDistance).join("")}</div>
+  </section>
+
+  <section>
+    <h2>Pixel truth</h2>
+    <p>Each mark rasterized at true size and enlarged eight times, so these are the real pixels. They come from librsvg, so a true-size band above is the authority on how Chromium paints a mark.</p>
+    <div class="zoom">${sZooms
+      .map(({ g, png }) => `<figure><img src="data:image/png;base64,${png.toString("base64")}" alt="${g.label} pixel-truth enlargement of the ambers and candidates at 12 to 16 pixels"></figure>`)
+      .join("")}</div>
+  </section>
+
+  <section>
+    <h2>The stopped marks not chosen</h2>
+    <p>Hand and person reached review with the flag. The other five came out on the true-pixel sheet first. The ring-based and control-shaped ideas were never drawn, because five of a card's glyphs are already circles and the stop button is a ring around a square.</p>
+    ${sDropped(S_DROPPED)}
+  </section>
+
+  <footer>Generated by scripts/gen-activity.mjs from scripts/lib/activity.mjs, where every candidate is recorded with its reason (STOPPED_CANDIDATES, APPROVAL_CANDIDATES). The lucide glyphs are lucide-react 1.61.0, as the desktop installs it.</footer>
+</div>
+`;
+await writeFile(join(OUT, "stopped.html"), sPage);
+console.log(`Wrote the stopped round (${S_OFFERED.length} selected, ${S_DROPPED.length} not chosen) and the shield's line (${SH_ROWS.length} options) -> exploration/activity/stopped.html + _stopped-zoom-*.png + _shield-zoom-*.png`);
