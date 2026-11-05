@@ -79,6 +79,16 @@
       "reducedMotion": "static",
       "minPx": 12
     },
+    "agent-stopped": {
+      "file": "agent-stopped.svg",
+      "silhouette": "flag",
+      "state": "waiting",
+      "role": "stopped, needs you",
+      "tone": "attention",
+      "motion": null,
+      "reducedMotion": "static",
+      "minPx": 12
+    },
     "terminal-idle": {
       "file": "terminal-idle.svg",
       "silhouette": "terminal",

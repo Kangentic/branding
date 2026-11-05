@@ -14,12 +14,17 @@
 // its ink box, corner radius, stroke, flap, dash and motion. The consuming apps
 // still depend on an icon library for their several hundred OTHER icons, and
 // that is untouched - this set is additive and owns only the activity marks.
-// The one library path in this file is ARC_D, used solely by BASELINE to draw
-// what ships today for comparison.
+// The library paths in this file are comparison data and never reach assets/:
+// BASELINE's ARC_D and mail flap draw what shipped before this set, and
+// CARD_NEIGHBOURS draws the glyphs a card renders beside these marks.
+//
+// Corrected 2026-11-04. This said ARC_D was the one library path, which
+// BASELINE's own mail flap had already made false.
 //
 // The set SHIPS. Direction d1 was picked from exploration/activity/compare.html
-// and promoted, and eleven marks live in assets/activity/ today (nine until
-// agent-question and agent-approval joined on 2026-10-29). The `draft: true`
+// and promoted, and twelve marks live in assets/activity/ today (nine until
+// agent-question and agent-approval joined on 2026-10-29, eleven until
+// agent-stopped joined on 2026-11-04). The `draft: true`
 // entries below are the directions and envelope boxes that LOST, kept with their
 // dated reasons rather than deleted, per .claude/rules/activity-icon-geometry.md,
 // so a later change re-argues them from the record instead of from scratch.
@@ -1202,6 +1207,10 @@ export const QUESTION_DEFAULT = "bubble-open";
 //   - a crescent moon: its horns cannot reach x 21, so it cannot sit on the
 //     indicator keyline without an exemption;
 //   - pause bars or a stop square: the control marks' own glyphs.
+//
+// TURN_FLAG_D outlived this round: agent-stopped ships it (round 7), so it is live
+// geometry even though the `flag` candidate below stays retired for the finished
+// turn.
 export const TURN_CHECK_D = "M3 13 L9 19 L21 7";
 export const TURN_FLAG_D = "M3 21 V3 H21 L17 8 L21 13 H3";
 export const TURN_CANDIDATES = [
@@ -1317,6 +1326,8 @@ export const turnEnd = (id) => {
 // ---------------------------------------------------------------------------
 // Round 4, 2026-10-29: agent-approval. SELECTED 2026-10-29 at maintainer
 // sign-off: `shield-crest-tall`, the crested shield at 18 x 20 (round 5).
+// Superseded 2026-11-05 by `shield-quartered` (round 8), which is this shield with
+// two quarters solid. The outline below still ships, byte for byte.
 //
 // What decided it, from the round-5 page: of the three proportions, the tall
 // one carries lucide's definition best, with longer straight sides and the
@@ -1402,6 +1413,89 @@ export const LOCK = { body: { y0: 11, y1: 21 }, shackle: { halfW: 4.5, top: 3 } 
 // edge where the clip tab sits, so no line runs through the tab.
 export const CLIPBOARD = { board: { y0: 5, y1: 21 }, tab: { x0: 8, x1: 16, y0: 3, y1: 7, r: 1 } };
 
+// Round 8, 2026-11-04: making the shield differ from the bubble at first glance.
+// SELECTED 2026-11-05 at maintainer sign-off: `shield-quartered`, over half solid
+// and over keeping the shield as it shipped. Opened by the maintainer on the
+// round-7 page, who read the two as too alike.
+//
+// The first pass was a line through the shield, which the maintainer suggested.
+// The band won that pass, and the maintainer asked if it should sit higher. The
+// numbers said y 13: one solid row at 12px, the sharpest height across every
+// display, 0.66 from the bubble, and it lifted the closest amber pair at 16px from
+// 0.56 to 0.61. Then the maintainer looked at it and said it looked like an acorn.
+//
+// That is the limit of the distance measure, so it is recorded here. Distance says
+// two drawings differ. It cannot say what either one looks like. It can rule a mark
+// out, and it cannot select one.
+//
+// The second pass drew new outlines, on this file's own theory that a silhouette
+// problem needs a silhouette answer. That theory was wrong, and the maintainer said
+// why: the envelope and the bubble read apart BECAUSE of the line inside the box,
+// and the bubble and the shield are weak because they lean on shape alone. Both are
+// empty. So the fix was interior after all, and the band failed for what it looked
+// like, not for being inside. The third pass took that up with solid against empty,
+// which is the most contrast an interior can have, on a quartered reference the
+// maintainer supplied.
+//
+// What it cost, accepted at sign-off: about 40% more rendered ink than the envelope,
+// so the shield went from the lightest amber mark to the heaviest. Round 2 called a
+// fully solid bubble too loud; this is half of that.
+//
+// This reopens round 5's `shield-crest-tall` on new information, which is the bar
+// CLAUDE.md sets. Round 5 was judged from zoom sheets that never showed pixels
+// (see pixelTile in gen-activity.mjs), and on the corrected sheet the crest flattens
+// at 12px and leaves only the point. The bubble and the shield are also the closest
+// shipped amber pair at 16px, 0.56 on the round-7 page.
+//
+// Round 5 said one straight stroke is a far smaller ask of 12px than a glyph, and
+// it retired `shield-half` only because the outline had taken the definition
+// instead. So a line is not ruled out by rounds 1 and 2, and these are one idea
+// each: the same shield with one stroke, placed three ways, with the straight line
+// as a control. A check stays ruled out, because it reads as already approved.
+//
+// Every line starts and ends on the outline's centreline, so its round caps vanish
+// into the outline's stroke.
+export const SHIELD_CREST_TALL = { crest: { peak: 2, corner: 5 }, x0: 3, x1: 21, shoulder: 11, tip: 22 };
+// The second pass's outlines. The heater lifts the shoulder, so the taper starts
+// almost at the top. The wedge goes further and runs straight to the point. The
+// badge inverts the top: the corners rise to ears and the edge dips between them,
+// and the body narrows under the ears so the width on the keyline is theirs alone.
+export const SHIELD_HEATER_SHOULDER = 6;
+export const SHIELD_WEDGE = { waist: 7 };
+export const SHIELD_BADGE = { ear: 3, dip: 5, bodyX: 5, waist: 8, tip: 22 };
+// A shield boss: a solid disc on the shield's optical centre, a rect rounded into a
+// disc because that is the one filled shape every consumer draws the same way.
+export const SHIELD_BOSS = { cy: 11, r: 3 };
+// Where a solid shield divides. A solid edge is the reverse of a stroke: it is
+// sharpest exactly ON a pixel boundary, and y 12 lands on one at 12px and 16px at
+// dpr 1, where a stroke on the same coordinate straddles.
+//
+// Solid regions are STROKES, not `fill`, and that is the load-bearing decision here.
+// kangentic-mobile's syncBranding.mjs throws on a path that carries its own fill,
+// because its renderer draws fill on a rect only, so a filled path would stop the
+// phone's next package sync and turn this into cross-repo work. A column of strokes
+// inside one <path> is painted as a single shape, so overlapping columns leave no
+// seams, and no consumer needs to change. It is the method round 2's solid bubble
+// used for its tail. COLUMNS is the pitch: 1.6 apart on a 2 stroke, so they overlap,
+// and the column on x 11 puts its edge exactly on x 12.
+export const SHIELD_SOLID = { split: 12, columns: [11, 9.4, 7.8, 6.2, 4.6] };
+// The rubber stamp: a knob on a neck over a base plate, with a printed line under.
+export const STAMP = { base: { y0: 13, y1: 18, r: 2 }, neckHalfW: 2, neckY: 9, knobR: 3.5, line: { y: 21, inset: 3 } };
+export const SHIELD_LINES = {
+  // A heraldic bend: from the left side down across the field to the right base.
+  sash: { from: 8, to: 17, r: 20 },
+  // A heraldic fess, sagging: side to side, below the crest. `y` is where it meets
+  // the shield's straight sides, so y + sag is its lowest point, the one place a
+  // curve runs level and the pixel lattice has anything to say about it.
+  band: { y: 10, sag: 4 },
+  "band-9": { y: 9, sag: 4 },
+  "band-8": { y: 8, sag: 4 },
+  "band-7": { y: 7, sag: 4 },
+  "band-8-shallow": { y: 8, sag: 3 },
+  // Peak to point on two arcs of opposite sweep, so the line itself is the curve.
+  spine: { sag: 2 },
+};
+
 export const APPROVAL_CANDIDATES = [
   {
     id: "shield",
@@ -1422,8 +1516,9 @@ export const APPROVAL_CANDIDATES = [
   {
     id: "shield-crest-tall",
     round: 5,
-    selected: "2026-10-29",
-    shield: { crest: { peak: 2, corner: 5 }, x0: 3, x1: 21, shoulder: 11, tip: 22 },
+    draft: true,
+    retired: "2026-11-05: superseded by shield-quartered, which is this shield with two quarters solid. Selected 2026-10-29, and its outline still ships unchanged",
+    shield: SHIELD_CREST_TALL,
     note: "the same construction at 18 x 20: a unit of overshoot at the top and the point, the way a pointed letterform overshoots the baseline. Longer sides, a sharper point; it draws a unit taller than its siblings",
     cost: "as the shield. No gate checks height, but the rule's 18 slot would need the overshoot recorded",
   },
@@ -1459,20 +1554,253 @@ export const APPROVAL_CANDIDATES = [
     note: "a clipboard: something to review and sign off, which is plan approval most literally. The risk is its footprint: a rounded box the envelope's size, told apart by the clip tab alone",
     cost: "none beyond the bubble's path support",
   },
+  {
+    id: "shield-sash",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: lost to the band at review, and the maintainer then set lines aside. The sash barely moved the shield from the bubble, 0.60 at 12px and 0.57 at 16px",
+    shield: { ...SHIELD_CREST_TALL, line: "sash" },
+    idea: "a sash",
+    note: "one curved stroke falling across the shield from the left side to the right base: a heraldic bend, and the only asymmetric shield here",
+    cost: "as the shield, plus one interior arc",
+  },
+  {
+    id: "shield-band",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: rejected at review with the rest of the band family, which the maintainer said looked like an acorn. Its lowest point on y 14 also lands on a pixel boundary at 12px, so it blurs across two rows",
+    shield: { ...SHIELD_CREST_TALL, line: "band" },
+    idea: "a band",
+    note: "one curved stroke from side to side, sagging across the field",
+    cost: "as the shield, plus one interior arc",
+  },
+  {
+    id: "shield-band-9",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: rejected at review, where the maintainer said it looked like an acorn. It had the best numbers of the band family, which is why the round now records what the distance measure cannot see",
+    shield: { ...SHIELD_CREST_TALL, line: "band-9" },
+    idea: "a band",
+    note: "one curved stroke from side to side, its lowest point on y 13: the sharpest height, and the highest that stays clear of the envelope",
+    cost: "as the shield, plus one interior arc",
+  },
+  {
+    id: "shield-band-8",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: dropped on measurement. Its lowest point on y 12 blurs across two rows at 12px, the softest height of the four, and it falls to 0.49 from the envelope at 12px",
+    shield: { ...SHIELD_CREST_TALL, line: "band-8" },
+    idea: "a band, two units higher",
+    note: "the band with its lowest point on y 12",
+    cost: "as the shield, plus one interior arc",
+  },
+  {
+    id: "shield-band-7",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: dropped on measurement. It is crisp at 12px, but it sits where the envelope's flap sits: 0.44 from the envelope at 12px, and at that size it reads as an envelope with a crest",
+    shield: { ...SHIELD_CREST_TALL, line: "band-7" },
+    idea: "a band, three units higher",
+    note: "the band with its lowest point on y 11",
+    cost: "as the shield, plus one interior arc",
+  },
+  {
+    id: "shield-band-8-shallow",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: dropped on measurement. A flatter curve is closer still to the flap: 0.46 from the envelope at 12px",
+    shield: { ...SHIELD_CREST_TALL, line: "band-8-shallow" },
+    idea: "a band, higher and flatter",
+    note: "the band with its lowest point on y 11 and a shallower curve",
+    cost: "as the shield, plus one interior arc",
+  },
+  {
+    id: "shield-spine",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: dropped before review. Its sag is 2 units, so 1px at 12px, and the S renders as a smear. Distance 0.55 from the envelope at 12px, under the 0.57 the shipped ambers hold",
+    shield: { ...SHIELD_CREST_TALL, line: "spine" },
+    idea: "a spine",
+    note: "one S-curved stroke from the peak to the point, so the curve runs down the shield's own axis",
+    cost: "as the shield, plus two interior arcs",
+  },
+  {
+    id: "shield-pale",
+    round: 8,
+    draft: true,
+    retired: "2026-11-04: dropped before review. Its stroke sits on x 12, which straddles two pixel columns at 12px and 16px at dpr 1, so it paints a soft 2px bar. Distance 0.54 from the envelope at 12px, under the 0.57 the shipped ambers hold",
+    shield: { ...SHIELD_CREST_TALL, half: true },
+    idea: "the straight control",
+    note: "round 5's straight stroke from peak to point, on the tall shield it was never drawn on, as the control for the curved lines",
+    cost: "as the shield, plus one interior line",
+  },
+  // The second pass. Each is one idea, and none of them is a line.
+  {
+    id: "shield-heater",
+    round: 8,
+    pass: 2,
+    draft: true,
+    retired: "2026-11-04: dropped before review. A sharper taper still leaves an empty outline beside an empty bubble, which is the maintainer's complaint: the envelope separates because of what is inside the box",
+    shield: { ...SHIELD_CREST_TALL, shoulder: SHIELD_HEATER_SHOULDER },
+    idea: "a sharper taper",
+    note: "the same shield with its sides gone: it curves in from the top corners to the point, so the lower half stops being a box",
+    cost: "the same outline vocabulary, so no gate change",
+  },
+  {
+    id: "shield-wedge",
+    round: 8,
+    pass: 2,
+    draft: true,
+    retired: "2026-11-04: dropped before review. It stops reading as a shield and reads as a downward triangle or a guitar pick",
+    idea: "a straight taper",
+    note: "the sides run straight from just under the corners to the point: the bubble's opposite, wide at the top and nothing at the bottom",
+    cost: "the same outline vocabulary, so no gate change",
+  },
+  {
+    id: "shield-badge",
+    round: 8,
+    pass: 2,
+    draft: true,
+    retired: "2026-11-04: dropped before review. The ears scored best on distance and look like a torn shape rather than a shield, another case of the measure not seeing the drawing",
+    idea: "ears",
+    note: "the top inverts: the corners rise to two points and the edge dips between them, over a narrower body. Three points where the bubble has four rounded corners",
+    cost: "the same outline vocabulary, so no gate change. Only the ears reach the keyline",
+  },
+  // The third pass, on the maintainer's read of what already works: the envelope
+  // and the bubble separate because of the line inside the box, and the question
+  // and the approval are weak because they lean on shape alone. Solid against empty
+  // is the most contrast an interior can have. The quartering follows a reference
+  // the maintainer supplied; it is a generic heraldic division, drawn here on this
+  // set's own shield, and nothing is traced from the reference.
+  {
+    id: "shield-quartered",
+    round: 8,
+    pass: 3,
+    selected: "2026-11-05",
+    shield: { ...SHIELD_CREST_TALL, fill: "quartered" },
+    idea: "quartered",
+    note: "two opposite quarters solid, the classic heraldic division: solid against empty, on the shield's own outline",
+    cost: "one interior path of strokes, so no gate change and no consumer change. The outline does not change",
+  },
+  {
+    id: "shield-half-low",
+    round: 8,
+    pass: 3,
+    draft: true,
+    retired: "2026-11-04: dropped before review. With the split level across it, the lower half reads as a battery or a filling glass",
+    shield: { ...SHIELD_CREST_TALL, fill: "lower" },
+    idea: "base solid",
+    note: "the lower half solid, weight at the point, which is the part of the shield the bubble does not have",
+    cost: "one interior path of strokes, so no gate change and no consumer change",
+  },
+  {
+    id: "shield-half-fill",
+    round: 8,
+    pass: 2,
+    draft: true,
+    retired: "2026-11-05: the maintainer chose quartered, from a reference they supplied. Half solid was the calmer of the two and a touch cleaner at 12px",
+    shield: { ...SHIELD_CREST_TALL, halfFill: true },
+    idea: "half solid",
+    note: "the left half painted solid, the idea behind the phone's permission-card glyph. Solid is the channel that survives the smallest sizes, and the bubble is empty",
+    cost: "one interior path of strokes, so no gate change and no consumer change. Round 2 called a fully solid bubble too loud, and this is half of that",
+  },
+  {
+    id: "shield-boss",
+    round: 8,
+    pass: 2,
+    draft: true,
+    retired: "2026-11-04: dropped before review. It reads as an eye, and it is the only drawing here that moves closer to the envelope, 0.53 at 12px, under the 0.57 the shipped ambers hold",
+    shield: { ...SHIELD_CREST_TALL, boss: true },
+    idea: "a solid centre",
+    note: "the shield unchanged with a solid disc on its centre, a shield boss. Present versus absent survives any size, which is the record d4b left",
+    cost: "one filled rect, the shape every consumer already draws. d4b lost as a bullseye on a ring, and a shield is not a ring, but that is the risk to look for",
+  },
+  {
+    id: "stamp",
+    round: 8,
+    pass: 2,
+    draft: true,
+    retired: "2026-11-04: dropped before review. Good at 64px and mud at 12px, where the base plate and its printed line merge into a block",
+    idea: "a stamp of approval",
+    note: "a rubber stamp over its printed line: a different object altogether, and the most literal drawing of approval there is. It leaves the permission vocabulary the phone's card speaks",
+    cost: "no gate change: the outline is the base plate's rect. It replaces the silhouette rather than adjusting it",
+  },
 ];
 
 // Promotion is setting this and deleting the candidate's `draft` flag, the way
 // QUESTION_DEFAULT and ENVELOPE_DEFAULT work. Every other candidate keeps its
 // dated reason.
-export const APPROVAL_DEFAULT = "shield-crest-tall";
+export const APPROVAL_DEFAULT = "shield-quartered";
+
+/** A round-8 interior line. Each end lands on the outline's own centreline. */
+const shieldLineD = (name, { x0, x1, shoulder, tip, crest }, R) => {
+  const l = SHIELD_LINES[name];
+  if (name === "sash") {
+    // The right base arc's x at a height, read off its own circle.
+    const rightX = n(x1 - R + Math.sqrt(R * R - (l.to - shoulder) ** 2));
+    return `M${x0} ${l.from} A${l.r} ${l.r} 0 0 0 ${rightX} ${l.to}`;
+  }
+  if (name.startsWith("band")) {
+    const w = (x1 - x0) / 2;
+    const r = n((w * w + l.sag * l.sag) / (2 * l.sag));
+    return `M${x0} ${l.y} A${r} ${r} 0 0 0 ${x1} ${l.y}`;
+  }
+  const mid = (crest.peak + tip) / 2;
+  const h = (tip - crest.peak) / 4;
+  const r = n((h * h + l.sag * l.sag) / (2 * l.sag));
+  return `M${CX} ${crest.peak} A${r} ${r} 0 0 1 ${CX} ${mid} A${r} ${r} 0 0 0 ${CX} ${tip}`;
+};
 
 /** One approval candidate as { outline, interior }. Static, so no perimeter. */
 export const approval = (id = APPROVAL_DEFAULT) => {
   const r = R_ENVELOPE;
   const c = APPROVAL_CANDIDATES.find((a) => a.id === id);
+  if (id === "shield-wedge") {
+    const { crest, x0, x1, tip } = SHIELD_CREST_TALL;
+    const rc = R_SHIELD;
+    const a = CX - x0 - rc;
+    const b = crest.corner - crest.peak;
+    const Rt = n((a * a + b * b) / (2 * b));
+    const { waist } = SHIELD_WEDGE;
+    return {
+      outline: path(
+        `M${x0} ${crest.corner + rc} A${rc} ${rc} 0 0 1 ${x0 + rc} ${crest.corner} A${Rt} ${Rt} 0 0 0 ${CX} ${crest.peak}` +
+          ` A${Rt} ${Rt} 0 0 0 ${x1 - rc} ${crest.corner} A${rc} ${rc} 0 0 1 ${x1} ${crest.corner + rc} V${waist} L${CX} ${tip} L${x0} ${waist} Z`,
+      ),
+      interior: "",
+      perimeter: null,
+    };
+  }
+  if (id === "shield-badge") {
+    const { ear, dip, bodyX, waist, tip } = SHIELD_BADGE;
+    const x1 = VIEW - bodyX;
+    const w = INK_BOX / 2;
+    const sag = dip - ear;
+    const Rt = n((w * w + sag * sag) / (2 * sag));
+    const hw = CX - bodyX;
+    const d = tip - waist;
+    const R = n((hw * hw + d * d) / (2 * hw));
+    return {
+      outline: path(
+        `M${INK_MIN} ${ear} A${Rt} ${Rt} 0 0 0 ${INK_MAX} ${ear} L${x1} ${waist} A${R} ${R} 0 0 1 ${CX} ${tip} A${R} ${R} 0 0 1 ${bodyX} ${waist} Z`,
+      ),
+      interior: "",
+      perimeter: null,
+    };
+  }
+  if (id === "stamp") {
+    const { base, neckHalfW: h, neckY, knobR, line } = STAMP;
+    return {
+      outline: rect(INK_MIN, base.y0, INK_BOX, base.y1 - base.y0, base.r).replace(` pathLength="${PATH_LENGTH}"`, ""),
+      interior:
+        path(`M${CX - h} ${base.y0} V${neckY} A${knobR} ${knobR} 0 1 1 ${CX + h} ${neckY} V${base.y0}`) +
+        path(`M${INK_MIN + line.inset} ${line.y} H${INK_MAX - line.inset}`),
+      perimeter: null,
+    };
+  }
   if (id.startsWith("shield") && c) {
     const s = { ...SHIELD, x0: INK_MIN, x1: INK_MAX, ...(c.shield ?? {}) };
-    const { x0, x1, shoulder, tip, crest, half = false } = s;
+    const { x0, x1, shoulder, tip, crest, half = false, line = null, halfFill = false, boss = false, fill = null } = s;
     const w = (x1 - x0) / 2;
     const d = tip - shoulder;
     const R = n((w * w + d * d) / (2 * w));
@@ -1496,7 +1824,36 @@ export const approval = (id = APPROVAL_DEFAULT) => {
       top = s.top;
       dd = `M${x0 + r} ${top} H${x1 - r} A${r} ${r} 0 0 1 ${x1} ${top + r} V${shoulder} ${base} V${top + r} A${r} ${r} 0 0 1 ${x0 + r} ${top} Z`;
     }
-    return { outline: path(dd), interior: half ? path(`M${CX} ${top} V${tip}`) : "", perimeter: null };
+    let interior = half ? path(`M${CX} ${top} V${tip}`) : line ? path(shieldLineD(line, s, R)) : "";
+    if (boss) {
+      const { cy, r: br } = SHIELD_BOSS;
+      interior = solidRect(CX - br, cy - br, 2 * br, 2 * br, br);
+    }
+    if (halfFill || fill) {
+      // Each column runs from the outline's centreline to the split, or to the
+      // centreline again, so its round caps stay inside the outline's stroke. The
+      // two curves are read off their own circles, for x on either side of centre.
+      const a = CX - x0 - R_SHIELD;
+      const b = crest.corner - crest.peak;
+      const Rt = n((a * a + b * b) / (2 * b));
+      const fold = (x) => Math.min(x, VIEW - x);
+      const crestY = (x) => crest.corner - Rt + Math.sqrt(Rt * Rt - (fold(x) - (x0 + R_SHIELD)) ** 2);
+      const baseY = (x) => shoulder + Math.sqrt(R * R - (fold(x) - (x0 + R)) ** 2);
+      const sideX = (y) => x1 - R + Math.sqrt(R * R - (y - shoulder) ** 2);
+      const columns = (xs, from, to) => xs.map((x) => `M${n(x)} ${n(from(x))} V${n(to(x))}`).join(" ");
+      const { split, columns: left } = SHIELD_SOLID;
+      const right = left.map((x) => VIEW - x);
+      const above = split - 1;
+      const below = split + 1;
+      // The cross stroke is what makes each split a straight edge: the columns'
+      // round caps stop on the same line and would otherwise scallop it.
+      const upperLeft = `${columns(left, crestY, () => above)} M${x0} ${above} H${CX - 1}`;
+      const lowerRight = `${columns(right, () => below, baseY)} M${CX + 1} ${below} H${n(sideX(below))}`;
+      const lowerHalf = `${columns([...left, CX, ...right], () => below, baseY)} M${n(VIEW - sideX(below))} ${below} H${n(sideX(below))}`;
+      const d = halfFill ? columns(left, crestY, baseY) : fill === "quartered" ? `${upperLeft} ${lowerRight}` : lowerHalf;
+      interior = path(d);
+    }
+    return { outline: path(dd), interior, perimeter: null };
   }
   if (id === "lock") {
     const { body, shackle } = LOCK;
@@ -1611,6 +1968,256 @@ export const aggregate = (id) => {
     };
   }
   throw new Error(`no aggregate candidate "${id}"`);
+};
+
+// ---------------------------------------------------------------------------
+// Round 7, 2026-11-04: agent-stopped. SELECTED 2026-11-04 at maintainer sign-off:
+// `flag`, the pennant as round 3 drew it. Chosen from the review page's card
+// lineup, over the hand the page recommended and the person. The page's case for
+// the hand was meaning, and its stated cost for the flag, that the tooltip has to
+// carry the stop, is accepted rather than argued away.
+//
+// Requested by Kangentic #994. On #984 a review automation spent its run limit
+// and the card sat in Code Review wearing the plain envelope, which the owner
+// read as an automation that did not fire. The envelope looks the same on a card
+// a column automation moves seconds later and on a card nothing will move. So
+// this mark says the agent finished AND the board will not move the card until a
+// person acts. It has two causes: a spent automation row, and a review step only
+// a person can do. Nothing went wrong in either, so it must not read as failure.
+//
+// What a card can already show decides the field, so it was read off the
+// consumers before anything was drawn (the lineup on the review page):
+//   - The title-row slot holds ONE of agent-working, agent-idle, agent-question
+//     or agent-approval. This mark joins that slot, so the three ambers and the
+//     ring are its only true neighbours.
+//   - Five of a card's other glyphs are circle-based: Ban on the "Automations
+//     paused" strip, Loader2, CirclePause and Clock in the footer, Globe after
+//     the title. Add the working ring and the card has no room left for a
+//     round mark, whatever else it means.
+//   - Ban already says "the board will not move this card", for a hold a person
+//     chose. A stopped card can carry that strip too.
+//   - The control marks are not on a card, but control-stop-idle is an amber ring
+//     around a filled square that a person presses. A ring, a filled glyph or a
+//     centred glyph would all read as that button, so every candidate is an
+//     outline alone. Rounds 1 and 2 reach the same rule from legibility, and the
+//     phone's renderer honours `fill` on a rect only.
+//
+// Considered and not drawn:
+//   - a ring with a stop square, pause bars, or a bare square: the controls' own
+//     glyphs, and the collision this round exists to avoid;
+//   - the bell, the inbox, the closed ring, the dot: rounds 2 and 6 ruled these
+//     out, and nothing here is new information about them;
+//   - a lock: round 4 lost it to the shield on "locked, private". On a card it
+//     would also say the opposite of the truth: a person CAN move this card, and
+//     has to;
+//   - a warning triangle or a "!": both say something went wrong;
+//   - an hourglass: says time will fix it, and nothing here will move alone;
+//   - an eye: a visibility toggle, so it reads as a button.
+//
+// Each candidate below is one idea, per the maintainer's standing preference.
+//
+// Eight were drawn and three reached the review page (`reviewed`). The other five
+// were dropped from the true-pixel sheet before review, and each keeps its reason.
+// The page showed them too, so the maintainer could overrule any of the drops.
+//
+// `Distance` in those reasons is the review page's measure of how far apart two
+// glyphs render: the sum of |a - b| over the sum of max(a, b) on the alpha
+// channel at true size, so 0 is the same drawing and 1 shares no ink. The closest
+// pair of shipped ambers, the envelope and the shield, sits at 0.57 at 12px.
+// ---------------------------------------------------------------------------
+
+// The stop sign, as a polygon on the slot. `chamfer` is how far each corner is
+// cut along both axes. A regular octagon on an 18 box is 5.27, so 5 is its
+// integer neighbour. 6 was tried to give a 12px render facets it could see, and
+// it did the opposite (see `octagon-faceted`).
+export const OCTAGON_CHAMFERS = { regular: 5, faceted: 6 };
+const octagonPts = (c) => [
+  [INK_MIN + c, INK_MIN],
+  [INK_MAX - c, INK_MIN],
+  [INK_MAX, INK_MIN + c],
+  [INK_MAX, INK_MAX - c],
+  [INK_MAX - c, INK_MAX],
+  [INK_MIN + c, INK_MAX],
+  [INK_MIN, INK_MAX - c],
+  [INK_MIN, INK_MIN + c],
+];
+
+// The raised hand: three fingers and a thumb, one closed outline with no
+// interior. Each finger gap is a slit the outline walks down and back up, so it
+// paints as one stroke. Three fingers rather than four, because a pitch of 4 is
+// the tightest that keeps a 1px gap at 12px, and four at that pitch leave no
+// width for a thumb inside the 3..21 keyline. Every finger edge sits on an ODD
+// x, so at 12px and dpr 1 each lands on a pixel centre rather than straddling.
+export const HAND = {
+  fingers: [{ x0: 9, top: 5 }, { x0: 13, top: 3 }, { x0: 17, top: 6 }],
+  fingerW: 4,
+  valley: 12,
+  heelR: 6,
+  thumb: { cx: 5, cy: 12, r: 2 },
+};
+
+// The barrier: a rail across the slot on two posts.
+export const BARRIER = { rail: { y0: 6, y1: 13, r: 1 }, postX: [7, 17] };
+
+// The arrow held at a line. The line stops short of the slot's height so it
+// reads as a stop line rather than as the edge of a panel.
+export const HALTED = { shaftY: 12, headX: 16, headDrop: 6, lineX: INK_MAX, line: [4, 20] };
+
+// The person: a head over a pair of shoulders that run the full keyline.
+export const PERSON = { headR: 4, headY: 7, shoulderY: 15, shoulderR: 4 };
+
+// The anchor: a ring, a shank, a stock, and one circular arc for the flukes,
+// whose centre is placed so the arc's lowest point lands exactly on y 21.
+export const ANCHOR = { ringR: 2, ringY: 5, stockY: 11, stockHalfW: 4, flukeR: 10 };
+
+export const STOPPED_CANDIDATES = [
+  {
+    id: "flag",
+    selected: "2026-11-04",
+    reviewed: true,
+    idea: "flagged for you",
+    note: "a pennant planted where the work stopped, waiting for someone. The drawing is round 3's. It was retired there because arrangement B lost, not on its own merits, and the risk that round recorded, \"flagged for your attention\", is what this mark means. No card on either surface draws a flag today; the desktop's only one is the backlog's priority editor",
+    risk: "it says look here more than it says stopped, so the tooltip carries the stop",
+    cost: "an M/V/H/L path outline, which the gate already bounds",
+  },
+  {
+    id: "hand",
+    draft: true,
+    reviewed: true,
+    retired: "2026-11-04: the maintainer chose flag from the card lineup, over this mark, which the page recommended",
+    idea: "hold, a person",
+    note: "a raised palm: the one gesture that says stop and says a person at once, and a raised hand asks for someone rather than reporting a fault. Three fingers, the count the board's columns and the mascot's eyes already use",
+    risk: "its finger gaps are 2 units, so 1px at 12px and 1.33px at 16px. It leans on a sharp display more than any other mark here, and a lifted palm can also read as a pan tool",
+    cost: "M/V/H/L and circular arcs, which the gate bounds exactly once the thumb is two arcs, verified 2026-11-04",
+  },
+  {
+    id: "person",
+    draft: true,
+    reviewed: true,
+    retired: "2026-11-04: the maintainer chose flag from the card lineup. The page had stated this one's risk as reading like an assignee",
+    idea: "needs a person",
+    note: "a head and shoulders: the half of the meaning the board cannot do for itself. The farthest of the field from every neighbour on a card",
+    risk: "it reads as an assignee or an account before it reads as a state, and it is the lightest amber mark, 37% less rendered ink than the envelope",
+    cost: "the outline is the shoulders; the head is a stroked circle",
+  },
+  {
+    id: "octagon",
+    draft: true,
+    retired: "2026-11-04: dropped before review. At true size the chamfers round off and it renders as a closed circle: distance 0.31 from the ring at 12px and 0.30 at 16px, where the closest shipped amber pair was 0.57 and 0.56 when this was measured, on a card with five other circle-based glyphs. The desktop also draws its CAUTION callout as an octagon, which is the failure reading this mark has to avoid",
+    idea: "stop",
+    note: "the stop sign, outline only: the plainest word for stop, and the first thing anyone would try",
+    cost: "no gate change: a polygon outline on the keyline",
+  },
+  {
+    id: "octagon-faceted",
+    draft: true,
+    retired: "2026-11-04: dropped before review. The deeper chamfer was meant to give 12px visible facets and made it worse: distance 0.18 from the ring at 12px, the closest pair measured in this round",
+    idea: "stop",
+    note: "the same sign with a deeper chamfer, tried to rescue it at 12px",
+    cost: "no gate change: a polygon outline on the keyline",
+  },
+  {
+    id: "barrier",
+    draft: true,
+    retired: "2026-11-04: dropped before review. It clears the distance bar and reads as a stool: nothing about a rail on two posts says a way is shut without the stripes a 12px render cannot hold",
+    idea: "the way is shut",
+    note: "a rail across the slot on two posts: the card's way is closed, and nothing is wrong with the card",
+    cost: "no gate change: the outline is the rail's rect",
+  },
+  {
+    id: "halted",
+    draft: true,
+    retired: "2026-11-04: dropped before review. It breaks the brief's own rule that the mark must not read as a button: an arrow against a line is the jump-to-end and collapse-panel control. Its shaft on y 12 also straddles two pixel rows at 12px, and any other y puts the arrow off centre",
+    idea: "the move stopped",
+    note: "an arrow held at a line: the most literal drawing of \"the board will not move this card\"",
+    cost: "an M/H/L/V path outline, which the gate already bounds",
+  },
+  {
+    id: "anchor",
+    draft: true,
+    retired: "2026-11-04: dropped before review. Its ring, stock and shank merge at 12px, and the interior it needs is what rounds 1 and 2 ruled out",
+    idea: "parked",
+    note: "an anchor: held in place until someone lifts it, which is what #994 calls a parked card",
+    cost: "an interior beyond the one-outline pattern of the other agent marks",
+  },
+];
+
+// Promotion is setting this and deleting the candidate's `draft` flag, the way
+// QUESTION_DEFAULT and APPROVAL_DEFAULT work. Every other candidate keeps its
+// dated reason.
+export const STOPPED_DEFAULT = "flag";
+
+const handD = () => {
+  const { fingers, fingerW: w, valley, heelR: R, thumb: t } = HAND;
+  const r = w / 2;
+  const k = Math.SQRT1_2;
+  // The thumb's two edges leave its tip at 45 degrees, tangent to the tip's arc.
+  const upX = t.cx + t.r * k;
+  const upY = t.cy - t.r * k;
+  const loX = t.cx - t.r * k;
+  const loY = t.cy + t.r * k;
+  const joinY = upY + (fingers[0].x0 - upX);
+  // The heel arc leaves the thumb's lower edge tangent to it and arrives level
+  // on the slot's floor, so neither end of it kinks.
+  const heelY = INK_MAX - R * (1 - k);
+  const heelX = loX + (heelY - loY);
+  const floorX = heelX + R * k;
+  const up = fingers
+    .map((f, i) => {
+      const top = f.top + r;
+      const slit = i === 0 ? "" : `V${valley} `;
+      return `${slit}V${top} A${r} ${r} 0 0 1 ${f.x0 + w} ${top}`;
+    })
+    .join(" ");
+  return (
+    `M${fingers[0].x0} ${n(joinY)} ${up} V${INK_MAX - R} A${R} ${R} 0 0 1 ${INK_MAX - R} ${INK_MAX} H${n(floorX)}` +
+    // Two arcs meeting on the keyline, never one half-circle. A half-circle's
+    // centre is ill-conditioned: rounding its endpoints to 4dp alone moved the
+    // leftmost ink to x 3.0062, which the lattice gate rejects, and a renderer
+    // would have drawn that shift too. The join puts a real vertex on x 3.
+    ` A${R} ${R} 0 0 1 ${n(heelX)} ${n(heelY)} L${n(loX)} ${n(loY)} A${t.r} ${t.r} 0 0 1 ${t.cx - t.r} ${t.cy} A${t.r} ${t.r} 0 0 1 ${n(upX)} ${n(upY)} Z`
+  );
+};
+
+/** One stopped candidate as { outline, interior }. Static, so no perimeter. */
+export const stopped = (id = STOPPED_DEFAULT) => {
+  if (id === "octagon") return { outline: polygon(octagonPts(OCTAGON_CHAMFERS.regular)), interior: "", perimeter: null };
+  if (id === "octagon-faceted") return { outline: polygon(octagonPts(OCTAGON_CHAMFERS.faceted)), interior: "", perimeter: null };
+  if (id === "flag") return { outline: path(TURN_FLAG_D), interior: "", perimeter: null };
+  if (id === "hand") return { outline: path(handD()), interior: "", perimeter: null };
+  if (id === "barrier") {
+    const { rail, postX } = BARRIER;
+    return {
+      outline: rect(INK_MIN, rail.y0, INK_BOX, rail.y1 - rail.y0, rail.r),
+      interior: postX.map((x) => path(`M${x} ${rail.y1} V${INK_MAX}`)).join(""),
+      perimeter: null,
+    };
+  }
+  if (id === "halted") {
+    const { shaftY: y, headX: x, headDrop: d, lineX, line } = HALTED;
+    return { outline: path(`M${INK_MIN} ${y} H${x} M${x - d} ${y - d} L${x} ${y} L${x - d} ${y + d} M${lineX} ${line[0]} V${line[1]}`), interior: "", perimeter: null };
+  }
+  if (id === "person") {
+    const { headR, headY, shoulderY: y, shoulderR: r } = PERSON;
+    return {
+      outline: path(`M${INK_MIN} ${INK_MAX} V${y + r} A${r} ${r} 0 0 1 ${INK_MIN + r} ${y} H${INK_MAX - r} A${r} ${r} 0 0 1 ${INK_MAX} ${y + r} V${INK_MAX}`),
+      interior: circle(CX, headY, headR).replace(` pathLength="${PATH_LENGTH}"`, ""),
+      perimeter: null,
+    };
+  }
+  if (id === "anchor") {
+    const { ringR, ringY, stockY, stockHalfW, flukeR: R } = ANCHOR;
+    const cy = INK_MAX - R;
+    const y = n(cy + Math.sqrt(R * R - (INK_BOX / 2) ** 2));
+    return {
+      outline: path(`M${INK_MIN} ${y} A${R} ${R} 0 0 0 ${INK_MAX} ${y}`),
+      interior:
+        circle(CX, ringY, ringR).replace(` pathLength="${PATH_LENGTH}"`, "") +
+        path(`M${CX} ${ringY + ringR} V${INK_MAX} M${CX - stockHalfW} ${stockY} H${CX + stockHalfW}`),
+      perimeter: null,
+    };
+  }
+  throw new Error(`no stopped candidate "${id}"`);
 };
 
 /**
@@ -1853,10 +2460,22 @@ export const DIRECTIONS = [
       // Added 2026-10-29 (GitHub #452, requested by Kangentic #920): the agent
       // is blocked on an approval, a tool approval prompt or a plan waiting to
       // be approved. The third amber, static mark, told apart from the bubble
-      // and the envelope by its pointed base. A card, tooltip and phone mark:
+      // and the envelope by its solid quarters (round 8). A card, tooltip and phone mark:
       // the surfaces that COUNT agents draw one idle count with the envelope
       // instead (round 6). See APPROVAL_CANDIDATES for the rounds that chose it.
       { id: "agent-approval", role: "needs your approval", silhouette: "shield", state: "waiting", tone: "attention", ...approval(), motion: null, rest: REST_STATIC },
+      // Added 2026-11-04 (Kangentic #994): the agent finished and the board will
+      // not move the card until a person acts, because an automation spent its run
+      // limit or a review step is one only a person can do. Nothing went wrong. The
+      // fourth amber, static mark, and the only open outline of the four, which is
+      // what tells it apart. A card, tooltip and phone mark: the surfaces that
+      // COUNT agents keep drawing this kind with the envelope too (round 6). See
+      // STOPPED_CANDIDATES for the round that chose it.
+      //
+      // `state` is `waiting` rather than a new value: this is the same family as
+      // the bubble and the shield, an agent held on a person, and the consumers
+      // read `file`, `reducedMotion` and `minPx`, not this field.
+      { id: "agent-stopped", role: "stopped, needs you", silhouette: "flag", state: "waiting", tone: "attention", ...stopped(), motion: null, rest: REST_STATIC },
       // Everything else is one silhouette in two states, named explicitly rather
       // than left for a consumer to compose out of a tone and an animation
       // class. Composition is where three surfaces drift apart.
@@ -2087,6 +2706,29 @@ export function shippedSet() {
   }
   return promoted[0];
 }
+
+// The glyphs a card renders around the activity mark, REVIEW ONLY, for the same
+// reason BASELINE exists: a mark has to be judged beside the real neighbours, and
+// a redraw of them would be a sheet that does not render what its caption claims.
+// Nothing here reaches assets/, and `files` in package.json keeps scripts/ out of
+// the npm package. Read off lucide-react 1.61.0, the version the desktop installs;
+// THIRD-PARTY-NOTICES.md records it. `loader-circle` is ARC_D, so it is not
+// repeated.
+export const CARD_NEIGHBOURS = {
+  ban: `<circle cx="12" cy="12" r="10"/><path d="M4.929 4.929 19.07 19.071"/>`,
+  "circle-pause": `<circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/>`,
+  clock: `<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>`,
+  "loader-circle": `<path d="${ARC_D}"/>`,
+  globe: `<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>`,
+  paperclip: `<path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/>`,
+  wrench: `<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>`,
+  users: `<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>`,
+  terminal: `<path d="M12 19h8"/><path d="m4 17 6-6-6-6"/>`,
+};
+
+/** A card neighbour as a standalone SVG, with lucide's own default attributes. */
+export const neighbourSvg = (name, { size = 12 } = {}) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${VIEW} ${VIEW}" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CARD_NEIGHBOURS[name]}</svg>`;
 
 // What ships today, for a like-for-like control band. lucide's Mail is the
 // 20x16 outlier; its LoaderCircle and the desktop's own chip are already 18x18.

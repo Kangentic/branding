@@ -29,9 +29,9 @@ to a central peak, small corner radii, straight sides, and a curved base
 meeting at a point.
 
 **How it was used:** the same way as `kanban` above. The shape is rebuilt from
-named constants (`SHIELD`, `R_SHIELD`, the `shield-crest-tall` candidate) as
-circular arcs on this set's own grid, 18 wide and 20 tall where lucide's is 16
-by about 20. No lucide path string or file is copied or distributed.
+named constants (`SHIELD`, `R_SHIELD`, `SHIELD_CREST_TALL`) as circular arcs on
+this set's own grid, 18 wide and 20 tall where lucide's is 16 by about 20. No
+lucide path string or file is copied or distributed.
 
 Feather, whose icons lucide inherited, also ships a `shield`, so lucide's may
 be one of the Feather-derived icons under MIT. That was not verified when this
@@ -39,9 +39,24 @@ entry was written (2026-10-29). It would matter only if path data were ever
 vendored, and nothing is, so the ISC notice below is reproduced as a courtesy,
 matching the `kanban` entry.
 
-lucide carries two licences: ISC for the project, and MIT for the 158 icons it
+**Where, third:** `scripts/lib/activity.mjs`, `CARD_NEIGHBOURS` (added
+2026-11-04), which the review page `exploration/activity/stopped.html` draws.
+
+**What was used:** the path data of the nine lucide glyphs a task card renders
+beside its activity mark, copied verbatim from lucide-react 1.61.0. A new mark
+has to be judged beside the real neighbours, and a redraw would misstate them.
+
+**How it was used:** as comparison data for a review page. Unlike the two entries
+above, this IS copied path data, so the sentence in the `kanban` entry about
+nothing being copied holds for the published package, not for this repository:
+`files` in `package.json` is `assets` and `resources`, so `scripts/` and
+`exploration/` never reach npm. No shipped asset contains these paths. `clock`,
+`terminal` and `circle-pause` (lucide's `pause-circle`) are Feather-derived, so
+the MIT notice below applies to those three and the ISC notice to the other six.
+
+lucide carries two licences: ISC for the project, and MIT for the icons it
 inherited from Feather. `square-kanban` is NOT one of the Feather-derived
-icons, so only the ISC notice applies here. Reproduced in full:
+icons, so only the ISC notice applies to the first entry. Reproduced in full:
 
 ```
 ISC License
@@ -63,5 +78,32 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 Verified against https://github.com/lucide-icons/lucide/blob/main/LICENSE on
 2026-07-29.
+
+The MIT notice for the Feather-derived icons, read off the `LICENSE` file in
+lucide-react 1.61.0 on 2026-11-04:
+
+```
+The MIT License (MIT) (for the icons listed above)
+
+Copyright (c) 2013-present Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 Homepage: https://lucide.dev - Source: https://github.com/lucide-icons/lucide
