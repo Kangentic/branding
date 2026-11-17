@@ -60,6 +60,7 @@ jobs:
           npm run gen:og
           npm run gen:activity
           npm run gen:ui
+          npm run gen:pointer
           if [ -n "$(git status --porcelain -- assets/ resources/)" ]; then
             echo "::error::Committed assets/ or resources/ drift from generator output. Regenerate and commit before tagging."
             git status --porcelain -- assets/ resources/
