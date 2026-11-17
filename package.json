@@ -15,6 +15,7 @@
     "gen:og": "node scripts/gen-og.mjs",
     "gen:activity": "node scripts/gen-activity.mjs",
     "gen:ui": "node scripts/gen-ui.mjs",
+    "gen:pointer": "node scripts/gen-pointer.mjs",
     "gen:review": "node scripts/gen-review.mjs",
     "check": "node scripts/check-invariants.mjs"
   },

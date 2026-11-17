@@ -131,11 +131,12 @@ must never ship hand-edited or stale renders.
 4. Run `npm run gen:og`
 5. Run `npm run gen:activity`
 6. Run `npm run gen:ui`
-7. Run `git status --porcelain -- assets/ resources/`. Must be empty. If
+7. Run `npm run gen:pointer`
+8. Run `git status --porcelain -- assets/ resources/`. Must be empty. If
    anything changed, stop and report: either a generator changed without
    regenerating (commit the regenerated output first) or an asset was
    hand-edited (never allowed - fix the script instead).
-8. Run `npm run check`. Must pass. Drift only proves the bytes match the
+9. Run `npm run check`. Must pass. Drift only proves the bytes match the
    generators; this proves they satisfy the brand invariants.
 
 ## Step 2 -- Version Bump

@@ -29,6 +29,10 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
 - **The UI glyphs** - `assets/ui/*.svg`. The navigation marks, `currentColor`
   on the same 24 grid as the activity set. `kanban.svg` is the Board mark, and
   it exists because SF Symbols ships no kanban glyph. See "UI icons" below.
+- **The demo pointer** - `assets/pointer/`. The dot that stands in for a mouse
+  over a scripted demo (kangentic.com's hero, the app's web demo), the ring a
+  press leaves, and the click as data in `pointer.json`. See "The demo pointer"
+  below.
 - **The production tree** - `resources/`. Everything each surface ships:
   `desktop/` (Electron .ico/.icns + PNG ladder), `web/` (favicons,
   manifest icons, logo), `mobile/` (every OS-owned and store-facing asset
@@ -274,6 +278,66 @@ The kanban glyph's proportions follow lucide's `SquareKanban` (ISC). The
 geometry is declared as named constants, not vendored as path data; see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
+## The demo pointer
+
+`assets/pointer/` holds the dot kangentic.com's hero clicks with and the app's
+web demo walks through its scenes, so a visitor sees one pointer across the
+site. It is drawn in **page pixels**, tinted through `currentColor`, and its
+click ships as data. Where the pointer goes and when stays with each consumer:
+the hero's eight-second beat, the demo's travel, drags, press length and
+double-click gap.
+
+```
+pointer.svg       the dot: an 8px core and an 18px halo (no aura), parts named
+                  core, halo, halo-fill, halo-edge
+pointer-ring.svg  the ring one press leaves: a 1.5px hairline out to 72px
+pointer.json      units, tones, states, the click tracks, events
+```
+
+Rules worth knowing:
+
+- **Tint it cream over a dark ground, ink over a light one.** The svg carries
+  cream's halo weights (20% fill, 40% edge). For ink, set
+  `[data-part=halo-fill] { fill-opacity: .16 }` and
+  `[data-part=halo-edge] { stroke-opacity: .45 }`, from `tones.ink`. A consumer
+  that picks the tone itself follows `tones.rule`: cream below a ground
+  luminance of 0.4, crossfaded over 120ms.
+- **A frame shown at scale `s` divides by `s`.** Every length is page px at
+  `s = 1`. Size each svg at its `box / s`, and set the ring circle's
+  `stroke-width` to `1.5 / s`: it is `non-scaling-stroke`, so sizing the svg
+  does not carry it along.
+- **A press is a state plus three tracks. A release is a state alone.** On a
+  press, set the core to `states.pressed` (no tween, held until the release),
+  play `motion.pop` on the halo, and clone the ring svg at the press point and
+  play `motion.ringGrow` and `motion.ringFade` on its circle. On a release, set
+  `states.rest`. A release draws no ring, so a drag reads as grab, carry, drop.
+- **Scale the parts, never the svg.** Each animated part carries its own
+  `transform-box` and `transform-origin`. The dot's box already holds the popped
+  halo, so nothing clips.
+- **No CSS ships.** The hero's click sits inside a beat as percentages, and the
+  demo animates with the Web Animations API, so a keyframe file would serve
+  neither. Pass no fill mode: every part rests on its own attributes.
+- **Reduced motion is static.** Draw the dot at rest and play none of the click.
+
+With the Web Animations API, a press is:
+
+```js
+import pointer from "@kangentic/branding/assets/pointer/pointer.json";
+
+function press(dot, ringLayer) {
+  dot.querySelector('[data-part="core"]').style.transform = pointer.states.pressed.core;
+  const { pop, ringGrow, ringFade } = pointer.motion;
+  dot.querySelector('[data-part="halo"]').animate(pop.keyframes, { duration: pop.durationMs });
+  const ring = ringLayer.querySelector('[data-part="ring"]'); // a fresh clone of pointer-ring.svg
+  ring.animate(ringGrow.keyframes, { duration: ringGrow.durationMs });
+  ring.animate(ringFade.keyframes, { duration: ringFade.durationMs });
+}
+```
+
+A CSS beat converts each keyframe instead: a keyframe at `offset` of a track
+that starts `t` ms into a `beat` ms loop sits at
+`(t + offset * durationMs) / beat * 100%`, eased by that keyframe's `easing`.
+
 ## Regenerate
 
 Assets are generated and committed - never hand-edit one. To change an
@@ -287,13 +351,15 @@ npm run gen:sprites  # mascot -> assets/mascot/
 npm run gen:og       # social image -> resources/social/
 npm run gen:activity # activity marks -> assets/activity/
 npm run gen:ui       # ui glyphs -> assets/ui/ + the iOS tab rasters
+npm run gen:pointer  # demo pointer -> assets/pointer/
 npm run check        # the mechanical brand-invariant gate
 ```
 
 All brandmark geometry lives in `scripts/lib/mark.mjs` (the K is frozen path
 data, so there's no font dependency at render time), all activity geometry in
-`scripts/lib/activity.mjs`, and all ui glyph geometry in
-`scripts/lib/ui-glyphs.mjs`. Generators are deterministic; CI reruns them on
+`scripts/lib/activity.mjs`, all ui glyph geometry in
+`scripts/lib/ui-glyphs.mjs`, and the demo pointer in `scripts/lib/pointer.mjs`.
+Generators are deterministic; CI reruns them on
 every pull request and every push to `main`, and fails if committed output
 drifts or if `npm run check` does. The release pipeline reruns both again on
 the version tag, before anything is published.

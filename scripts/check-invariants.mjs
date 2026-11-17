@@ -8,11 +8,12 @@
 // ("reads as craft, not AI clip-art") is NOT here - it stays a human decision.
 //
 // Checks, in run order: PALETTE, SPRITE, TIERING, FROZEN-K, BANNED, MONO,
-// ANIMATION, ACTIVITY, UI, STORE, BOARD, RECORD. Respectively: palette membership,
-// sprite constraints, mark tiering (no card-K on a downscaled master), frozen-K
-// / single-source geometry, banned colors, the theme-safe mono pair, the shared
-// animation contract (motion budget, compositing safety, packaging), the
-// activity status set, the ui navigation set, the store art (exact slot sizes,
+// ANIMATION, ACTIVITY, UI, POINTER, STORE, BOARD, RECORD. Respectively: palette
+// membership, sprite constraints, mark tiering (no card-K on a downscaled
+// master), frozen-K / single-source geometry, banned colors, the theme-safe mono
+// pair, the shared animation contract (motion budget, compositing safety,
+// packaging), the activity status set, the ui navigation set, the demo pointer
+// (its dot, ring and click manifest), the store art (exact slot sizes,
 // no alpha, the lockup inside its safe areas), the board's outcome lines (every
 // line a kangentic.json turn-end row waits for is printed by what that column
 // sends), and this gate's own record.
@@ -23,7 +24,8 @@
 //
 // Sources of truth cross-referenced here (change them, not this file):
 //   scripts/lib/mark.mjs, scripts/lib/sprite.mjs, scripts/lib/activity.mjs,
-//   scripts/lib/ui-glyphs.mjs, scripts/lib/feature-graphic.mjs, the
+//   scripts/lib/ui-glyphs.mjs, scripts/lib/pointer.mjs,
+//   scripts/lib/feature-graphic.mjs, the
 //   .claude/rules/*.md, the design-language skill's palette tokens + banned
 //   list.
 
@@ -59,6 +61,23 @@ import {
   manifest as uManifest,
   rasterFileFor as uRasterFileFor,
 } from "./lib/ui-glyphs.mjs";
+// The demo pointer (pointer-geometry). Pure declarations and pure functions; it
+// imports only the two palette tokens from lib/mark.mjs.
+import {
+  DOT_BOX as P_DOT_BOX,
+  HALO_D as P_HALO_D,
+  POP as P_POP,
+  RING_D as P_RING_D,
+  RING_FROM as P_RING_FROM,
+  RING_STROKE as P_RING_STROKE,
+  SHIPPED_FILES as P_SHIPPED_FILES,
+  DOT_FILE as P_DOT_FILE,
+  RING_FILE as P_RING_FILE,
+  MANIFEST_FILE as P_MANIFEST_FILE,
+  manifest as pManifest,
+  pointerRingSvg as pPointerRingSvg,
+  pointerSvg as pPointerSvg,
+} from "./lib/pointer.mjs";
 // The store art lockup. Pure declarations and pure functions again (it pulls in
 // lib/mark.mjs, lib/sprite.mjs and lib/pixelfont.mjs, all side-effect free);
 // its composition guard is a FUNCTION for the same reason activity's is.
@@ -104,6 +123,13 @@ const uiSvgs = () => {
   return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/ui/${f}`);
 };
 
+// Globbed for the same reason the three lists above are.
+const pointerSvgs = () => {
+  const dir = join(ROOT, "assets", "pointer");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/pointer/${f}`);
+};
+
 // Shipped vector assets consumers embed. resources/web/brandmark*.svg are
 // byte copies of the assets/ ones (gen-icons copyFile), scanned for defense.
 // The mascot list is globbed, not enumerated: pose frames used to be invisible
@@ -118,6 +144,7 @@ const SHIPPED_SVG = [
   ...spriteSvgs(),
   ...activitySvgs(),
   ...uiSvgs(),
+  ...pointerSvgs(),
   "resources/web/brandmark.svg",
   "resources/web/brandmark-small.svg",
 ].filter(has);
@@ -785,7 +812,138 @@ checks.UI = () => {
   return findings;
 };
 
-// 10. The store art (lib/feature-graphic.mjs). Both stores reject a file of the
+// 10. The demo pointer (pointer-geometry). The same behavioural core as ACTIVITY
+//     and UI (shipped bytes equal the lib's output), plus the assertions that
+//     make the manifest serve its DOCUMENTED consumption (brand-record-fidelity):
+//     a consumer who inlines the svg and passes the tracks to element.animate()
+//     must get the signed-off click, so the gate checks what that literally needs
+//     (a box that holds the popped halo, a transform origin on every animated
+//     part, the ring stroke named among the lengths a scaled frame divides,
+//     every event resolving to a state or a track). The geometry claims are read
+//     from the lib, the contract claims from the SHIPPED json, so the second set
+//     tests what a consumer actually receives.
+const POINTER_DIR = "assets/pointer";
+checks.POINTER = () => {
+  const findings = [];
+  const expected = new Map([
+    [P_DOT_FILE, pPointerSvg() + "\n"],
+    [P_RING_FILE, pPointerRingSvg() + "\n"],
+    [P_MANIFEST_FILE, JSON.stringify(pManifest(), null, 2) + "\n"],
+  ]);
+  for (const f of P_SHIPPED_FILES) {
+    const p = `${POINTER_DIR}/${f}`;
+    if (!has(p)) findings.push(`${p}: missing (declared by lib/pointer.mjs, run npm run gen:pointer)`);
+    else if (load(p) !== expected.get(f)) findings.push(`${p}: drifts from lib/pointer.mjs output (regenerate, never hand-edit)`);
+  }
+  if (findings.length) return findings;
+
+  // Nothing ships here that the lib does not declare, and never a stylesheet:
+  // neither consumer can use an absolute-time keyframe file (see the lib).
+  for (const f of readdirSync(join(ROOT, POINTER_DIR))) {
+    if (f.endsWith(".css")) findings.push(`${POINTER_DIR}/${f}: a CSS file ships, but neither consumer can use one (lib/pointer.mjs, "NO CSS FILE")`);
+    else if (!expected.has(f)) findings.push(`${POINTER_DIR}/${f}: not declared by lib/pointer.mjs (stale file)`);
+  }
+
+  // currentColor only: the consumer tints it cream or ink.
+  for (const f of [P_DOT_FILE, P_RING_FILE]) {
+    const src = load(`${POINTER_DIR}/${f}`);
+    if (hexes(src).length) findings.push(`${POINTER_DIR}/${f}: carries a hex color (the pointer is currentColor only)`);
+    if (!/currentColor/.test(src)) findings.push(`${POINTER_DIR}/${f}: no currentColor`);
+  }
+  const ring = load(`${POINTER_DIR}/${P_RING_FILE}`);
+  if (!/vector-effect="non-scaling-stroke"/.test(ring)) findings.push(`${POINTER_DIR}/${P_RING_FILE}: the ring is not non-scaling-stroke, so it thickens as it grows`);
+  if (!ring.includes(`stroke-width="${P_RING_STROKE}"`)) findings.push(`${POINTER_DIR}/${P_RING_FILE}: stroke-width is not ${P_RING_STROKE}`);
+
+  // Geometry the sign-off depends on.
+  if (P_RING_FROM * P_RING_D < P_HALO_D) {
+    findings.push(`lib/pointer.mjs: the ring starts at ${P_RING_FROM * P_RING_D}px, inside the ${P_HALO_D}px halo (it must leave the halo's edge)`);
+  }
+  if (P_DOT_BOX < P_POP.peak * P_HALO_D) {
+    findings.push(`lib/pointer.mjs: DOT_BOX ${P_DOT_BOX} is smaller than the popped halo (${P_POP.peak * P_HALO_D}px), so an inline svg clips the pop`);
+  }
+
+  // The manifest's documented consumption, read from the shipped file.
+  const m = JSON.parse(load(`${POINTER_DIR}/${P_MANIFEST_FILE}`));
+  const svgOf = { [P_DOT_FILE]: load(`${POINTER_DIR}/${P_DOT_FILE}`), [P_RING_FILE]: ring };
+  const parts = m.parts ?? {};
+  const animated = new Set(Object.values(m.motion ?? {}).map((t) => t.part));
+  for (const p of Object.keys(m.states?.rest ?? {})) animated.add(p);
+  for (const [id, part] of Object.entries(parts)) {
+    const src = svgOf[part.in];
+    if (!src) findings.push(`${P_MANIFEST_FILE}: part "${id}" names ${part.in}, which does not ship`);
+    else if (!src.includes(`data-part="${id}"`)) findings.push(`${part.in}: no data-part="${id}", which ${P_MANIFEST_FILE} declares`);
+  }
+  for (const id of animated) {
+    const part = parts[id];
+    if (!part) {
+      findings.push(`${P_MANIFEST_FILE}: "${id}" is animated but not declared in parts`);
+      continue;
+    }
+    if (!part.transformBox || !part.transformOrigin) {
+      findings.push(`${P_MANIFEST_FILE}: animated part "${id}" declares no transformBox/transformOrigin, so a scale runs about the browser's default origin`);
+    }
+    const el = new RegExp(`data-part="${id}"[^>]*style="[^"]*transform-box:${part.transformBox};transform-origin:${part.transformOrigin}`);
+    if (svgOf[part.in] && !el.test(svgOf[part.in])) {
+      findings.push(`${part.in}: data-part="${id}" does not carry the transform origin ${P_MANIFEST_FILE} declares`);
+    }
+  }
+  for (const need of ["dot.box", "ring.box", "ring.strokeWidth"]) {
+    if (!(m.units?.divideByHostScale ?? []).includes(need)) {
+      findings.push(`${P_MANIFEST_FILE}: units.divideByHostScale omits ${need}, so a scaled frame following it draws the wrong size`);
+    }
+  }
+  for (const [name, t] of Object.entries(m.motion ?? {})) {
+    if (!(t.durationMs > 0)) findings.push(`${P_MANIFEST_FILE}: motion.${name} has no positive durationMs`);
+    if ("fill" in t) findings.push(`${P_MANIFEST_FILE}: motion.${name} sets a fill mode (every part must return to rest on its own)`);
+    const offs = (t.keyframes ?? []).map((k) => k.offset);
+    const ascending = offs.every((o, i) => i === 0 || o > offs[i - 1]);
+    if (offs[0] !== 0 || offs[offs.length - 1] !== 1 || !ascending) {
+      findings.push(`${P_MANIFEST_FILE}: motion.${name} keyframe offsets [${offs.join(",")}] must ascend from 0 to 1`);
+    }
+  }
+  for (const [name, e] of Object.entries(m.events ?? {})) {
+    for (const ref of e.does ?? []) {
+      const [kind, key] = ref.split(".");
+      if (!(kind === "states" || kind === "motion") || !m[kind]?.[key]) {
+        findings.push(`${P_MANIFEST_FILE}: events.${name} names ${ref}, which the manifest does not declare`);
+      }
+    }
+  }
+  if (!m.reducedMotion) findings.push(`${P_MANIFEST_FILE}: no reducedMotion rendering declared`);
+  for (const [id, t] of Object.entries(m.tones ?? {})) {
+    if (typeof t !== "object" || !t.color) continue;
+    if (!BRAND.includes(t.color.replace("#", "").toLowerCase())) findings.push(`${P_MANIFEST_FILE}: tone ${id} is off-palette ${t.color}`);
+  }
+  // The svg's own weights are the default tone's, so a consumer that sets
+  // nothing draws that tone correctly.
+  const def = m.tones?.[m.tones?.default];
+  const dot = svgOf[P_DOT_FILE];
+  if (def && !new RegExp(`data-part="halo-fill"[^>]*fill-opacity="${def["halo-fill"]}"`).test(dot)) {
+    findings.push(`${P_DOT_FILE}: halo-fill's weight is not the default tone's ${def["halo-fill"]}`);
+  }
+  if (def && !new RegExp(`data-part="halo-edge"[^>]*stroke-opacity="${def["halo-edge"]}"`).test(dot)) {
+    findings.push(`${P_DOT_FILE}: halo-edge's weight is not the default tone's ${def["halo-edge"]}`);
+  }
+
+  // Single-source geometry. Distinctive names only, as UI does: POP, TONES and
+  // AURA are generic enough that an unrelated file could fairly declare them.
+  const GEO = ["CORE_D", "HALO_D", "HALO_EDGE", "RING_D", "RING_STROKE", "RING_FROM", "PRESS_SCALE", "RING_GROW", "RING_FADE", "TONE_RULE"];
+  const owners = scriptFiles().filter(
+    (f) => rel(f) !== "scripts/lib/pointer.mjs" && rel(f) !== "scripts/check-invariants.mjs",
+  );
+  for (const f of owners) {
+    const src = read(f);
+    for (const name of GEO) {
+      if (new RegExp(`(?:^|\\s)(?:export\\s+)?(?:const|let|var)\\s+${name}\\s*=`).test(src)) {
+        findings.push(`${rel(f)}: re-declares pointer constant ${name} (declare only in lib/pointer.mjs)`);
+      }
+    }
+  }
+
+  return findings;
+};
+
+// 11. The store art (lib/feature-graphic.mjs). Both stores reject a file of the
 //     wrong size outright (App Store Connect: "File dimensions are invalid",
 //     which is how the header slot first rejected a phone screenshot) and both
 //     reject an alpha channel. sharp is not available here, so the PNG header is
@@ -832,7 +990,7 @@ checks.STORE = () => {
   return findings;
 };
 
-// 11. The board's outcome-line contract (brand-record-fidelity). Every move after
+// 12. The board's outcome-line contract (brand-record-fidelity). Every move after
 //     Design is a turn-end Text match in kangentic.json on the last line an agent
 //     prints, and that line is written in a different file: the skill the column
 //     sends (`/pull-request` prints `PR: ready to merge`), or the column's own
@@ -891,7 +1049,7 @@ checks.BOARD = () => {
   return findings;
 };
 
-// 12. This gate's own record (brand-record-fidelity). Three records ENUMERATE
+// 13. This gate's own record (brand-record-fidelity). Three records ENUMERATE
 //     the checks that run, and all three had drifted: the header above named six
 //     of nine, CLAUDE.md named five in one place and three in another, ci.yml
 //     named a different five. MONO, ACTIVITY and UI were each added without any
@@ -928,7 +1086,7 @@ checks.RECORD = () => {
 
 // ---------------------------------------------------------------------------
 // `order` is the single source for the roster every record above must quote.
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "STORE", "BOARD", "RECORD"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "POINTER", "STORE", "BOARD", "RECORD"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {
