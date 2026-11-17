@@ -302,9 +302,11 @@ the version tag, before anything is published.
 
 `/release [patch|minor|major]` in Claude Code handles the determinism
 gate, version bump, changelog, tag, GitHub release, and npm publish. On the
-board it runs from the Release column, after Merge; it also runs by hand
-from the `main` checkout. The package major tracks the brand generation
-(v1 blue K, v2 Warm Craft); a major bump archives the outgoing line first.
+board every merge cuts a version: the Release column runs `/release auto`
+after Merge, which picks a patch or minor bump from the commits without
+asking. It also runs by hand from the `main` checkout. The package major
+tracks the brand generation (v1 blue K, v2 Warm Craft); a major bump
+archives the outgoing line first, and always stops for the maintainer.
 
 ## Deeper docs
 

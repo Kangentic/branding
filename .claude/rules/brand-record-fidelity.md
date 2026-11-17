@@ -128,6 +128,33 @@ every case the bytes were exactly what the generator produced.
     about, and `CLAUDE.md`'s Development block deliberately points at the header
     rather than repeating the list, because one enumeration per document is the
     only count that stays true. The review arm above covers the rest.
+- **Gate (blocking): `BOARD` holds the board's automations to the lines they
+  wait for.** Added 2026-11-17 with the Design column, when every move after
+  sign-off became a turn-end Text match in `kangentic.json` on a line printed
+  somewhere else: by the skill the column sends (`/pull-request` prints
+  `PR: ready to merge`) or by the column's own message (Design's contract
+  prints `Design: shelved`). Each skill's Outcome line section is the prose
+  half of that pairing, and a reworded line would leave its row waiting
+  forever with the card parked and no error anywhere. The kangentic repo
+  guards the same pairing with a unit test. Lines a PERSON types (`from:
+  "user"`, or a pattern with `*` or `!`) are skipped, and one direction only
+  is checked: a skill may print a line no row reads (`PR: blocked` is a stop
+  by design).
+  - Verified to bite 2026-11-17 in both of the ways it can drift. Adding the
+    rows before the skills printed anything reported exactly the five missing
+    lines and nothing for Design or Executing. Rewording `Release: published`
+    to `Release: shipped` throughout the release skill, with the row left
+    alone, reports:
+
+    ```
+    BOARD     FAIL
+        - Release: "Finish" waits for the line "Release: published", but nothing this column sends prints it
+    ```
+
+  - Scope it honestly: it proves a line is PRINTABLE, by finding it in the
+    text, not that the skill prints it at the right moment. When a line may be
+    printed is what each skill's Outcome line section is for, and it stays
+    review.
 - **History:** this rule replaces the code-review half of the retired
   `/brand-review` skill. Seven runs of that skill produced findings of exactly
   this class and no others that another gate did not already cover; the column
@@ -141,4 +168,5 @@ between prose and code, so it applies to comments, decision records, READMEs and
 generated manifests alike. It does not govern geometry, palette or determinism:
 those have their own rules and their own mechanical gates. The aesthetic call
 (does the mark read as craft, is it unmistakable at 24x24) is not in scope here
-and stays a human decision made from rendered artifacts during Executing.
+and stays a human decision made from rendered artifacts in the Design column,
+the board's one manual gate, where the owner signs it off.

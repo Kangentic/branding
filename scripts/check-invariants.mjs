@@ -8,12 +8,14 @@
 // ("reads as craft, not AI clip-art") is NOT here - it stays a human decision.
 //
 // Checks, in run order: PALETTE, SPRITE, TIERING, FROZEN-K, BANNED, MONO,
-// ANIMATION, ACTIVITY, UI, STORE, RECORD. Respectively: palette membership,
+// ANIMATION, ACTIVITY, UI, STORE, BOARD, RECORD. Respectively: palette membership,
 // sprite constraints, mark tiering (no card-K on a downscaled master), frozen-K
 // / single-source geometry, banned colors, the theme-safe mono pair, the shared
 // animation contract (motion budget, compositing safety, packaging), the
 // activity status set, the ui navigation set, the store art (exact slot sizes,
-// no alpha, the lockup inside its safe areas), and this gate's own record.
+// no alpha, the lockup inside its safe areas), the board's outcome lines (every
+// line a kangentic.json turn-end row waits for is printed by what that column
+// sends), and this gate's own record.
 // RECORD is what makes the roster above trustworthy: it fails when an
 // enumerating record drifts from the registered set, which is exactly how MONO,
 // ACTIVITY and UI each came to be missing from this very comment.
@@ -830,7 +832,66 @@ checks.STORE = () => {
   return findings;
 };
 
-// 11. This gate's own record (brand-record-fidelity). Three records ENUMERATE
+// 11. The board's outcome-line contract (brand-record-fidelity). Every move after
+//     Design is a turn-end Text match in kangentic.json on the last line an agent
+//     prints, and that line is written in a different file: the skill the column
+//     sends (`/pull-request` prints `PR: ready to merge`), or the column's own
+//     message (Design's contract prints `Design: shelved`). Nothing else connects
+//     the two, so renaming a line on one side leaves the row waiting forever and
+//     the card parked with no error anywhere. The kangentic repo guards the same
+//     pairing with a unit test; here it is a check, so it runs in CI.
+//
+//     Each column's PRINTERS are every message it sends (on enter, on turn end,
+//     on exit) plus, for a message that is a slash command, that skill's SKILL.md.
+//     Every plain pattern an agent-sourced Text match waits for must appear in a
+//     printer. Patterns with `*` or a leading `!`, and `from: "user"` matches
+//     (Design's "signed off"), are what a PERSON types, so no file prints them.
+//     One direction only: a skill may print a line no row reads (`PR: blocked`
+//     is a stop by design), but a row may not wait for a line nothing prints.
+const BOARD_FILE = "kangentic.json";
+const rowPatterns = (condition) => {
+  if (!condition || typeof condition !== "object" || !("text" in condition)) return [];
+  const t = condition.text;
+  if (typeof t === "string") return [t];
+  if (Array.isArray(t)) return t;
+  if (t && typeof t === "object" && t.from !== "user") return t.patterns ?? [];
+  return [];
+};
+checks.BOARD = () => {
+  const findings = [];
+  if (!has(BOARD_FILE)) return [`${BOARD_FILE}: missing (the committed board configuration)`];
+  let board;
+  try {
+    board = JSON.parse(load(BOARD_FILE));
+  } catch (e) {
+    return [`${BOARD_FILE}: not valid JSON (${e.message})`];
+  }
+  for (const col of board.columns ?? []) {
+    const a = col.automations ?? {};
+    const rows = [...(a.onEnter ?? []), ...(a.onTurnEnd ?? []), ...(a.onExit ?? [])];
+    const printers = [];
+    for (const row of rows) {
+      if (typeof row.message !== "string") continue;
+      printers.push(row.message);
+      const slash = /^\/([a-z0-9-]+)/.exec(row.message.trim());
+      if (!slash) continue;
+      const skill = `.claude/skills/${slash[1]}/SKILL.md`;
+      if (has(skill)) printers.push(load(skill));
+      else findings.push(`${col.name}: sends /${slash[1]}, but ${skill} does not exist`);
+    }
+    for (const row of a.onTurnEnd ?? []) {
+      for (const p of rowPatterns(row.condition)) {
+        if (p.startsWith("!") || p.includes("*")) continue;
+        if (!printers.some((text) => text.includes(p))) {
+          findings.push(`${col.name}: "${row.name}" waits for the line "${p}", but nothing this column sends prints it`);
+        }
+      }
+    }
+  }
+  return findings;
+};
+
+// 12. This gate's own record (brand-record-fidelity). Three records ENUMERATE
 //     the checks that run, and all three had drifted: the header above named six
 //     of nine, CLAUDE.md named five in one place and three in another, ci.yml
 //     named a different five. MONO, ACTIVITY and UI were each added without any
@@ -867,7 +928,7 @@ checks.RECORD = () => {
 
 // ---------------------------------------------------------------------------
 // `order` is the single source for the roster every record above must quote.
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "STORE", "RECORD"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "STORE", "BOARD", "RECORD"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {

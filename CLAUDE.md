@@ -58,7 +58,7 @@ scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
 scripts/check-invariants.mjs  Mechanical brand-invariant gate (npm run check).
                           Checks, in run order: PALETTE, SPRITE, TIERING,
                           FROZEN-K, BANNED, MONO, ANIMATION, ACTIVITY, UI,
-                          STORE, RECORD. RECORD asserts this list matches the checks
+                          STORE, BOARD, RECORD. RECORD asserts this list matches the checks
                           that actually run, so it cannot silently fall behind.
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
 assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
@@ -136,9 +136,23 @@ npm run check        # mechanical brand-invariant gate (roster in the file heade
 | `icon-drafting` | The brandmark harness: canonical scripts, frozen K, two-tier system, review discipline (size strips + in-situ header renders), decision history. Read before any mark work. |
 | `sprite-drafting` | The pixel-art mascot harness: the sprite engine, the ASCII-map method, review discipline, and the rejected-creature history. Read before any mascot/sprite work. |
 | `design-language` | The Warm Craft constitution: palette, typography, mascot conventions, anti-AI-template checklist. Kept in sync with kangentic.com's copy. |
-| `release` | Release column (after Merge): `/release [patch|minor|major]`: determinism gate, bump, changelog, tag, GitHub release, npm publish. Runs from the main checkout or a task worktree. Major = new brand generation only (archive gate). |
-| `pull-request` | Testing column: run the determinism gate locally, commit, rebase, open a clean PR, and drive its CI checks to green (auto-fixing generators/scripts). Never merges. |
-| `merge-pull-request` | Merge column: verify a green PR, merge it (rebase, delete branch), realign the worktree, and fast-forward local `main`. Does NOT publish (that is the Release column's `/release`). |
+| `release` | Release column (after every merge): the board sends `/release auto`, which applies the suggested patch or minor bump without asking; by hand, `/release [patch|minor|major]` asks. Determinism gate, bump, changelog, tag, GitHub release, npm publish. Runs from the main checkout or a task worktree. Major = new brand generation only (archive gate), and always stops for the maintainer. Ends on `Release: published`. |
+| `pull-request` | Testing column: run the determinism gate locally, commit, rebase, open a clean PR, and drive its CI checks to green (auto-fixing generators/scripts). Never merges. Ends on `PR: ready to merge`. |
+| `merge-pull-request` | Merge column: verify a green PR, merge it (rebase, delete branch), realign the worktree, and fast-forward local `main`. Does NOT publish (that is the Release column's `/release auto`). Ends on `PR: merged`, or `PR: checks red` to send the card back to Testing. |
+
+## Board
+
+`kangentic.json` is the committed board: To Do, Design, Planning, Executing,
+Testing, Merge, Release, Done. **Design is the one manual gate.** It draws
+candidates through the drafting harness onto a review page, may edit
+`scripts/` and `exploration/` but never `assets/` or `resources/`, and moves
+on only when the owner types "signed off". From there every move is a
+turn-end Text match on the last line an agent prints (`Findings: applied`,
+`PR: ready to merge`, `PR: merged`, `Release: published`), through Planning
+(automatic plan approval), Executing, Testing, Merge and Release, and every
+merge cuts a version. Process work with no design starts in Planning, or in
+Executing when its approach is settled. `npm run check`'s `BOARD` check
+fails when a row waits for a line that nothing its column sends prints.
 
 ## Conventions
 

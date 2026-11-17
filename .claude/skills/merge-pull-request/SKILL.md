@@ -21,9 +21,10 @@ is the gate. `--admin` enforces nothing.
 
 **This skill does NOT publish.** Landing a PR onto `main` and publishing a new `@kangentic/branding`
 version are separate concerns. Publishing (regenerate + determinism gate, version bump, changelog,
-tag, GitHub release, npm publish) is `/release`, which the **Release column** runs: move the card
-there when this merge should cut a version, or straight to Done when it should not. This skill
-stops at the merge and the local `main` fast-forward.
+tag, GitHub release, npm publish) is `/release`, which the **Release column** runs after every
+merge: a run that merged ends on the line `PR: merged`, and the Merge column's "On to Release"
+automation moves the task there (see "Outcome line" below). This skill stops at the merge and the
+local `main` fast-forward.
 
 **Usage:** `/merge-pull-request`
 
@@ -85,14 +86,20 @@ is for local git only.
      the rollup is non-empty and every entry is SUCCESS. Absence is never a reason to merge.
    - `mergeStateStatus` normally reads `BLOCKED` rather than `CLEAN`, because `main` requires an
      approving review the maintainer's own PR does not have. That block is EXPECTED and is the
-     one thing Step 2's `--admin` is there to clear. But if a required CHECK is failing, pending,
-     or absent (not merely the review), stop or wait (step 4); never `--admin` past it.
+     one thing Step 2's `--admin` is there to clear. But if a required CHECK is pending or absent
+     (not merely the review), wait (step 4), and if one is failing, send it back (step 5); never
+     `--admin` past either.
 4. If the checks are pending or the rollup is still empty - whether because the rebase in step 2
    re-triggered them or because the run has not been queued yet - wait with
    `gh pr checks <pr> --watch --fail-fast --interval 30` (Bash `timeout` = `600000` ms, re-run while
-   still pending). If they go red, stop and report - this should be rare because Testing already
-   drove them green; the user can move the task back to Testing to re-run `/pull-request`. If two
-   consecutive full watches make no forward progress, stop and report rather than merging blind.
+   still pending). If two consecutive full watches make no forward progress, stop and report
+   rather than merging blind. That is a hold, so it prints no outcome line.
+5. **Red CI goes back to Testing.** When any required check is red, do not fix it here and do not
+   wait for a person: fixing checks is `/pull-request`'s job. This should be rare, because Testing
+   already drove them green. Report each red check with its run ID, leave the PR open with no
+   half-finished rebase, and end the message on the line `PR: checks red`, alone. The Merge
+   column's "Back to Testing" automation moves the task to Testing, and `/pull-request`'s
+   `PR: ready to merge` brings it back here.
 
 ## Step 2 - Merge the PR
 
@@ -120,9 +127,10 @@ granular history stays preserved in the PR): `gh pr merge <pr> --admin --squash 
 NOT use `--merge`: a merge commit would break the linear-`main` convention this repo maintains.
 Record `<mergeMethod>` (rebase or squash) - it selects the realign below.
 
-**If the merge fails** for any OTHER reason than the expected missing-review block (e.g. the branch
-is behind and needs a rebase first, or a required check actually went red), do NOT force past it -
-report the unmet requirement and stop.
+**If the merge fails** for any OTHER reason than the expected missing-review block, do NOT force
+past it. When the reason is a required check that went red, this is Step 1 item 5: report it and
+end on `PR: checks red`. Any other refusal (e.g. the branch is behind and needs a rebase first) is
+a hold: report the unmet requirement and stop with no outcome line.
 
 ### Refresh the board's PR status
 
@@ -198,12 +206,39 @@ Summarize:
   worktree branch (`<branch>`, a different name) realigned to the merged base and removed later by
   move-to-Done.
 - Local `main` checkout status (fast-forwarded, or the divergence you surfaced).
-- **This skill did NOT publish.** To ship a new `@kangentic/branding` version to consumers
-  (kangentic.com, the desktop app, kangentic-mobile), move the task to the Release column, which
-  runs `/release`.
-- **Next:** move the task to Release to cut a version, or straight to Done when this merge should
-  not publish. Done (directly or after Release) triggers worktree cleanup and removes the local
-  worktree.
+- **This skill did NOT publish.** The Release column cuts the new `@kangentic/branding` version
+  for consumers (kangentic.com, the desktop app, kangentic-mobile) next, with `/release auto`.
+  Done, after Release, removes the local worktree.
+- Then, only when "Outcome line" below allows it, the last line of the message, alone:
+  `PR: merged`. On the board that moves the task to Release. Outside the Merge column nothing
+  reads the line, so remind the user to move the task to Release.
+
+## Outcome line
+
+The Merge column's two turn-end automations (`kangentic.json`) are Text matches: each time a turn
+ends here they read the last line of your final message, ignoring case, punctuation and markdown.
+"On to Release" moves the task to Release when that line reads `PR: merged`, and "Back to Testing"
+moves it to Testing when it reads `PR: checks red`. So the lines are a contract, and this section
+and those rows change together. `npm run check`'s `BOARD` check fails when a row waits for a line
+this skill no longer prints.
+
+- `PR: merged` comes only from Step 4, and only when all three hold:
+  - **The PR is merged.** `gh pr view <pr> --json state` reads `MERGED`.
+  - **The realign finished clean.** `git status --porcelain` is empty and
+    `git rev-list --count origin/<sourceBranch>..HEAD` reads 0. `/release` pushes any commit left
+    on this branch straight to `main`, so a leftover commit stops here instead of riding along.
+  - **Step 3 fast-forwarded the main checkout.** A divergence that Step 3 reports, or offers to
+    reconcile, is a hold.
+- `PR: checks red` comes only from Step 1 item 5, or from a merge Step 2 saw refused because a
+  required check went red. The row's Frequency caps it at two round trips per task, so a
+  `<sourceBranch>` that stays red cannot bounce the card forever. Print the line every time; the
+  board does the counting.
+- Every other stop is a hold and prints no outcome line, so the card stays in Merge: the
+  pre-flight stops (main repo mode, a detached HEAD, a failed `gh auth status`), no PR resolved in
+  Step 0, a rebase conflict that needs judgment, checks stuck with no progress, a merge refused for
+  anything but the missing review or a red check, and the realign and Step 3 stops above.
+
+The `PR:` prefix marks a pull request outcome, shared with Testing's `PR: ready to merge`.
 
 ## Rules
 

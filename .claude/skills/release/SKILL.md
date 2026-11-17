@@ -1,7 +1,7 @@
 ---
-description: Regenerate and verify brand assets, version bump, changelog, tag, GitHub release, and tag-triggered CI npm publish for @kangentic/branding. This is the Release column skill (after Merge); it also runs by hand from the main checkout.
+description: Regenerate and verify brand assets, version bump, changelog, tag, GitHub release, and tag-triggered CI npm publish for @kangentic/branding. This is the Release column skill, which the board runs as /release auto after every merge; it also runs by hand from the main checkout.
 allowed-tools: Read, Glob, Grep, Edit, Write, Bash(git:*), Bash(npm:*), Bash(npx:*), Bash(gh:*)
-argument-hint: [patch|minor|major]
+argument-hint: [auto|patch|minor|major]
 ---
 
 # Release
@@ -13,21 +13,28 @@ in CI and publishes to npm with provenance via OIDC - no local `npm publish`,
 no stored token. Consumers (kangentic.com, kangentic desktop, kangentic-mobile)
 update by bumping this package - a release here is how icons change everywhere.
 
-This is the **Release column** skill: the board sends `/release` to a task that entered Release
-after the **Merge column** (`/merge-pull-request`) landed its PR, which is worktree mode below.
-The column sends no argument, so Step 0 suggests a bump and waits for confirmation; that pause is
-the human gate on every publish. A merged task that should not cut a version (a board or docs
-chore) skips Release and moves straight from Merge to Done.
+This is the **Release column** skill, and every merge cuts a version. The board sends
+`/release auto` to a task that entered Release after the **Merge column**
+(`/merge-pull-request`) landed its PR, which is worktree mode below. `auto` applies the bump Step 0
+suggests without asking, so the normal path waits for nobody: a run that published ends on
+`Release: published`, and the board moves the task to Done (see "Outcome line" below).
 
-**Usage:** `/release [patch|minor|major]`
+Two stops survive `auto`, because each one used to sit behind a person and must not quietly
+disappear: a suggested **major** bump (the major-bump gate below), and, in worktree mode, any
+commit beyond `origin/main` that the release would push straight to `main` (pre-flight 4). Run by
+hand with no argument, the skill still suggests a bump and waits for confirmation.
+
+**Usage:** `/release [auto|patch|minor|major]`
 
 Runs from the main checkout (on `main`) or from a task worktree. From a worktree it pushes
 `HEAD:main`; see the pre-flight checks and Step 5.
 
-- `/release` -- auto-suggests bump type from commit history, asks for confirmation
-- `/release patch` -- refinements within the current brand line (2.0.0 to 2.0.1)
-- `/release minor` -- new assets/variants within the line (2.0.0 to 2.1.0)
-- `/release major` -- A NEW BRAND GENERATION ONLY. See the major-bump gate below.
+- `/release` - suggests a bump type from the commit history and asks for confirmation
+- `/release auto` - applies the suggested patch or minor bump without asking (the Release column
+  sends this); a suggested major still stops
+- `/release patch` - refinements within the current brand line (2.0.0 to 2.0.1)
+- `/release minor` - new assets/variants within the line (2.0.0 to 2.1.0)
+- `/release major` - A NEW BRAND GENERATION ONLY. See the major-bump gate below.
 
 **Release type (optional):** $ARGUMENTS
 
@@ -44,16 +51,30 @@ requested or suggested:
    or an earlier commit. If not archived, stop: "Archive the v<N> line to
    archive/v<N>/ before releasing v<N+1> - brand history is never lost."
 
+`auto` never applies a major. When Step 0 suggests one, report the suggestion and the commits
+behind it, and stop with no outcome line. The maintainer confirms the rebrand and the archive,
+then runs `/release major`. Never archive on your own initiative.
+
 ## Step 0 -- Determine Bump Type
 
+0. **Catch up first, in a task worktree** (CWD contains `.kangentic/worktrees/`). Run
+   `git fetch origin main`. If `git merge-base --is-ancestor HEAD origin/main` succeeds, the branch
+   is at or behind `origin/main`, as it is when a sibling card's release landed after this merge.
+   Fast-forward it with `git merge --ff-only origin/main` (a no-op when it is already there), so
+   the tag lookup below sees that release.
 1. **Find the previous tag:** Run `git describe --tags --abbrev=0`. Note whether this succeeds or fails (no tags = first release).
 2. **Collect commits since last tag:** Run `git log <previousTag>..HEAD --oneline --no-decorate` (or `git log --oneline --no-decorate` if no previous tag).
+   If the list is empty, nothing has landed since the last tag, because a sibling card's release
+   already shipped this merge. Report that, make no bump and no tag, and end on the line
+   `Release: nothing to publish`.
 3. **Analyze conventional commit prefixes to suggest a bump type:**
    - Any commit with `!` after the type or containing `BREAKING CHANGE` -- suggest **major** (and apply the major-bump gate)
    - Any `feat:` commit -- suggest **minor**
    - Only `fix:`, `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `perf:`, `ci:`, `build:` -- suggest **patch**
    - No conventional prefixes -- keyword fallback: "Add"/"Implement"/"Create" = minor, "Fix" = patch, otherwise patch
 4. **If `$ARGUMENTS` is `patch`, `minor`, or `major`:** use it directly, skip the suggestion prompt (the major gate still applies).
+   **If `$ARGUMENTS` is `auto`:** report the suggestion with its reasoning and go on with it
+   without waiting. A suggested major stops instead (see the major-bump gate).
 5. **First-release check:** If no previous tags exist and `$ARGUMENTS` is empty, read the current version from `package.json`. Ask: "No previous releases found. Release current version as v{version}? [confirm/override]". If confirmed, skip the version bump in Step 2.
 6. **Otherwise:** report the suggestion with reasoning and wait for confirmation:
    ```
@@ -85,7 +106,8 @@ requested or suggested:
      Then run `git log --oneline origin/main..HEAD`. Any commit listed will be PUSHED TO `main`
      with the release, with no pull request and no review (see 7 below), and it appears in the
      changelog. If the list is non-empty, show it and get the maintainer's confirmation before
-     going on. An empty list is the normal case, after the task's PR has been merged and the
+     going on. That holds in `auto` mode too: it is a stop with no outcome line, never a question
+     `auto` answers. An empty list is the normal case, after the task's PR has been merged and the
      worktree realigned by `/merge-pull-request`.
 5. **Install dependencies:** Run `npm ci`. (A worktree has its own `node_modules`, so this is
    needed there too. If it fails with EBUSY, a running process has a file locked: report it and
@@ -197,7 +219,9 @@ Publishing runs in CI, not on this machine. The tag push in Step 5 triggers
 3. If the run fails, do NOT publish locally. The git tag and GitHub release
    already exist; fix the cause and re-trigger the publish alone with
    `gh workflow run publish.yml --ref vX.Y.Z` (the workflow's idempotency
-   guard makes re-runs safe) - do NOT re-run the whole pipeline.
+   guard makes re-runs safe) - do NOT re-run the whole pipeline. Until a
+   publish run for the tag concludes `success`, the run ends with no outcome
+   line, so the card stays in Release.
 
 ## Step 8 -- Report
 
@@ -223,8 +247,27 @@ Publishing runs in CI, not on this machine. The tag push in Step 5 triggers
   check it, which is precisely the rot `brand-record-fidelity.md` exists to
   prevent. Read the consumers instead of mirroring them.
 - **Worktree mode:** report whether the project root's `main` fast-forwarded (Step 5, "Worktree
-  mode, afterwards"), and remind the user to move the task to Done on the board, which removes
-  the worktree.
+  mode, afterwards"). In the Release column the line below moves the task to Done, which removes
+  the worktree; outside it, remind the user to move the task to Done.
+- The last line of the message, alone, only when Step 7's publish run for this tag concluded
+  `success`: `Release: published`. Do not gate it on `npm view`, which went on reporting the
+  previous version for more than a minute after CI had published v2.13.0.
+
+## Outcome line
+
+The Release column's "Finish" automation (`kangentic.json`) is a Text match: each time a turn ends
+here it reads the last line of your final message, ignoring case, punctuation and markdown, and
+moves the task to Done, which removes the worktree, when that line reads `Release: published` or
+`Release: nothing to publish`. So the lines are a contract, and this section and that row change
+together. `npm run check`'s `BOARD` check fails when the row waits for a line this skill no longer
+prints.
+
+- `Release: published` comes only from Step 8, after Step 7's publish run concluded `success`.
+- `Release: nothing to publish` comes only from Step 0, when no commit landed since the last tag.
+- Every other stop is a hold and prints no outcome line, so the card stays in Release: a suggested
+  major in `auto` mode, commits that pre-flight 4 would push straight to `main`, a dirty tree or a
+  branch behind `origin/main`, determinism drift or a failing `npm run check`, a refused push, a
+  failed publish run, and a hand run's bump question.
 
 ## Allowed Tools
 

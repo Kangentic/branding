@@ -11,8 +11,9 @@ column** skill for `@kangentic/branding`: it runs branding's real local gate (re
 and prove the tree is deterministic), pushes a clean PR, then drives any CI checks to green,
 auto-fixing the generators or scripts behind any failure.
 
-It **never merges**. When the PR is green, the user moves the task Testing -> Merge, where
-`/merge-pull-request` merges it and pulls the result back into the local `main` checkout.
+It **never merges**. A green run ends on the line `PR: ready to merge`, and the Testing column's
+"On to Merge" automation moves the task to Merge, where `/merge-pull-request` merges it and pulls
+the result back into the local `main` checkout. See "Outcome line" below.
 
 **Usage:** `/pull-request [commit message]`
 
@@ -267,10 +268,12 @@ The PR is green. Report:
 - Number of commits and the determinism-gate result (every generator re-run, `assets/` and
   `resources/` clean).
 - Check status: all checks green.
-- Next step: the user moves the task Testing -> Merge, where `/merge-pull-request` merges it.
-  `main` also requires an approving review, which a maintainer's own PR will not have, so expect
-  `mergeStateStatus` to read `BLOCKED`. That is the expected path and `/merge-pull-request`
-  handles it; it is not a failure of this step.
+- Next step: `/merge-pull-request` merges it in the Merge column. `main` also requires an
+  approving review, which a maintainer's own PR will not have, so expect `mergeStateStatus` to
+  read `BLOCKED`. That is the expected path and `/merge-pull-request` handles it; it is not a
+  failure of this step.
+- The last line of the message, alone: `PR: ready to merge`. On the board that moves the task to
+  Merge. Outside the Testing column nothing reads the line, so the user moves the task.
 
 **Do NOT merge.** Merging is `/merge-pull-request`'s job.
 
@@ -283,6 +286,25 @@ half-finished rebase. Report concrete, learned recommendations so a human can fi
 - Specific recommendations, e.g. "the generator at `scripts/gen-icons.mjs:<line>` produces
   non-deterministic output", or "the regression is in `scripts/lib/mark.mjs:<line>`".
 - The PR URL and the current red/pending check summary.
+- The last line of the message, alone: `PR: blocked`. No automation reads it, so the task stays in
+  Testing for a human.
+
+## Outcome line
+
+The Testing column's "On to Merge" automation (`kangentic.json`) is a Text match: each time a turn
+ends here it reads the last line of your final message, ignoring case, punctuation and markdown,
+and moves the task to Merge when that line reads `PR: ready to merge`. So the line is a contract,
+and this section and that row change together. `npm run check`'s `BOARD` check fails when the row
+waits for a line this skill no longer prints.
+
+- `PR: ready to merge` comes only from Step 8: every check green.
+- `PR: blocked` comes only from Step 8b.
+- Every other stop prints no outcome line, so the card stays where it is: main repo mode, a
+  detached HEAD, a failed `gh auth status`, a failed local gate in Step 0, the Step 3
+  rebase-conflict question, and a push the lease rejects.
+
+The `PR:` prefix marks a pull request outcome, shared with Merge's `PR: merged` and
+`PR: checks red`.
 
 ## Rules
 

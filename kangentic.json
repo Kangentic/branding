@@ -5,29 +5,114 @@
       "id": "a695bcaf-77fa-4299-97e3-93adf0f48953",
       "name": "To Do",
       "role": "todo",
+      "description": "Holds tasks that have not started. No agent runs here.",
       "icon": "layers",
       "color": "#6b7280"
     },
     {
+      "id": "8111a2ee-e987-4002-acf6-19a3a4284c7e",
+      "name": "Design",
+      "description": "Draws candidates through the drafting harness onto one review page and revises it until the owner signs it off, by typing \"signed off\" or moving the card. For work whose result someone looks at: a mark, an activity or ui glyph, the mascot, store art, the social image. Only a person moves a card out of it.",
+      "icon": "brush",
+      "color": "#ec4899",
+      "autoSpawn": true,
+      "permissionMode": "auto",
+      "modelOverride": "opus",
+      "effortOverride": "high",
+      "automations": {
+        "onEnter": [
+          {
+            "name": "Design contract",
+            "type": "send_message",
+            "message": "Design phase. Read the design-language skill, then the drafting skill for this work: icon-drafting for a mark, glyph or store art, sprite-drafting for the mascot. Their decision history is binding: do not re-offer a rejected direction without new information. Draft every candidate in the harness (scripts/lib and the gen scripts), so the code that would ship it is what renders it. Lay the candidates out on one review page published as a Claude artifact: the current state beside each candidate, at true size on light and dark, nearest-upscaled at indicator sizes, and in place on the surface that consumes it. Render every option before you offer it, and keep each candidate to one idea, with no blends. Before you write to the worktree, call kangentic_get_current_task: while the card is in Design you may edit scripts/ and exploration/, but end every turn with assets/ and resources/ exactly as committed, and make no commits. The first time you publish the page, add it to this task's artifacts with kangentic_update_task. End each turn with the open decisions by number, the page link, then the line \"To sign off, type signed off or move the card to Planning.\" The owner signs off by typing \"signed off\" or by moving this card to Planning. A mode switch, or a reply that answers every open item, is not sign-off. When the owner's message signs off, record the picks on the page, take your recommendation on any decision still open, and append to the task description with kangentic_update_task the signed-off design, the picked candidate's named constants, and each rejected direction with its reason, so the build can write them into the decision history. Then end your turn. The board moves the card. Never move this card yourself. If the owner asks to shelve the design, append the page link to the task description with kangentic_update_task, then end your turn with the line \"Design: shelved\", and leave the sign-off line off that turn.",
+            "mode": "immediate"
+          }
+        ],
+        "onTurnEnd": [
+          {
+            "name": "Shelved",
+            "type": "move_to_column",
+            "condition": {
+              "text": "Design: shelved"
+            },
+            "targetColumn": "To Do"
+          },
+          {
+            "name": "On to Planning",
+            "type": "move_to_column",
+            "condition": {
+              "text": {
+                "from": "user",
+                "patterns": [
+                  "*signed off*",
+                  "*design approved*",
+                  "*design is approved*",
+                  "!*not signed off*",
+                  "!*not approved*",
+                  "!*type signed off*",
+                  "!*typing signed off*",
+                  "!*signed off except*"
+                ]
+              }
+            },
+            "maxRuns": 1,
+            "targetColumn": "Planning"
+          }
+        ],
+        "onExit": [
+          {
+            "name": "Signed off",
+            "type": "send_message",
+            "message": "The design is signed off, and this card moved to {{toColumn}}. In Planning, call EnterPlanMode and write the implementation plan against the signed-off review page: which lib constants change, what regenerates, and where the picks and the rejected directions go in the decision history. In Executing, build it against the signed-off page.",
+            "mode": "immediate"
+          }
+        ]
+      }
+    },
+    {
       "id": "f5a1ee1d-d6be-4962-bf78-8b38417618e9",
       "name": "Planning",
+      "description": "Reads the code and writes the implementation plan in plan mode, then moves on to Executing by itself. For a signed-off design, and for process work whose approach is not settled: a skill, a gate, CI, a rule.",
       "icon": "map",
       "color": "#8b5cf6",
       "autoSpawn": true,
       "permissionMode": "plan",
       "modelOverride": "opus",
+      "effortOverride": "high",
+      "planApproval": "automatic",
       "planExitTarget": "Executing"
     },
     {
       "id": "ff7635b2-4f47-422e-840e-81d1a5be4cf5",
       "name": "Executing",
+      "description": "Builds and commits the change, publishes its before/after page, then applies its own findings and moves on to Testing. Every task that changes the repository needs it.",
       "icon": "square-terminal",
       "autoSpawn": true,
-      "modelOverride": "opus"
+      "modelOverride": "opus",
+      "automations": {
+        "onTurnEnd": [
+          {
+            "name": "On to Testing",
+            "type": "move_to_column",
+            "condition": {
+              "text": "Findings: applied"
+            },
+            "maxRuns": 4,
+            "targetColumn": "Testing"
+          },
+          {
+            "name": "Apply findings",
+            "type": "send_message",
+            "message": "Check your last message for findings, recommendations or follow-up changes you have not applied yet, and apply them here in this task, not as follow-up tasks. Skip anything already filed as a task on the board, and never delete or move one. Where one needs a decision, take your recommended option and name the alternative. If there are none, say so. Then make sure this change's before/after page is published and current, for prose and records as well as pixels. Either way, end your turn with a short summary, the page link, and the line \"Findings: applied\".",
+            "mode": "immediate"
+          }
+        ]
+      }
     },
     {
       "id": "6cf089e1-23f9-4241-b16d-5dfbf5640970",
       "name": "Testing",
+      "description": "Opens the PR, runs the determinism gate and drives CI to green without merging, then moves on to Merge. Every task that lands through a PR needs it.",
       "icon": "flask-conical",
       "color": "#06b6d4",
       "autoSpawn": true,
@@ -41,17 +126,30 @@
             "message": "/pull-request",
             "mode": "immediate"
           }
+        ],
+        "onTurnEnd": [
+          {
+            "name": "On to Merge",
+            "type": "move_to_column",
+            "condition": {
+              "text": "PR: ready to merge"
+            },
+            "maxRuns": 3,
+            "targetColumn": "Merge"
+          }
         ]
       }
     },
     {
       "id": "9c5aa6d3-b380-427d-927f-6b9f78699494",
       "name": "Merge",
+      "description": "Merges the green PR one task at a time, fast-forwards local main, then moves on to Release. A red check sends the card back to Testing. Every task that lands through a PR needs it.",
       "icon": "merge",
       "color": "#F97316",
       "autoSpawn": true,
       "modelOverride": "sonnet",
       "effortOverride": "high",
+      "maxAgents": 1,
       "automations": {
         "onEnter": [
           {
@@ -60,25 +158,60 @@
             "message": "/merge-pull-request",
             "mode": "immediate"
           }
+        ],
+        "onTurnEnd": [
+          {
+            "name": "On to Release",
+            "type": "move_to_column",
+            "condition": {
+              "text": "PR: merged"
+            },
+            "maxRuns": 1,
+            "targetColumn": "Release"
+          },
+          {
+            "name": "Back to Testing",
+            "type": "move_to_column",
+            "condition": {
+              "text": "PR: checks red"
+            },
+            "maxRuns": 2,
+            "targetColumn": "Testing"
+          }
         ]
       }
     },
     {
       "id": "14db0058-86ac-45bf-ab93-be1483b6de2c",
       "name": "Release",
-      "description": "Cuts a @kangentic/branding version from the merged main via /release (determinism gate, bump, changelog, tag, CI npm publish). Merges that should not publish skip straight to Done.",
+      "description": "Cuts a @kangentic/branding version from every merge via /release auto: determinism gate, automatic patch or minor bump from the commits, changelog, tag, CI npm publish, then Done. A major bump stops for the owner and the archive gate.",
       "icon": "rocket",
       "color": "#EC4899",
       "autoSpawn": true,
       "modelOverride": "sonnet",
       "effortOverride": "high",
+      "maxAgents": 1,
       "automations": {
         "onEnter": [
           {
             "name": "Message",
             "type": "send_message",
-            "message": "/release",
+            "message": "/release auto",
             "mode": "immediate"
+          }
+        ],
+        "onTurnEnd": [
+          {
+            "name": "Finish",
+            "type": "move_to_column",
+            "condition": {
+              "text": [
+                "Release: published",
+                "Release: nothing to publish"
+              ]
+            },
+            "maxRuns": 1,
+            "targetColumn": "Done"
           }
         ]
       }
@@ -87,6 +220,7 @@
       "id": "cf59af53-634f-4e03-a840-4c2100171fc7",
       "name": "Done",
       "role": "done",
+      "description": "Holds finished tasks. A move here suspends the task's agent.",
       "icon": "circle-check-big",
       "color": "#10b981"
     }
