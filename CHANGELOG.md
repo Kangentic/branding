@@ -2,6 +2,41 @@
 
 <!-- releases -->
 
+## [v2.14.0] - 2026-11-17
+
+### Features
+- Ship the demo pointer's dot and click (4886709, Kangentic #1096). The hero on
+  kangentic.com and the app's web demo now draw one pointer from this package
+  instead of each keeping a copy. **A new `assets/pointer/` folder**, built from
+  app #1096's Design canvas, signed off 2026-11-17.
+  - `pointer.svg`: the dot, an 8px core and an 18px halo. `currentColor`, so the
+    consumer tints it cream over a dark ground and ink over a light one. **There
+    is no aura**: the hero's 30px breathing aura is dropped, the hero's included.
+  - `pointer-ring.svg`: the ring one press leaves, a 1.5px hairline that runs
+    from 18.72px out to 72px and stays where the press landed.
+  - `pointer.json`: the click as data in the shape `element.animate()` takes
+    (the core's squash to 0.7, the halo's pop to 1.5 in 160ms and back in 320ms,
+    the ring's growth and fade), the cream and ink weights, the rule for picking
+    a tone (cream below a ground luminance of 0.4, crossfaded over 120ms), and
+    the held press for a drag. **No CSS file ships**: the hero's click sits
+    inside an 8s beat and the demo animates from script, so neither could use
+    one.
+  - Every length is in page pixels. A frame its host shows at scale `s` divides
+    them by `s`, and that includes the ring's stroke, which is
+    `non-scaling-stroke` and so needs `1.5 / s` set by the consumer.
+    `pointer.json` names this under `units`. The README has an example.
+  - Where the pointer goes and when stays with each consumer: the hero's beat in
+    `DemoPointer.astro`, the demo's travel and drags in `demo/choreography.ts`.
+  - New `POINTER` invariant check, a `pointer-geometry` rule, and
+    `npm run gen:pointer` in CI, the publish workflow and the four skills that
+    list the generators. kangentic-mobile is unaffected: its sync script reads
+    only `assets/mascot/` and `assets/activity/`.
+
+### Other
+- Add a Design column and the sibling boards' turn-end automations to the board
+  (f01049e).
+- State the `npm view` lag as it was observed in the release skill (7fd4c66).
+
 ## [v2.13.0] - 2026-11-05
 
 ### Features
