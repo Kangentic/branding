@@ -250,8 +250,9 @@ Publishing runs in CI, not on this machine. The tag push in Step 5 triggers
   mode, afterwards"). In the Release column the line below moves the task to Done, which removes
   the worktree; outside it, remind the user to move the task to Done.
 - The last line of the message, alone, only when Step 7's publish run for this tag concluded
-  `success`: `Release: published`. Do not gate it on `npm view`, which went on reporting the
-  previous version for more than a minute after CI had published v2.13.0.
+  `success`: `Release: published`. Do not gate it on `npm view`. After CI had published v2.13.0,
+  two checks, the first about 30 seconds later, still reported 2.12.0, and `npm view` returned a
+  404 for 2.13.0 even with `--prefer-online`.
 
 ## Outcome line
 
