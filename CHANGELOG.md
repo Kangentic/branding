@@ -2,6 +2,54 @@
 
 <!-- releases -->
 
+## [v2.15.0] - 2026-11-22
+
+### Features
+- Ship the priority meter contract (d7e5230, Kangentic #1160). The desktop app,
+  its web demo and kangentic-mobile can now draw one priority meter from this
+  package instead of each keeping its own. **A new `assets/priority/` folder**,
+  built from kangentic #1160's Design canvas and branding #24's Design round,
+  both signed off 2026-11-22. The meter is a **rule, not a fixed glyph**: users
+  rename and extend the priority scale, so the bar count follows it.
+  - `meter.json`: one bar per level above the scale's bottom entry, lit up to
+    the task's level, a level past the end lighting every bar. Each bar is 3px
+    wide and 10px tall, 2px apart, with a 1px corner radius, so the default
+    scale draws 18 by 10. Lit bars are at full strength, unlit bars at 0.3, and
+    every bar of level 0 at 0.45. The rules ship as expressions, with 18 worked
+    example rows across scales of 1, 2, 3, 5 and 7 levels that a consumer's
+    tests can assert against, plus placement, level 0 and accessibility
+    guidance.
+  - `meter-0.svg` to `meter-4.svg`: the default scale (None to Urgent) in
+    `currentColor`, one `<rect>` per bar, `fill-opacity` on the unlit bars.
+    **These are a reference, not what every consumer renders.** The phone draws
+    Views from `meter.json`: its activity renderer strokes a rect with no `fill`
+    attribute as an outline and reads no `fill-opacity`.
+  - **Bars snap to whole device pixels.** Drawn at plain 3px, the four bars come
+    out unequal at 125%, 150% and 175% display scaling, because a renderer rounds
+    each edge on its own (measured in Chromium: 4 4 4 3, 4 5 4 5 and 6 5 5 5).
+    Round the bar width, the gap and the height once, half up, and give every
+    bar those values: the same capture paints 4 4 4 4, 5 5 5 5 and 5 5 5 5.
+    `pixelSnap` in `meter.json` states the rule and tabulates nine display
+    scales. On the phone it is `PixelRatio.roundToNearestPixel`.
+  - **The meter has no color of its own.** It is `currentColor`, tinted with the
+    level's own color as its user picked it. A level past the end of the scale
+    takes the consumer's fallback gray.
+  - `maxLevels` is 7 (six bars, 28px). A consumer that lets a user add levels
+    stops there. Kangentic's Priorities popover does not enforce it yet, so that
+    is a follow-up in kangentic. A scale that is already longer still draws by
+    the rule.
+  - On a card the meter sits in the title row: title, #N, the meter, then the
+    corner glyph. A card draws nothing at level 0 and keeps no slot for it.
+  - Where each consumer draws the meter stays with that consumer. Adoption is not
+    tracked in this repo: kangentic's `PriorityMeter.tsx` can import its numbers
+    from `meter.json`, and kangentic-mobile can replace its flag pill with the
+    meter, on their own schedules.
+  - New `PRIORITY` invariant check, a `priority-meter-geometry` rule holding the
+    decision history, and `npm run gen:priority` in CI, the publish workflow and
+    the four skills that list the generators. `gen-priority.mjs` also takes a
+    review-only switch, so a Design card can render its page without writing
+    `assets/`. The README has a section and an example.
+
 ## [v2.14.0] - 2026-11-17
 
 ### Features
