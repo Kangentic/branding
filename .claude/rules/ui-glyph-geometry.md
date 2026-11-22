@@ -122,8 +122,9 @@ was created to end, starting over in a new place.
 from the brandmark (`lib/mark.mjs`, knockout-disc geometry), the mascot
 (`lib/sprite.mjs`, pixel-art rect grids) and the activity set
 (`lib/activity.mjs`, status marks with a motion contract). A fifth, the demo
-pointer (`lib/pointer.mjs`), has since joined and is not on this grid; see
-`pointer-geometry.md`. The pixel-art rule's
+pointer (`lib/pointer.mjs`), and a sixth, the priority meter
+(`lib/priority.mjs`), have since joined and are not on this grid; see
+`pointer-geometry.md` and `priority-meter-geometry.md`. The pixel-art rule's
 ban on freehand `<path>` governs sprites, not these: a stroked navigation glyph
 is not illustration. Review artifacts under `exploration/ui/` are exempt from
 byte determinism.
