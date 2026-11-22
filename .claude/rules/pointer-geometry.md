@@ -122,7 +122,8 @@ the activity set (`lib/activity.mjs`) and the ui glyphs (`lib/ui-glyphs.mjs`). I
 is not an icon on the 24 grid, so that grid's keylines, stroke 2 and pixel
 lattice do not govern it, and it is not illustration, so the pixel-art rules do
 not either. Review sheets under `exploration/pointer/` are exempt from byte
-determinism.
+determinism. A sixth vocabulary, the priority meter (`lib/priority.mjs`), has
+since joined; see `priority-meter-geometry.md`.
 
 kangentic-mobile does not consume this set, and its rect-only renderer (the
 reason the activity set paints solids only as rects) never sees it:

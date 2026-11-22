@@ -58,12 +58,14 @@ and any future sprite generator.
 
 Does NOT govern the activity icon set (`scripts/lib/activity.mjs`,
 `assets/activity/**`), the ui glyph set (`scripts/lib/ui-glyphs.mjs`,
-`assets/ui/**`) or the demo pointer (`scripts/lib/pointer.mjs`,
-`assets/pointer/**`). Those are stroked UI affordance and navigation glyphs and
-a stand-in for a mouse, not illustration, so the "never freehand `<path>`" and
-"rect grids only" rules do not apply to them - they have their own rules in
-`activity-icon-geometry.md`, `ui-glyph-geometry.md` and `pointer-geometry.md`.
-Pixel art remains the only sanctioned ILLUSTRATION style; a status icon is not
-illustration, and neither is a tab icon or a pointer. The full mascot rationale and decision
+`assets/ui/**`), the demo pointer (`scripts/lib/pointer.mjs`,
+`assets/pointer/**`) or the priority meter (`scripts/lib/priority.mjs`,
+`assets/priority/**`). Those are stroked UI affordance and navigation glyphs,
+a stand-in for a mouse and a row of level bars, not illustration, so the "never
+freehand `<path>`" and "rect grids only" rules do not apply to them - they have
+their own rules in `activity-icon-geometry.md`, `ui-glyph-geometry.md`,
+`pointer-geometry.md` and `priority-meter-geometry.md`. Pixel art remains the
+only sanctioned ILLUSTRATION style; a status icon is not illustration, and
+neither is a tab icon, a pointer or a meter. The full mascot rationale and decision
 history live in the `sprite-drafting` skill; the mascot's role in the
 visual system lives in `design-language`.

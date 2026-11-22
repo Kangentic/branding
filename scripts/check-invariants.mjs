@@ -8,12 +8,13 @@
 // ("reads as craft, not AI clip-art") is NOT here - it stays a human decision.
 //
 // Checks, in run order: PALETTE, SPRITE, TIERING, FROZEN-K, BANNED, MONO,
-// ANIMATION, ACTIVITY, UI, POINTER, STORE, BOARD, RECORD. Respectively: palette
-// membership, sprite constraints, mark tiering (no card-K on a downscaled
+// ANIMATION, ACTIVITY, UI, POINTER, PRIORITY, STORE, BOARD, RECORD. Respectively:
+// palette membership, sprite constraints, mark tiering (no card-K on a downscaled
 // master), frozen-K / single-source geometry, banned colors, the theme-safe mono
 // pair, the shared animation contract (motion budget, compositing safety,
 // packaging), the activity status set, the ui navigation set, the demo pointer
-// (its dot, ring and click manifest), the store art (exact slot sizes,
+// (its dot, ring and click manifest), the priority meter (its reference meters
+// and its rules, pixel snap and worked tables), the store art (exact slot sizes,
 // no alpha, the lockup inside its safe areas), the board's outcome lines (every
 // line a kangentic.json turn-end row waits for is printed by what that column
 // sends), and this gate's own record.
@@ -24,7 +25,7 @@
 //
 // Sources of truth cross-referenced here (change them, not this file):
 //   scripts/lib/mark.mjs, scripts/lib/sprite.mjs, scripts/lib/activity.mjs,
-//   scripts/lib/ui-glyphs.mjs, scripts/lib/pointer.mjs,
+//   scripts/lib/ui-glyphs.mjs, scripts/lib/pointer.mjs, scripts/lib/priority.mjs,
 //   scripts/lib/feature-graphic.mjs, the
 //   .claude/rules/*.md, the design-language skill's palette tokens + banned
 //   list.
@@ -78,6 +79,17 @@ import {
   pointerRingSvg as pPointerRingSvg,
   pointerSvg as pPointerSvg,
 } from "./lib/pointer.mjs";
+// The priority meter (priority-meter-geometry). Pure declarations and pure
+// functions with no imports at all. Q_ because P_ is the pointer's.
+import {
+  DEFAULT_LEVEL_COUNT as Q_DEFAULT_LEVEL_COUNT,
+  MANIFEST_FILE as Q_MANIFEST_FILE,
+  MAX_LEVELS as Q_MAX_LEVELS,
+  SHIPPED_FILES as Q_SHIPPED_FILES,
+  manifest as qManifest,
+  meterFile as qMeterFile,
+  meterSvg as qMeterSvg,
+} from "./lib/priority.mjs";
 // The store art lockup. Pure declarations and pure functions again (it pulls in
 // lib/mark.mjs, lib/sprite.mjs and lib/pixelfont.mjs, all side-effect free);
 // its composition guard is a FUNCTION for the same reason activity's is.
@@ -130,6 +142,13 @@ const pointerSvgs = () => {
   return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/pointer/${f}`);
 };
 
+// Globbed for the same reason the four lists above are.
+const prioritySvgs = () => {
+  const dir = join(ROOT, "assets", "priority");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => f.endsWith(".svg")).map((f) => `assets/priority/${f}`);
+};
+
 // Shipped vector assets consumers embed. resources/web/brandmark*.svg are
 // byte copies of the assets/ ones (gen-icons copyFile), scanned for defense.
 // The mascot list is globbed, not enumerated: pose frames used to be invisible
@@ -145,6 +164,7 @@ const SHIPPED_SVG = [
   ...activitySvgs(),
   ...uiSvgs(),
   ...pointerSvgs(),
+  ...prioritySvgs(),
   "resources/web/brandmark.svg",
   "resources/web/brandmark-small.svg",
 ].filter(has);
@@ -943,6 +963,131 @@ checks.POINTER = () => {
   return findings;
 };
 
+// 10b. The priority meter (priority-meter-geometry). The same behavioural core
+//     as POINTER (shipped bytes equal the lib's output), then the consumption
+//     contract read from the SHIPPED json, because byte equality cannot see a
+//     regression that was regenerated. A consumer draws ANY scale length from
+//     meter.json, so the gate re-derives both worked tables from the json's own
+//     numbers and its stated rules: a table that disagrees with its rules would
+//     pass a consumer's unit tests and still draw the wrong meter. The reference
+//     SVGs are held to being meter.json drawn literally: one rect per bar, no
+//     fill or stroke of their own, each bar where the rules put it.
+const PRIORITY_DIR = "assets/priority";
+const svgAttrs = (s) => Object.fromEntries([...s.matchAll(/([\w-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]));
+checks.PRIORITY = () => {
+  const findings = [];
+  const expected = new Map();
+  for (let level = 0; level < Q_DEFAULT_LEVEL_COUNT; level++) expected.set(qMeterFile(level), qMeterSvg(level) + "\n");
+  expected.set(Q_MANIFEST_FILE, JSON.stringify(qManifest(), null, 2) + "\n");
+  for (const f of Q_SHIPPED_FILES) {
+    const p = `${PRIORITY_DIR}/${f}`;
+    if (!expected.has(f)) findings.push(`lib/priority.mjs: SHIPPED_FILES names ${f}, which no builder produces`);
+    else if (!has(p)) findings.push(`${p}: missing (declared by lib/priority.mjs, run npm run gen:priority)`);
+    else if (load(p) !== expected.get(f)) findings.push(`${p}: drifts from lib/priority.mjs output (regenerate, never hand-edit)`);
+  }
+  if (findings.length) return findings;
+  for (const f of readdirSync(join(ROOT, PRIORITY_DIR))) {
+    if (!expected.has(f)) findings.push(`${PRIORITY_DIR}/${f}: not declared by lib/priority.mjs (stale file)`);
+  }
+
+  const m = JSON.parse(load(`${PRIORITY_DIR}/${Q_MANIFEST_FILE}`));
+  const bar = m.bar ?? {};
+  const op = m.opacity ?? {};
+  // The rules as meter.json states them, applied to meter.json's own numbers.
+  const countOf = (levelCount) => Math.max(1, levelCount - 1);
+  const litOf = (level, levelCount) => Math.max(0, Math.min(level, countOf(levelCount)));
+  const opacityOf = (i, level, levelCount) => (i < litOf(level, levelCount) ? op.lit : level > 0 ? op.unlit : op.none);
+
+  // The reference meters: currentColor, rects only, each bar where the rules put it.
+  const ref = m.reference ?? {};
+  for (let level = 0; level < (ref.levelCount ?? 0); level++) {
+    const f = ref.files?.[level];
+    if (!f || !expected.has(f)) {
+      findings.push(`${Q_MANIFEST_FILE}: reference.files[${level}] names ${f}, which does not ship`);
+      continue;
+    }
+    const src = load(`${PRIORITY_DIR}/${f}`);
+    if (hexes(src).length) findings.push(`${f}: carries a hex color (the meter is currentColor only; the level's color is the consumer's)`);
+    if (!/^<svg[^>]*fill="currentColor"/.test(src)) findings.push(`${f}: the root does not fill currentColor`);
+    const shapes = [...src.replace(/^<svg[^>]*>/, "").matchAll(/<(\w+)\b([^>]*?)\/?>/g)];
+    const other = shapes.find((s) => s[1] !== "rect");
+    if (other) findings.push(`${f}: draws a <${other[1]}>, but a bar is a <rect> (the reference meters are meter.json's bars drawn literally)`);
+    const rects = shapes.filter((s) => s[1] === "rect").map((s) => svgAttrs(s[2]));
+    const count = countOf(ref.levelCount);
+    if (rects.length !== count) findings.push(`${f}: draws ${rects.length} bars, the rules give ${count} for ${ref.levelCount} levels`);
+    rects.forEach((a, i) => {
+      for (const k of ["x", "y", "width", "height"]) {
+        if (a[k] !== undefined && !Number.isInteger(+a[k])) findings.push(`${f}: bar ${i} ${k}="${a[k]}" is off the integer pixel lattice`);
+      }
+      if (+a.x !== i * (bar.width + bar.gap) || +a.width !== bar.width || +a.height !== bar.height || +a.rx !== bar.radius) {
+        findings.push(`${f}: bar ${i} is x ${a.x} ${a.width}x${a.height} rx ${a.rx}, meter.json's bar puts it at x ${i * (bar.width + bar.gap)} ${bar.width}x${bar.height} rx ${bar.radius}`);
+      }
+      if (a.fill !== undefined || a.stroke !== undefined) findings.push(`${f}: bar ${i} paints its own fill or stroke (it must take the root's currentColor)`);
+      const got = a["fill-opacity"] === undefined ? 1 : +a["fill-opacity"];
+      const want = opacityOf(i, level, ref.levelCount);
+      if (got !== want) findings.push(`${f}: bar ${i} has opacity ${got}, the rules give ${want} at level ${level}`);
+    });
+  }
+
+  // The worked table a consumer's tests assert against must be what the rules give.
+  if (!(m.examples ?? []).length) findings.push(`${Q_MANIFEST_FILE}: no worked examples, so a consumer cannot prove it implemented these rules`);
+  for (const e of m.examples ?? []) {
+    const count = countOf(e.levelCount);
+    const width = count * bar.width + (count - 1) * bar.gap;
+    const opac = Array.from({ length: count }, (_, i) => opacityOf(i, e.level, e.levelCount));
+    if (e.width !== width || e.lit !== litOf(e.level, e.levelCount) || JSON.stringify(e.opacities) !== JSON.stringify(opac)) {
+      findings.push(`${Q_MANIFEST_FILE}: examples row ${e.levelCount} levels at level ${e.level} disagrees with its own rules (width ${width}, lit ${litOf(e.level, e.levelCount)}, opacities [${opac.join(",")}])`);
+    }
+  }
+
+  // Device pixels (1B): stated half up, every tabulated value a whole device
+  // pixel and equal to round-half-up, and the table must exercise a tie, or a
+  // half-down implementation would pass every row.
+  const ps = m.pixelSnap ?? {};
+  if (ps.roundHalf !== "up") findings.push(`${Q_MANIFEST_FILE}: pixelSnap.roundHalf must be "up" (1.5x bar width and 1.25x gap are exact ties)`);
+  const up = (v, d) => Math.floor(v * d + 0.5);
+  const snapKeys = [["width", bar.width], ["gap", bar.gap], ["height", bar.height]];
+  let tie = false;
+  for (const ex of ps.examples ?? []) {
+    for (const [k, v] of snapKeys) {
+      const dev = ex.device?.[k];
+      if ((v * ex.dpr) % 1 === 0.5) tie = true;
+      if (!Number.isInteger(dev)) findings.push(`${Q_MANIFEST_FILE}: pixelSnap at ${ex.dpr}x: device.${k} ${dev} is not a whole device pixel`);
+      else if (dev !== up(v, ex.dpr)) findings.push(`${Q_MANIFEST_FILE}: pixelSnap at ${ex.dpr}x: device.${k} is ${dev}, but ${v} x ${ex.dpr} rounded half up is ${up(v, ex.dpr)}`);
+      else if (Math.abs((ex.layout?.[k] ?? NaN) - dev / ex.dpr) > 1e-4) findings.push(`${Q_MANIFEST_FILE}: pixelSnap at ${ex.dpr}x: layout.${k} is not device / dpr`);
+    }
+  }
+  if (!(ps.examples ?? []).length) findings.push(`${Q_MANIFEST_FILE}: pixelSnap has no worked examples`);
+  else if (!tie) findings.push(`${Q_MANIFEST_FILE}: no pixelSnap example lands on an exact .5 tie, so round-half-up is never exercised`);
+
+  // The cap (5B), and the guidance a consumer needs beyond the numbers.
+  if (!Number.isInteger(m.maxLevels) || m.maxLevels < (ref.levelCount ?? 0)) {
+    findings.push(`${Q_MANIFEST_FILE}: maxLevels ${m.maxLevels} must be a whole number no smaller than the reference scale's ${ref.levelCount}`);
+  } else if (!(m.examples ?? []).some((e) => e.levelCount === m.maxLevels)) {
+    findings.push(`${Q_MANIFEST_FILE}: the examples never draw the longest scale (${m.maxLevels} levels)`);
+  }
+  if (m.maxLevels !== Q_MAX_LEVELS) findings.push(`${Q_MANIFEST_FILE}: maxLevels ${m.maxLevels} is not lib/priority.mjs's MAX_LEVELS ${Q_MAX_LEVELS}`);
+  for (const k of ["placement", "levelZero", "accessibility", "color"]) {
+    if (!m[k]) findings.push(`${Q_MANIFEST_FILE}: no ${k} guidance`);
+  }
+
+  // Single-source geometry: no file outside the lib re-declares a meter constant.
+  const GEO = ["BAR_W", "BAR_H", "BAR_GAP", "BAR_R", "UNLIT_OPACITY", "NONE_OPACITY", "MAX_LEVELS", "SNAP_EXAMPLE_DPRS"];
+  const owners = scriptFiles().filter(
+    (f) => rel(f) !== "scripts/lib/priority.mjs" && rel(f) !== "scripts/check-invariants.mjs",
+  );
+  for (const f of owners) {
+    const src = read(f);
+    for (const name of GEO) {
+      if (new RegExp(`(?:^|\\s)(?:export\\s+)?(?:const|let|var)\\s+${name}\\s*=`).test(src)) {
+        findings.push(`${rel(f)}: re-declares priority meter constant ${name} (declare only in lib/priority.mjs)`);
+      }
+    }
+  }
+
+  return findings;
+};
+
 // 11. The store art (lib/feature-graphic.mjs). Both stores reject a file of the
 //     wrong size outright (App Store Connect: "File dimensions are invalid",
 //     which is how the header slot first rejected a phone screenshot) and both
@@ -1086,7 +1231,7 @@ checks.RECORD = () => {
 
 // ---------------------------------------------------------------------------
 // `order` is the single source for the roster every record above must quote.
-const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "POINTER", "STORE", "BOARD", "RECORD"];
+const order = ["PALETTE", "SPRITE", "TIERING", "FROZEN-K", "BANNED", "MONO", "ANIMATION", "ACTIVITY", "UI", "POINTER", "PRIORITY", "STORE", "BOARD", "RECORD"];
 let failed = 0;
 console.log("Kangentic brand invariants (mechanical gate)\n");
 for (const name of order) {

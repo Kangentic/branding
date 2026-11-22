@@ -41,6 +41,13 @@ scripts/lib/pointer.mjs   THE demo pointer: the dot (core + halo, no aura) the
                           picking one, and the click as Web Animations data.
                           Page pixels; every number traced to app #1096's
                           signed-off canvas. Ships no CSS, and says why.
+scripts/lib/priority.mjs  THE priority meter: equal bars, one per level above
+                          the scale's bottom entry, lit up to a task's level.
+                          A RULE plus its numbers (any scale length, capped at
+                          MAX_LEVELS 7), layout px snapped to whole device
+                          px by pixelSnap(), currentColor in the level's own
+                          color; the DECISIONS record of kangentic #1160's
+                          look and branding #24's contract sign-off.
 scripts/lib/pixelfont.mjs THE 5x7 plate font (uppercase, narrow coverage);
                           word() throws on a glyph it does not have.
 scripts/lib/feature-graphic.mjs  THE store art lockup + its copy (STORE_LINE):
@@ -59,6 +66,9 @@ scripts/gen-ui.mjs        UI glyphs -> assets/ui/ + the iOS tab rasters ->
                           exploration/ui/ (npm run gen:ui)
 scripts/gen-pointer.mjs   The pointer -> assets/pointer/ + review sheets ->
                           exploration/pointer/ (npm run gen:pointer)
+scripts/gen-priority.mjs  The priority meter -> assets/priority/ + the review
+                          page -> exploration/priority/ (npm run gen:priority;
+                          --review writes the page only, for a Design card)
 scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
                           exploration/review/ (npm run gen:review); the
                           aesthetic sign-off artifacts, reviewed while the
@@ -66,7 +76,7 @@ scripts/gen-review.mjs    In-situ header mocks + the mobile-surface sheet ->
 scripts/check-invariants.mjs  Mechanical brand-invariant gate (npm run check).
                           Checks, in run order: PALETTE, SPRITE, TIERING,
                           FROZEN-K, BANNED, MONO, ANIMATION, ACTIVITY, UI,
-                          POINTER, STORE, BOARD, RECORD. RECORD asserts this list matches the checks
+                          POINTER, PRIORITY, STORE, BOARD, RECORD. RECORD asserts this list matches the checks
                           that actually run, so it cannot silently fall behind.
 scripts/bash-guard.js     PreToolUse hook (single-command Bash rule)
 assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
@@ -81,7 +91,10 @@ assets/                   Canonical vectors: brandmark{,-small,-filled,-mono,
                           is the Board mark for the mobile tab, the desktop app
                           and the website) + pointer/pointer{,-ring}.svg +
                           pointer.json (the demo pointer's dot, its ring and
-                          its click; currentColor, tinted cream or ink)
+                          its click; currentColor, tinted cream or ink) +
+                          priority/meter-{0..4}.svg + meter.json (the priority
+                          meter: reference meters for the default scale, and
+                          the rules, pixel snap and cap for any scale)
 resources/                Production rasters consumers ship: web/, desktop/,
                           mobile/ (app icons incl. iOS dark/tinted, adaptive +
                           Android 13+ themed layers, notification icon, splash,
@@ -136,6 +149,7 @@ npm run gen:og       # social image -> resources/social/og-image.png
 npm run gen:activity # activity marks -> assets/activity/ + review sheet
 npm run gen:ui       # ui glyphs -> assets/ui/ + iOS tab rasters + review sheets
 npm run gen:pointer  # demo pointer -> assets/pointer/ + review sheets
+npm run gen:priority # priority meter -> assets/priority/ + review page
 npm run gen:review   # in-situ header mocks -> exploration/review/ (light + dark)
 npm run check        # mechanical brand-invariant gate (roster in the file header)
 ```
@@ -182,6 +196,7 @@ matching file enters context. Each rule names its enforcement.
 - `activity-icon-geometry.md` - the activity set's geometry lives only in `scripts/lib/activity.mjs`; one 18-unit layout SLOT on a 24 grid with each form sized optically inside it (geometric parity is not optical parity), stroke 2, currentColor only, every outline extremum on the integer pixel lattice, motion ships as data plus CSS, and every candidate is reviewed alone as well as in adjacency (`scripts/**`, `assets/activity/**`).
 - `ui-glyph-geometry.md` - the ui navigation set's geometry lives only in `scripts/lib/ui-glyphs.mjs`; it imports the activity grid rather than restating it, carries no state or motion, and its iOS tab rasters must be alpha-only template images (`scripts/**`, `assets/ui/**`).
 - `pointer-geometry.md` - the demo pointer's drawing and click live only in `scripts/lib/pointer.mjs`; page pixels a scaled frame divides by its host's scale, `currentColor` only, no aura, the click ships as data with no CSS, and every number traces to app #1096's signed-off canvas (`scripts/**`, `assets/pointer/**`).
+- `priority-meter-geometry.md` - the priority meter's numbers and rules live only in `scripts/lib/priority.mjs`; a rule, not a fixed glyph, for any scale up to 7 levels, layout px snapped to whole device px (round half up), `currentColor` in the level's own color, rects only, and the decision history of kangentic #1160's look and branding #24's contract sign-off (`scripts/**`, `assets/priority/**`).
 - `pixel-art-conventions.md` - sprites are ASCII maps -> `lib/sprite.mjs` rect grids: crispEdges, <=4 palette colors, integer scale only, one canonical map (`scripts/**`).
 - `brand-record-fidelity.md` - the record must match what the code does: status comments are re-read when the status changes, a stated rationale must survive measurement, a generated manifest must serve its documented consumption pattern, and a review artifact must render what its caption claims. Enforced by `/code-review` on the PR (`scripts/**`, `assets/**`, `.claude/skills/**`).
 - `generated-assets-determinism.md` - `assets/` and `resources/` are generated, never hand-edited; generators are deterministic; the CI determinism gate enforces it (`assets/**`, `resources/**`, generators).

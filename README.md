@@ -33,6 +33,9 @@ Published as [`@kangentic/branding`](https://www.npmjs.com/package/@kangentic/br
   over a scripted demo (kangentic.com's hero, the app's web demo), the ring a
   press leaves, and the click as data in `pointer.json`. See "The demo pointer"
   below.
+- **The priority meter** - `assets/priority/`. The equal bars a task's priority
+  draws, as a rule for any scale length in `meter.json` plus reference SVGs for
+  the default scale. See "The priority meter" below.
 - **The production tree** - `resources/`. Everything each surface ships:
   `desktop/` (Electron .ico/.icns + PNG ladder), `web/` (favicons,
   manifest icons, logo), `mobile/` (every OS-owned and store-facing asset
@@ -338,6 +341,78 @@ A CSS beat converts each keyframe instead: a keyframe at `offset` of a track
 that starts `t` ms into a `beat` ms loop sits at
 `(t + offset * durationMs) / beat * 100%`, eased by that keyframe's `easing`.
 
+## The priority meter
+
+`assets/priority/` holds the meter a task's priority draws in the desktop app,
+its web demo and the phone: one bar per level above the scale's bottom entry,
+lit up to the task's level. A user renames and extends the scale, so this is a
+**rule**, not a fixed glyph: `meter.json` carries the numbers and the rules for
+any scale length, and the SVGs draw the default scale (None, Low, Medium, High,
+Urgent) for reference.
+
+```
+meter.json        the numbers, the rules, pixelSnap, maxLevels, placement,
+                  level 0, and worked tables to test an implementation against
+meter-0.svg       None: four bars at 45%
+meter-1.svg ...   Low to Urgent: one to four of four bars lit, the rest at 30%
+meter-4.svg
+```
+
+Rules worth knowing:
+
+- **The bars.** 3 wide, 10 tall (the capital height of the 14px title beside
+  it), 2 apart, 1 corner radius, in layout px: CSS px on the desktop and the
+  web, dp on the phone. A scale of `n` levels draws `max(1, n - 1)` bars, lit
+  `min(max(level, 0), bars)` from the left, so a level past the end of the
+  scale lights every bar.
+- **Snap to whole device pixels.** A renderer rounds each edge on its own, so
+  3px bars come out unequal at 125%, 150% and 175% display scaling. Round each
+  of width, gap and height ONCE, half up: `floor(value * dpr + 0.5) / dpr`, and
+  give every bar those values. React Native's
+  `PixelRatio.roundToNearestPixel(value)` is the same rule. `pixelSnap.examples`
+  tabulates it for the common scales.
+- **Color is the level's own**, as the project's user picked it: tint through
+  `currentColor`. A level past the end of the scale takes your fallback gray.
+  Lit bars draw at full strength, unlit ones at `opacity.unlit` (0.3), and every
+  bar of level 0 at `opacity.none` (0.45).
+- **Level 0 on a card draws nothing** and keeps no slot. A list or picker that
+  names every level draws it as four dim bars.
+- **Placement.** On a card, the title row reads title, #N, the meter, then the
+  corner glyph. The meter is decorative: the element around it carries the
+  level's name ("Priority: High").
+- **At most 7 levels.** A consumer that lets a user add levels stops at
+  `maxLevels`; a scale that is already longer still draws by the rule.
+- **The phone draws Views from `meter.json`**, not the SVGs: its activity
+  renderer would stroke these rects as outlines and drop `fill-opacity`.
+
+Drawn as spans on the web:
+
+```js
+import meter from "@kangentic/branding/assets/priority/meter.json";
+
+const snap = (px, dpr) => Math.floor(px * dpr + 0.5) / dpr;
+
+function drawMeter(el, level, levelCount, color, dpr = window.devicePixelRatio) {
+  const bars = Math.max(1, levelCount - 1);
+  const lit = Math.min(Math.max(level, 0), bars);
+  const [w, gap, h] = [meter.bar.width, meter.bar.gap, meter.bar.height].map((v) => snap(v, dpr));
+  el.style.cssText = `display:inline-flex;align-items:center;gap:${gap}px;height:${h}px;color:${color}`;
+  el.replaceChildren(
+    ...Array.from({ length: bars }, (_, i) => {
+      const bar = document.createElement("span");
+      bar.style.cssText = `width:${w}px;height:${h}px;border-radius:${meter.bar.radius}px;background:currentColor`;
+      bar.style.opacity = i < lit ? meter.opacity.lit : level > 0 ? meter.opacity.unlit : meter.opacity.none;
+      return bar;
+    }),
+  );
+}
+```
+
+Redraw when `devicePixelRatio` changes (a window moving to another monitor):
+``matchMedia(`(resolution: ${dpr}dppx)`)`` fires `change` when it does. To prove
+an implementation, run it against `examples` (bar count, lit count, width and
+opacities for scales of 1 to 7 levels) and `pixelSnap.examples`.
+
 ## Regenerate
 
 Assets are generated and committed - never hand-edit one. To change an
@@ -352,13 +427,15 @@ npm run gen:og       # social image -> resources/social/
 npm run gen:activity # activity marks -> assets/activity/
 npm run gen:ui       # ui glyphs -> assets/ui/ + the iOS tab rasters
 npm run gen:pointer  # demo pointer -> assets/pointer/
+npm run gen:priority # priority meter -> assets/priority/
 npm run check        # the mechanical brand-invariant gate
 ```
 
 All brandmark geometry lives in `scripts/lib/mark.mjs` (the K is frozen path
 data, so there's no font dependency at render time), all activity geometry in
 `scripts/lib/activity.mjs`, all ui glyph geometry in
-`scripts/lib/ui-glyphs.mjs`, and the demo pointer in `scripts/lib/pointer.mjs`.
+`scripts/lib/ui-glyphs.mjs`, the demo pointer in `scripts/lib/pointer.mjs`, and
+the priority meter in `scripts/lib/priority.mjs`.
 Generators are deterministic; CI reruns them on
 every pull request and every push to `main`, and fails if committed output
 drifts or if `npm run check` does. The release pipeline reruns both again on

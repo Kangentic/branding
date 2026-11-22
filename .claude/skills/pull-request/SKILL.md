@@ -64,6 +64,7 @@ the local proof of correctness.
    - `npm run gen:activity`
    - `npm run gen:ui`
    - `npm run gen:pointer`
+   - `npm run gen:priority`
    If any generator errors, report it and stop.
 3. Run `git status --porcelain -- assets/ resources/`. It MUST be empty. If anything changed, a
    generator was changed without committing its regenerated output, or an asset was hand-edited
